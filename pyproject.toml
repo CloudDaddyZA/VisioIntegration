@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "visio-azure-mcp"
+version = "0.1.0"
+description = "MCP server for drawing Azure architecture diagrams in Visio with WAF/CAF alignment"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "pydantic>=2.0.0",
+    "pywin32>=306",
+]
+
+[project.optional-dependencies]
+app = [
+    "streamlit>=1.38.0",
+    "openai>=1.40.0",
+]
+vsdx = [
+    "python-vsdx>=0.5.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[project.scripts]
+visio-mcp = "visio_mcp.server:main"
+visio-app = "app.run:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/visio_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

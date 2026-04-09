@@ -1,0 +1,33 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Output artifacts (generated diagrams, temp scripts)
+output/
+
+# Scripts (build/test helpers, not core)
+scripts/
+
+# Stencil icon packs (large binary assets — download separately)
+src/visio_mcp/stencils/
