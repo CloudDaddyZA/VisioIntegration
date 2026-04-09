@@ -90,6 +90,20 @@ class VisioEngine:
     # ── COM-based rendering (requires Visio) ──────────────────────
 
     def _render_com(self, state: DiagramState, output_path: str) -> str:
+        """Render the diagram via Visio COM automation.
+
+        Creates a new Visio document, sets up page dimensions based on content
+        bounding box, draws boundaries (largest first for correct z-order),
+        resources (with SVG icon import), and connections (with step circles).
+        Kills any orphaned VISIO.EXE processes before starting.
+
+        Args:
+            state: The complete diagram state to render.
+            output_path: Absolute path for the output .vsdx file.
+
+        Returns:
+            The absolute path to the saved .vsdx file.
+        """
         import win32com.client
 
         # Ensure COM is initialized for the current thread
@@ -433,11 +447,20 @@ class VisioEngine:
     def _draw_connection_com(self, connection) -> None:
         """Draw a connector between two shapes using Microsoft Architecture Center conventions.
 
+        Connectors use dynamic glue (BeginX→PinX, EndX→PinX) for automatic
+        routing. Falls back to manual endpoint positioning if glue fails,
+        and to a simple line as a last resort.
+
         Includes:
           - Right-angle routing (Visio RouteStyle)
           - Arrow endpoint on target end
-          - Line color/pattern per connection type
-          - Workflow step number circle at midpoint (if label contains a step number)
+          - All-black line color (#000000) per MS Architecture Center CSS
+          - Line pattern per connection type (solid/dashed/dotted)
+          - Workflow step number circle at midpoint (if label starts with '(N)')
+
+        Args:
+            connection: A Connection model instance with source_id, target_id,
+                       label, connection_type, and style attributes.
         """
         source_shape = self._shapes.get(connection.source_id)
         target_shape = self._shapes.get(connection.target_id)
@@ -615,7 +638,23 @@ class VisioEngine:
     # ── python-vsdx based rendering (no Visio required) ───────────
 
     def _render_vsdx(self, state: DiagramState, output_path: str) -> str:
-        """Render using python-vsdx when Visio is not installed."""
+        """Render using python-vsdx when Visio is not installed.
+
+        Provides a basic .vsdx output with colored rectangles for boundaries
+        and resources. Does not support SVG icon import, step circles, or
+        Microsoft Architecture Center visual conventions. Suitable for
+        headless/Linux environments.
+
+        Args:
+            state: The complete diagram state to render.
+            output_path: Absolute path for the output .vsdx file.
+
+        Returns:
+            The absolute path to the saved .vsdx file.
+
+        Raises:
+            RuntimeError: If neither Visio COM nor python-vsdx is available.
+        """
         try:
             import vsdx
         except ImportError:

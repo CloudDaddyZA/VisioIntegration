@@ -44,6 +44,7 @@ class DiagramManager:
         group_id: str | None = None,
         properties: dict | None = None,
     ) -> DiagramResource:
+        """Add an Azure resource to the diagram. Auto-generates ID if not provided."""
         rid = resource_id or f"res-{uuid.uuid4().hex[:8]}"
         resource = DiagramResource(
             id=rid,
@@ -58,6 +59,7 @@ class DiagramManager:
         return resource
 
     def remove_resource(self, resource_id: str) -> bool:
+        """Remove a resource and all its connections. Returns False if not found."""
         if resource_id not in self._state.resources:
             return False
         del self._state.resources[resource_id]
@@ -72,6 +74,7 @@ class DiagramManager:
         return True
 
     def move_resource(self, resource_id: str, x: float, y: float) -> bool:
+        """Move a resource to a new position. Returns False if not found."""
         if resource_id not in self._state.resources:
             return False
         self._state.resources[resource_id].position = Position(x=x, y=y)
@@ -89,6 +92,7 @@ class DiagramManager:
         connection_type: str = "data_flow",
         style: str = "solid",
     ) -> Connection:
+        """Add a connection between two existing resources. Raises ValueError if either resource is missing."""
         if source_id not in self._state.resources:
             raise ValueError(f"Source resource '{source_id}' not found")
         if target_id not in self._state.resources:
@@ -107,6 +111,7 @@ class DiagramManager:
         return conn
 
     def remove_connection(self, connection_id: str) -> bool:
+        """Remove a connection. Returns False if not found."""
         if connection_id not in self._state.connections:
             return False
         del self._state.connections[connection_id]
@@ -127,6 +132,7 @@ class DiagramManager:
         parent_id: str | None = None,
         properties: dict | None = None,
     ) -> BoundaryGroup:
+        """Add a boundary/container (VNet, subnet, resource group, etc.). Auto-generates ID if not provided."""
         bid = boundary_id or f"bnd-{uuid.uuid4().hex[:8]}"
         boundary = BoundaryGroup(
             id=bid,
@@ -141,6 +147,7 @@ class DiagramManager:
         return boundary
 
     def remove_boundary(self, boundary_id: str) -> bool:
+        """Remove a boundary, unlink its child resources and sub-boundaries. Returns False if not found."""
         if boundary_id not in self._state.boundaries:
             return False
         # Unlink resources assigned to this boundary
@@ -155,6 +162,7 @@ class DiagramManager:
         return True
 
     def assign_to_boundary(self, resource_id: str, boundary_id: str) -> bool:
+        """Assign a resource to a boundary group. Returns False if either is missing."""
         if resource_id not in self._state.resources:
             return False
         if boundary_id not in self._state.boundaries:
@@ -165,9 +173,11 @@ class DiagramManager:
     # ── Query helpers ─────────────────────────────────────────────
 
     def get_resources_in_boundary(self, boundary_id: str) -> list[DiagramResource]:
+        """Return all resources assigned to the given boundary."""
         return [r for r in self._state.resources.values() if r.group_id == boundary_id]
 
     def get_connections_for_resource(self, resource_id: str) -> list[Connection]:
+        """Return all connections where the resource is source or target."""
         return [
             c
             for c in self._state.connections.values()

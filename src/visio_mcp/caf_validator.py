@@ -75,6 +75,18 @@ class CafValidator:
     """Validates an architecture diagram against Azure CAF principles."""
 
     def validate(self, state: DiagramState) -> ValidationReport:
+        """Run all CAF principle checks and return a scored validation report.
+
+        Evaluates the diagram against 7 CAF principles. Each check appends
+        findings with severity levels (critical/warning/info) that are
+        deducted from a base score of 100.
+
+        Args:
+            state: The current diagram state to validate.
+
+        Returns:
+            A ValidationReport with score (0-100), findings list, and summary.
+        """
         findings: list[ValidationFinding] = []
         findings.extend(self._check_naming(state))
         findings.extend(self._check_resource_organization(state))
@@ -97,6 +109,7 @@ class CafValidator:
     # ── Naming Convention ─────────────────────────────────────────
 
     def _check_naming(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check CAF naming conventions: resource prefixes (e.g. vm-, aks-) and environment indicators."""
         findings = []
 
         for res in state.resources.values():
@@ -148,6 +161,7 @@ class CafValidator:
     # ── Resource Organization ─────────────────────────────────────
 
     def _check_resource_organization(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check resource organization: resource group boundaries, subscription hierarchy, management groups."""
         findings = []
         boundary_types = {b.boundary_type for b in state.boundaries.values()}
 
@@ -200,6 +214,7 @@ class CafValidator:
     # ── Network Topology ──────────────────────────────────────────
 
     def _check_network_topology(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check network topology: VNets for IaaS, hub-spoke pattern, subnet segmentation, Bastion."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
         boundary_types = {b.boundary_type for b in state.boundaries.values()}
@@ -257,6 +272,7 @@ class CafValidator:
     # ── Identity and Access ───────────────────────────────────────
 
     def _check_identity(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check identity: Entra ID presence and managed identity for service-to-service auth."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -287,6 +303,7 @@ class CafValidator:
     # ── Governance ────────────────────────────────────────────────
 
     def _check_governance(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check governance: Azure Policy and resource tagging strategy."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -319,6 +336,7 @@ class CafValidator:
     # ── Security Baseline ─────────────────────────────────────────
 
     def _check_security_baseline(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check security baseline: Defender for Cloud and Sentinel SIEM presence."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -347,6 +365,7 @@ class CafValidator:
     # ── Management and Monitoring ─────────────────────────────────
 
     def _check_management(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check management: Azure Monitor, Log Analytics workspace for centralized observability."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -377,6 +396,7 @@ class CafValidator:
     # ── Scoring ───────────────────────────────────────────────────
 
     def _calculate_score(self, findings: list[ValidationFinding]) -> float:
+        """Calculate CAF score: 100 minus weighted deductions (critical=15, warning=8, info=2)."""
         if not findings:
             return 100.0
 
@@ -392,6 +412,7 @@ class CafValidator:
         return max(0.0, min(100.0, 100.0 - deductions))
 
     def _generate_summary(self, findings: list[ValidationFinding], score: float) -> str:
+        """Generate a human-readable summary with counts by severity and affected principles."""
         critical = sum(1 for f in findings if f.severity == "critical")
         warnings = sum(1 for f in findings if f.severity == "warning")
         info = sum(1 for f in findings if f.severity == "info")

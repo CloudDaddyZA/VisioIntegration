@@ -1,152 +1,124 @@
-# app/ — Interactive Streamlit UI
+# app/ — Interactive Streamlit AI Application
 
-A Streamlit-based chat interface that connects to the Visio MCP server, uses AI for natural language understanding, and provides live diagram previews.
+The Streamlit-based front end that provides a chat interface, live diagram preview,
+and sidebar controls for the Visio Azure MCP server.
 
-## Files
+---
 
-| File | Lines | Purpose |
-|------|------:|---------|
-| [`streamlit_app.py`](streamlit_app.py) | 578 | Main app — chat interface, sidebar, diagram preview, import UI |
-| [`ai_agent.py`](ai_agent.py) | 253 | AI agent — OpenAI function calling, token management, conversation truncation |
-| [`diagram_preview.py`](diagram_preview.py) | 251 | Browser-side SVG renderer — converts DiagramState to inline SVG preview |
-| [`mcp_client.py`](mcp_client.py) | 154 | Thread-safe MCP client — stdio transport, background asyncio event loop |
-| [`run.py`](run.py) | 13 | CLI launcher — `visio-app` entry point |
-| [`.env.example`](.env.example) | 15 | Environment variable template for all 3 AI providers |
-| [`__init__.py`](__init__.py) | 1 | Package marker |
-
-## Running
-
-```powershell
-# Recommended: with GitHub Copilot auto-auth
-$env:GITHUB_TOKEN = (gh auth token)
-.\.venv\Scripts\streamlit.exe run app/streamlit_app.py --server.port 8501 --server.headless true
-```
-
-Or via the entry point:
-```powershell
-visio-app
-```
-
-The app auto-connects to the MCP server on startup (spawns `python -m visio_mcp.server` as a subprocess via stdio).
-
-## App Layout
+## Architecture
 
 ```
-┌─────────────── Sidebar ───────────────┬──────────── Main Area ─────────────┐
-│ 🏗️ Azure Visio AI                     │                                    │
-│ ✅ Connected to MCP Server            │  ┌─ Chat (3/5) ──┬─ Preview (2/5)─┐│
-│                                       │  │               │                ││
-│ 🔑 AI Configuration                  │  │  User: ...    │  [SVG Diagram] ││
-│   Provider: GitHub Copilot / OpenAI   │  │  Assistant:.. │                ││
-│   Model: gpt-4.1                      │  │               │  Tool Call Log ││
-│                                       │  │  [Chat Input] │                ││
-│ Quick Actions                         │  └───────────────┴────────────────┘│
-│   [📊 New Diagram] [🔍 Validate WAF] │                                    │
-│                                       │                                    │
-│ Reference Architectures               │                                    │
-│   [Template ▾] [Apply Template]       │                                    │
-│                                       │                                    │
-│ Import                                │                                    │
-│   📄 Visio (.vsdx) │ 🖼️ Image        │                                    │
-│   [Upload] [Import .vsdx]             │                                    │
-│                                       │                                    │
-│ Current Diagram                       │                                    │
-│   Resources: 27  Connections: 15      │                                    │
-│                                       │                                    │
-│ Save path: output/diagram.vsdx [📂]   │                                    │
-│ [💾 Save as .vsdx]                    │                                    │
-│ [🗑️ Reset Conversation]              │                                    │
-└───────────────────────────────────────┴────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Streamlit App (streamlit_app.py)                           │
+│ ┌─────────────────┐  ┌────────────────────────────────────┐ │
+│ │ Sidebar          │  │ Main Area                          │ │
+│ │ • AI Config      │  │ ┌──────────────┐ ┌──────────────┐ │ │
+│ │ • Quick Actions  │  │ │ Chat Column  │ │ Preview Col  │ │ │
+│ │ • Ref Archs      │  │ │ (3/5 width)  │ │ (2/5 width)  │ │ │
+│ │ • Arch Catalog   │  │ │              │ │ diagram_     │ │ │
+│ │   (206 entries)  │  │ │ ai_agent.py  │ │ preview.py   │ │ │
+│ │ • Import (Visio/ │  │ │   ↕ OpenAI   │ │ (SVG render) │ │ │
+│ │   Image)         │  │ │              │ │              │ │ │
+│ │ • Diagram Info   │  │ └──────┬───────┘ └──────────────┘ │ │
+│ │ • Save / Browse  │  │        │                           │ │
+│ └─────────────────┘  └────────┼───────────────────────────┘ │
+│                               │                              │
+│                    ┌──────────▼─────────┐                    │
+│                    │ mcp_client.py      │                    │
+│                    │ (stdio transport)  │                    │
+│                    └──────────┬─────────┘                    │
+│                               │                              │
+└───────────────────────────────┼──────────────────────────────┘
+                                │ stdin/stdout JSON-RPC
+                    ┌───────────▼──────────┐
+                    │ visio_mcp.server     │
+                    │ (MCP Server – 28     │
+                    │  tools, 8 resources, │
+                    │  5 prompts)          │
+                    └──────────────────────┘
 ```
 
-## AI Agent (ai_agent.py)
+---
 
-### Provider Priority
+## Module Reference
 
-1. **`GITHUB_TOKEN`** → GitHub Models endpoint (`models.inference.ai.azure.com`)
-2. **`AZURE_OPENAI_ENDPOINT`** + `AZURE_OPENAI_API_KEY` → Azure OpenAI
-3. **`OPENAI_API_KEY`** → OpenAI
+### `streamlit_app.py` (~790 lines)
 
-The agent auto-detects environment variable changes and recreates the client.
+Main application entry point. Manages:
 
-### Token Management
+- **Page config & CSS** — Wide layout, Azure-blue accent on tool-call/result callouts
+- **Session state** — `messages`, `mcp_client`, `ai_agent`, `diagram_state`, `diagram_rev`, `tool_log`
+- **Connection management** — `init_session()`, `ensure_connection()`, `refresh_diagram_state()`
+- **GitHub CLI auto-auth** — Detects `gh auth token` and pre-sets `GITHUB_TOKEN`
+- **Sidebar controls**:
+  - AI provider radio (GitHub Copilot / OpenAI / Azure OpenAI) with model picker
+  - Quick Actions: New Diagram, Validate WAF
+  - Reference Architecture dropdown (5 templates)
+  - Architecture Catalog expander (206 entries, filterable by category/type/search)
+  - Import tabs: Visio `.vsdx` upload, Image upload (PNG/JPG/SVG → AI conversion)
+  - Diagram info metrics (resources, connections, boundaries)
+  - Save with file browser dialog (PowerShell WinForms)
+- **Main area**: Two-column layout — chat history + tool-call log | SVG diagram preview
 
-- **Max conversation**: ~40,000 characters (~10K tokens)
-- **Max tool result**: 1,500 characters (truncated with notice)
-- **Conversation truncation**: Keeps system prompt + most recent messages; groups assistant `tool_calls` + tool responses atomically so they're never orphaned
-- **Schema compaction**: Strips tool descriptions to first sentence, removes parameter descriptions
+### `ai_agent.py` (~297 lines)
 
-### Sidebar Context Injection
+Orchestrates AI ↔ MCP tool-calling loop:
 
-Sidebar actions (Apply Template, New Diagram, Import VSDX, Convert Image) bypass the chat input but still modify the diagram. To keep the AI aware, each sidebar action calls `agent.inject_context(user_text, assistant_text)` which appends a synthetic user/assistant exchange to the conversation. For template applications, the full resource and boundary list from `get_diagram_state` is included so the AI knows exactly what's loaded.
+- **`AIAgent` class** — Wraps OpenAI function-calling with MCP tool definitions
+- **`SYSTEM_PROMPT`** — 13-guideline prompt covering:
+  - Step-by-step architecture builds
+  - CAF naming conventions
+  - WAF/CAF validation reminders
+  - Save workflow with path confirmation
+  - Reference architecture merging (`merge=True`)
+  - Architecture styles (6) and design patterns (36)
+  - Extended icons (Fabric, Entra)
+  - Architecture Catalog (206 entries)
+- **Provider support** — Automatic client creation for:
+  - GitHub Copilot (GitHub Models at `models.inference.ai.azure.com`)
+  - Azure OpenAI (with deployment + API version)
+  - OpenAI (direct)
+- **Token management** — `_compact_tool_schemas()` strips verbose descriptions;
+  `_truncate_conversation()` keeps conversation within ~40K chars, preserving
+  atomic tool-call/response message groups
+- **`chat()` method** — Multi-round tool-calling loop: sends user message → receives
+  tool_calls → executes via MCP → feeds results back → repeats until final text reply
 
-### Function Calling Loop
+### `mcp_client.py` (~162 lines)
 
-```
-User prompt → append to conversation → loop (max 15 rounds):
-  ├─ Call chat.completions.create(tools=..., tool_choice="auto")
-  ├─ If tool_calls: execute each via MCP client, append results
-  └─ If no tool_calls: return final text + tool log
-```
+Thread-safe MCP client using stdio transport:
 
-### System Prompt
+- **`VisioMCPClient` class** — Runs the MCP session in a dedicated background thread
+  with its own `asyncio` event loop (avoids Streamlit's sync rerun conflicts)
+- **`connect()`** — Spawns `.venv/Scripts/python.exe -m visio_mcp.server` as a subprocess,
+  waits for session initialization (30s timeout)
+- **`call_tool(name, args)`** — Thread-safe blocking call via `run_coroutine_threadsafe()`
+  with configurable timeout (default 120s)
+- **`get_tools_for_openai()`** — Formats MCP tool schemas into OpenAI function-calling format
 
-The agent is instructed to:
-- Break requests into steps: create → boundaries → resources → connect → layout → validate
-- Use CAF-aligned naming (e.g., `rg-app-prod-eastus`)
-- Always suggest WAF/CAF validation after building
-- Suggest reference architectures for common patterns
-- Confirm save paths before saving
+### `diagram_preview.py` (~305 lines)
 
-### Supported Models
+Client-side SVG renderer for real-time diagram preview:
 
-Via GitHub Models: `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o`, `gpt-4o-mini`, `o4-mini`, `o3-mini`, `DeepSeek-R1`, `DeepSeek-V3`, `Llama-3.3-70B-Instruct`, `Phi-4`, `Phi-4-multimodal`, `Mistral-Large-2`, and 15+ more.
+- **`render_diagram_svg(state, width, height)`** — Converts diagram state dict to SVG markup
+- **Color palettes** matching Azure Architecture Center:
 
-## MCP Client (mcp_client.py)
+  | Element | Colors |
+  |---------|--------|
+  | Boundaries | `#E5E5E5` subscription, `#DEEAF6` VNet, `#E2F0D9` subnet, `#FFF2CC` AZ, `#E8E0EE` mgmt group |
+  | Connectors | `#0078D4` data flow, `#107C10` network, `#7030A0` VPN, `#FF8C00` ExpressRoute |
+  | Categories | `#0078D4` Compute, `#107C10` Networking, `#E74856` Databases, `#FFB900` Identity |
 
-The `VisioMCPClient` runs the MCP session in a **dedicated background thread** with its own asyncio event loop. This is required because Streamlit's synchronous rerun model conflicts with async context managers.
+- **Helpers** — `_resource_color()` maps types to colors by keyword matching,
+  `_initials()` generates 2-char icon placeholders, `_get_area()` sorts boundaries largest-first
 
-### Key Design
-
-```python
-class VisioMCPClient:
-    # Background thread owns the event loop
-    _thread: threading.Thread
-    _loop: asyncio.AbstractEventLoop
-    _session: ClientSession
-
-    def connect(self):       # Blocking — starts background thread, waits for ready
-    def call_tool(name, args, timeout=60):  # Thread-safe — submits to background loop
-    def get_tools_for_openai():             # Returns tools in OpenAI function calling format
-```
-
-### Transport
-
-Uses `StdioServerParameters` to spawn the MCP server as a subprocess:
-```python
-StdioServerParameters(
-    command=".venv/Scripts/python.exe",
-    args=["-m", "visio_mcp.server"],
-    env={"PYTHONPATH": "src", **os.environ},
-)
-```
-
-## Diagram Preview (diagram_preview.py)
-
-Renders the diagram state as an inline SVG in the browser using Azure Architecture Center colors. This is a lightweight preview — the actual `.vsdx` rendering is done by the Visio COM engine.
-
-Features:
-- Boundary rectangles with type-specific colors
-- Resource shapes with Azure brand colors
-- Connection lines with arrows
-- Step number circles
-- Responsive scaling via `viewBox`
+---
 
 ## Environment Variables
 
 | Variable | Provider | Description |
 |----------|----------|-------------|
-| `GITHUB_TOKEN` | GitHub Copilot | PAT with `copilot` scope, or output of `gh auth token` |
+| `GITHUB_TOKEN` | GitHub Copilot | Auto-detected from `gh auth token` or set manually |
 | `GITHUB_MODELS_MODEL` | GitHub Copilot | Model name (default: `gpt-4o`) |
 | `OPENAI_API_KEY` | OpenAI | API key |
 | `OPENAI_MODEL` | OpenAI | Model name (default: `gpt-4o`) |
@@ -155,4 +127,24 @@ Features:
 | `AZURE_OPENAI_DEPLOYMENT` | Azure OpenAI | Deployment name |
 | `AZURE_OPENAI_API_VERSION` | Azure OpenAI | API version (default: `2024-12-01-preview`) |
 
-Only **one** provider needs to be configured. GitHub Copilot is recommended — just run `gh auth login`.
+---
+
+## Running
+
+```powershell
+# Recommended (auto-injects GitHub CLI auth):
+$env:GITHUB_TOKEN = (& "C:\Program Files\GitHub CLI\gh.EXE" auth token)
+$env:STREAMLIT_BROWSER_GATHER_USAGE_STATS = "false"
+.\.venv\Scripts\streamlit.exe run app/streamlit_app.py --server.port 8511 --server.headless true
+```
+
+The app auto-connects to the MCP server on startup. No separate server process needed — `mcp_client.py` spawns it as a stdio subprocess.
+
+---
+
+## Dependencies
+
+- `streamlit` — UI framework
+- `openai` — AI provider SDK (supports OpenAI, Azure OpenAI, and GitHub Models)
+- `mcp` — Model Context Protocol client library
+- App modules import from `src/visio_mcp/` via `PYTHONPATH`

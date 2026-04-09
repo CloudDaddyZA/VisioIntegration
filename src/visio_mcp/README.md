@@ -1,180 +1,149 @@
-# visio_mcp — MCP Server Package
+# src/visio_mcp/ — MCP Server Package
 
-The core MCP server that exposes 21 tools for Azure architecture diagram creation, validation, and Visio rendering.
+The core MCP (Model Context Protocol) server that exposes Azure architecture diagram
+capabilities as tools, resources, and prompts for AI agents and direct tool calling.
 
-## Module Overview
+---
 
-| Module | Lines | Purpose |
-|--------|------:|---------|
-| [`server.py`](server.py) | 1,582 | FastMCP server — 21 tools, 5 resources, 5 prompt templates |
-| [`reference_architectures.py`](reference_architectures.py) | 929 | 5 Azure Architecture Center templates with hand-tuned position/boundary hints |
-| [`azure_catalog.py`](azure_catalog.py) | 882 | 70+ Azure resource types, 709 SVG icon path mappings, boundary/connector style defs |
-| [`visio_engine.py`](visio_engine.py) | 613 | Visio COM automation — SVG import, connectors, MS visual standards, python-vsdx fallback |
-| [`waf_validator.py`](waf_validator.py) | 430 | Well-Architected Framework validator (5 pillars, 6 check methods) |
-| [`caf_validator.py`](caf_validator.py) | 350 | Cloud Adoption Framework validator (7 principles, 7 check methods) |
-| [`layout_engine.py`](layout_engine.py) | 229 | Auto-layout engine (tiered, grid, grouped) with position hint support |
-| [`diagram_state.py`](diagram_state.py) | 172 | `DiagramManager` — in-memory CRUD for resources, connections, boundaries |
-| [`models.py`](models.py) | 106 | Pydantic data models — `DiagramState`, `DiagramResource`, `Connection`, `BoundaryGroup`, validators |
+## Capabilities
 
-## Server Tools (21)
+| Type | Count | Description |
+|------|------:|-------------|
+| **Tools** | 28 | Diagram CRUD, layout, validation, reference architectures, rendering, import |
+| **Resources** | 8 | Diagram state, catalog browsing, shape listings |
+| **Prompts** | 5 | Architecture creation, validation, import, style guidance |
+| **Azure Shapes** | 123 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
+| **SVG Icons** | 97+ | Azure Public Service, Entra (7), and Fabric (28) icon sets |
+| **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
+| **Architecture Catalog** | 206 | Reference architectures from Azure Architecture Center |
+| **Design Patterns** | 36 | Cloud design patterns with diagram implications |
+| **Architecture Styles** | 6 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute |
+| **Reference Architectures** | 5 | Hand-tuned templates with position hints and workflow steps |
 
-### Diagram CRUD
+---
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `create_diagram` | `name` | Creates a new empty diagram, resets state |
-| `add_azure_resource` | `resource_type`, `display_name`, `resource_id?`, `x?`, `y?`, `group_id?`, `properties?` | Adds a resource (validates against catalog) |
-| `add_boundary` | `boundary_type`, `display_name`, `boundary_id?`, `x?`, `y?`, `width?`, `height?`, `parent_id?` | Adds a boundary container |
-| `connect_resources` | `source_id`, `target_id`, `label?`, `connection_type?`, `style?` | Creates a labeled connection |
-| `assign_resource_to_boundary` | `resource_id`, `boundary_id` | Moves a resource into a boundary |
-| `remove_resource` | `resource_id` | Removes resource and its connections |
-| `remove_boundary` | `boundary_id` | Removes boundary, unlinks children |
+## Module Reference
 
-### Layout & Rendering
+### `server.py` (~2,310 lines)
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `auto_layout` | `strategy` (tiered/grid/grouped) | Applies automatic layout, re-uses stored hints if available |
-| `save_diagram` | `output_path`, `stencil_dir?`, `icons_root?` | Renders to `.vsdx` via Visio COM |
+FastMCP server entry point. Registers all 28 tools, 8 resources, and 5 prompts.
 
-### Reference Architectures
+Key responsibilities:
+- Tool registration with parameter schemas and docstrings
+- Request routing to `DiagramManager`, `VisioEngine`, `WafValidator`, `CafValidator`
+- Alias resolution via `resolve_alias()` before resource type lookups
+- Category-aware shape metadata injection on add_resource
+- Architecture catalog search and browsing endpoints
+- Image import with OpenAI vision API integration
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `apply_reference_architecture` | `architecture_key`, `name_override?` | Builds a complete diagram from a template |
-| `list_reference_archs` | `category?` | Lists available templates |
-| `get_reference_arch_details` | `architecture_key` | Full template inspection (resources, boundaries, connections, workflow steps) |
+### `models.py` (135 lines)
 
-### Validation
+Pydantic data models shared across all modules:
+- `DiagramState` — Top-level state container (resources, connections, boundaries, page dimensions)
+- `DiagramResource` — Azure resource with position, size, properties, group assignment
+- `Connection` — Labeled typed connector between two resources
+- `BoundaryGroup` — Visual container (VNet, subnet, resource group, etc.)
+- `ValidationFinding` / `ValidationReport` — WAF/CAF validation results
+- `AzureShapeInfo` — Shape catalog entry metadata
+- Enums: `AzureServiceCategory` (19), `WafPillar` (5), `CafPrinciple` (7)
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `validate_waf` | `pillar?` | WAF 5-pillar validation, returns score 0-100 |
-| `validate_caf` | `principle?` | CAF 7-principle validation, returns score 0-100 |
-| `suggest_architecture_improvements` | — | Combined WAF+CAF analysis with missing resource suggestions |
-| `get_waf_tips` | `resource_type` | Per-resource WAF considerations |
+### `diagram_state.py` (189 lines)
 
-### Import
+In-memory diagram state management:
+- `DiagramManager` class with CRUD operations for resources, connections, boundaries
+- Automatic cleanup: removing a resource also removes its connections
+- Boundary assignment/unassignment with cascading parent cleanup
+- Query helpers: `get_resources_in_boundary()`, `get_connections_for_resource()`
+- `summary()` — Compact serialization for MCP tool responses
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `import_vsdx` | `file_path`, `assess_waf?`, `assess_caf?` | Parses existing `.vsdx` via Visio COM, fuzzy-matches shapes to catalog |
-| `import_image` | `file_path` | Converts image to Azure diagram. Raster (PNG/JPG/BMP/GIF/WEBP/TIFF) → GPT-4o Vision; SVG → text analysis |
+### `azure_catalog.py` (~1,490 lines)
 
-### Reference
+Comprehensive Azure resource catalog:
+- **`SVG_ICON_MAP`** (97 entries) — Maps resource type keys to SVG file paths in the Azure Public Service Icons pack
+- **`ENTRA_ICON_MAP`** (7 entries) — Microsoft Entra icon paths
+- **`FABRIC_ICON_MAP`** (28 entries) — Microsoft Fabric icon paths (item + color variants)
+- **`ALL_ICON_MAPS`** — Merged lookup with cross-root path resolution
+- **`RESOURCE_ALIASES`** (40+ entries) — Common abbreviations resolved by `resolve_alias()`
+- **`AZURE_SHAPE_CATALOG`** (123 entries) — Full shape metadata (`AzureShapeInfo`) with stencil names, SVG paths, icon colors, WAF considerations
+- **`BOUNDARY_STYLES`** / **`CONNECTOR_STYLES`** — Visual style definitions
+- **`resolve_svg_path()`** — Resolves resource type → SVG file path (checks filesystem existence)
+- **`get_icons_root()`** — Returns the path to the Azure Public Service Icons directory
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `list_azure_shapes` | `category?`, `search?` | Browse/search the resource catalog |
-| `get_diagram_state` | — | Returns current diagram summary (counts, resource list) |
-| `get_diagram_standards` | — | Returns MS color palette, icon rules, layout conventions |
+### `layout_engine.py` (355 lines)
 
-## Data Models (models.py)
+Automatic diagram layout:
+- `LayoutEngine.layout()` — Main entry point, applies tiered or grid layout
+- Boundary-aware positioning: groups resources within their parent boundaries
+- Connection-aware: positions connected resources near each other
+- Preserves reference architecture position hints when available
+- Page size auto-calculation with margins
 
-```
-DiagramState
-├── name: str
-├── resources: dict[str, DiagramResource]
-│   ├── id, resource_type, display_name
-│   ├── position: Position (x, y)
-│   ├── size: Size (width, height)
-│   ├── properties: dict
-│   └── group_id: Optional[str]  → boundary reference
-├── connections: dict[str, Connection]
-│   ├── id, source_id, target_id
-│   ├── label, connection_type, style
-├── boundaries: dict[str, BoundaryGroup]
-│   ├── id, boundary_type, display_name
-│   ├── position, size
-│   ├── parent_id: Optional[str]  → parent boundary
-│   └── properties: dict
-├── page_width, page_height
-└── _layout_hints, _boundary_hints  (private, from reference architectures)
-```
+### `visio_engine.py` (~715 lines)
 
-## DiagramManager API (diagram_state.py)
+Microsoft Visio COM automation + python-vsdx fallback:
+- **COM rendering** (primary): `_render_com()` creates a Visio document via `win32com.client`
+  - SVG icon import at 1:1 aspect with label positioning
+  - Boundary drawing per Microsoft Architecture Center CSS conventions
+  - Dynamic connector routing with right-angle style and arrow endpoints
+  - Numbered workflow step circles (green #107C10 with white bold text)
+  - White background page, auto page sizing, theme stripping
+- **python-vsdx fallback**: `_render_vsdx()` for headless environments without Visio
+- **Critical rules**:
+  - Always use named cells (never `CellsSRC` indices)
+  - Never call `AutoSizeDrawing()` — manual page sizing
+  - Always call `RemoveTheme()` after document creation
+  - Y-axis flip: Visio uses bottom-up, layout uses top-down
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `new_diagram(name)` | `DiagramState` | Resets to fresh state |
-| `add_resource(resource_type, display_name, ...)` | `DiagramResource` | Auto-generates ID if not given |
-| `remove_resource(resource_id)` | `bool` | Also removes related connections |
-| `move_resource(resource_id, x, y)` | `bool` | Updates position |
-| `add_connection(source_id, target_id, ...)` | `Connection` | Raises `ValueError` if endpoints missing |
-| `remove_connection(connection_id)` | `bool` | — |
-| `add_boundary(boundary_type, display_name, ...)` | `BoundaryGroup` | Auto-generates ID if not given |
-| `remove_boundary(boundary_id)` | `bool` | Unlinks children |
-| `assign_to_boundary(resource_id, boundary_id)` | `bool` | Sets `resource.group_id` |
-| `get_resources_in_boundary(boundary_id)` | `list` | Query helper |
-| `get_connections_for_resource(resource_id)` | `list` | Query helper |
-| `summary()` | `dict` | Name, counts, resource/connection/boundary lists |
+### `waf_validator.py` (~495 lines)
 
-## Visio Engine (visio_engine.py)
+Azure Well-Architected Framework validation:
+- Checks against all 5 WAF pillars plus reference architecture alignment
+- Severity levels: `critical` (−15), `warning` (−8), `info` (−3)
+- Checks include: load balancer presence, multi-region, AZ deployment, Key Vault, managed identity, NSG/Firewall, private endpoints, DDoS, WAF on ingress, monitoring, caching, CDN
+- Reference architecture alignment: private endpoints per PaaS, subnet segmentation, egress control
+- Score: 100 minus severity-weighted deductions
 
-The `VisioEngine` class renders a `DiagramState` to `.vsdx` via Visio COM automation.
+### `caf_validator.py` (~416 lines)
 
-### Rendering Pipeline
+Azure Cloud Adoption Framework validation:
+- Checks against 7 CAF principles
+- Severity levels: `critical` (−15), `warning` (−8), `info` (−2)
+- **Naming Convention** — Validates against CAF prefix table (50+ resource types)
+- **Resource Organization** — Resource group boundaries, subscription hierarchy
+- **Network Topology** — Hub-spoke pattern, subnet segmentation, Bastion
+- **Identity** — Entra ID, managed identity presence
+- **Governance** — Azure Policy, tagging strategy
+- **Security Baseline** — Defender for Cloud, Sentinel
+- **Management** — Monitoring, Log Analytics
 
-1. **Kill orphaned VISIO.EXE** — `taskkill /F /IM VISIO.EXE`
-2. **Create document** — `Dispatch("Visio.Application")`, new doc, set `AlertResponse=6`
-3. **Remove theme** — `doc.RemoveTheme()` (prevents style overrides)
-4. **Calculate page size** — Bounding box of all elements + margins
-5. **White background** — Separate background page (`VisioBG`)
-6. **Enable right-angle routing** — `RouteStyle=1` on page sheet
-7. **Draw boundaries** — Sorted by area (largest first) for correct z-ordering
-8. **Draw resources** — Strategy: (1) `.vssx` stencil master → (2) SVG import → (3) colored rectangle
-9. **Draw connections** — Dynamic connectors with named-cell gluing, arrows, step circles
-10. **Add title** — Top of page
-11. **Save** — `doc.SaveAs(path)` (never call `AutoSizeDrawing`)
+### `reference_architectures.py` (~2,940 lines)
 
-### Visual Standards (from actual MS Architecture Center SVGs)
+Built-in reference architecture definitions:
+- 5 hand-crafted architecture templates with position hints and workflow steps
+- Microsoft Architecture Center visual standards (`MICROSOFT_STANDARDS` dataclass)
+- `AZURE_DIAGRAM_COLORS` — Color palette constants per published Architecture Center SVGs
+- 206-entry architecture catalog from Azure Architecture Center browse page
+- 36 cloud design patterns and 6 architecture styles with metadata
 
-```
-Boundaries:  fill #FFFFFF/#F2F2F2, opacity 55-79%, border #7F7F7F dashed 0.5pt
-Connectors:  #000000, 1pt, right-angle, arrow endpoints
-Step circles: #107C10 (green) fill, white bold Segoe UI number, no stroke
-Labels:      #000000 Segoe UI 9pt, boundary labels #5B9BD5 bold
-```
-
-### Critical COM Rules
-
-- **Named cells only**: `shape.Cells("PinX")` — never `CellsSRC` indices
-- **Never `AutoSizeDrawing()`** — corrupts page geometry
-- **Always `RemoveTheme()`** — themes override explicit colors
-- **Y-flip**: `page_height - y` for all coordinates (Visio Y is bottom-up)
-
-## Azure Catalog (azure_catalog.py)
-
-- `AZURE_SHAPE_CATALOG`: 70+ `AzureShapeInfo` entries with stencil names, SVG paths, icon colors, WAF tips
-- `SVG_ICON_MAP`: 74 resource type → SVG file path mappings
-- `BOUNDARY_STYLES`: 8 boundary types with default colors/patterns
-- `CONNECTOR_STYLES`: 6 connection types with colors/patterns/weights
-- `resolve_svg_path(resource_type, icons_root)`: Resolves the SVG file path for a resource type
-- `get_icons_root()`: Returns the stencils icons directory path
-
-## Validators
-
-### WAF Validator (waf_validator.py)
-
-Checks 6 areas: Reliability, Security, Cost Optimization, Operational Excellence, Performance Efficiency, Reference Architecture Alignment. Scoring: critical = -15, warning = -8, info = -3, from 100.
-
-### CAF Validator (caf_validator.py)
-
-Checks 7 principles: Naming, Resource Organization, Network Topology, Identity, Governance, Security Baseline, Management. Includes `CAF_NAMING_PREFIXES` dict with ~40 expected prefixes. Scoring: critical = -15, warning = -8, info = -2, from 100.
-
-## Reference Architectures (reference_architectures.py)
-
-Each `ReferenceArchitecture` dataclass contains:
-- **Boundary templates** — hierarchy with parent/child relationships
-- **Resource templates** — typed resources with group assignments
-- **Connection templates** — labeled connections with workflow step numbers
-- **Layout hints** — `dict[str, tuple[float, float]]` — exact (x, y) per resource
-- **Boundary hints** — `dict[str, tuple[float, float, float, float]]` — exact (x, y, w, h) per boundary
-- **WAF/CAF notes** — per-pillar/principle commentary
-- **Workflow steps** — numbered descriptions
+---
 
 ## Stencils
 
-The `stencils/Azure_Public_Service_Icons/` directory contains **709 official Azure SVG icons** across 28 categories, sourced from [Microsoft Azure architecture icons](https://learn.microsoft.com/en-us/azure/architecture/icons/).
+The `stencils/` directory contains Azure icon packs (~81 MB, excluded from git):
 
-See [`stencils/Azure_Public_Service_Icons/README.md`](stencils/Azure_Public_Service_Icons/README.md) for details.
+- **Azure Public Service Icons** — `stencils/Azure_Public_Service_Icons/Icons/` (97+ SVGs across 28 categories)
+- **Entra Icons** — `stencils/Entra_Icons/` (7 SVGs)
+- **Fabric Icons** — `stencils/Fabric_Icons/` (28 SVGs)
+
+Download instructions in the root [README.md](../../README.md).
+
+---
+
+## Running Standalone
+
+```powershell
+# As MCP server (stdio transport):
+.\.venv\Scripts\python.exe -m visio_mcp.server
+
+# The Streamlit app spawns this automatically via mcp_client.py
+```

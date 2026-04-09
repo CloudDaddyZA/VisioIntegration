@@ -219,7 +219,12 @@ RESOURCE_ALIASES: dict[str, str] = {
 
 
 def resolve_alias(resource_type: str) -> str:
-    """Resolve a resource type alias to its canonical catalog key."""
+    """Resolve a resource type alias to its canonical catalog key.
+
+    Handles common abbreviations like 'aks' -> 'kubernetes_service',
+    'apim' -> 'api_management', 'vm' -> 'virtual_machine', etc.
+    Returns the original key unchanged if no alias match is found.
+    """
     return RESOURCE_ALIASES.get(resource_type.lower(), resource_type)
 
 

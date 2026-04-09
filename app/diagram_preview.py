@@ -255,18 +255,20 @@ def _get_field(obj: Any, *keys: str, default: Any = "") -> Any:
 
 
 def _to_float(obj: Any, key: str, default: float = 0.0) -> float:
+    """Extract a numeric value from a dict or model attribute, with fallback default."""
     if isinstance(obj, dict):
         return float(obj.get(key, default))
     return float(getattr(obj, key, default))
 
 
 def _get_area(b: Any) -> float:
+    """Calculate boundary area (width * height) for z-order sorting (largest first)."""
     size = _get_field(b, "size", default={})
     return _to_float(size, "width", 6.0) * _to_float(size, "height", 4.0)
 
 
 def _resource_color(rtype: str, category: str = "General") -> str:
-    """Pick color based on resource type keywords."""
+    """Pick a hex color for a resource based on its type keywords, falling back to category."""
     rtype_lower = rtype.lower()
     if any(k in rtype_lower for k in ("vm", "compute", "app_service", "function")):
         return CATEGORY_COLORS["Compute"]
@@ -290,7 +292,7 @@ def _resource_color(rtype: str, category: str = "General") -> str:
 
 
 def _initials(rtype: str) -> str:
-    """Generate 2-char initials from a resource type key."""
+    """Generate 2-char initials from a resource type key (e.g. 'app_service' -> 'AS')."""
     parts = rtype.replace("_", " ").split()
     if len(parts) >= 2:
         return (parts[0][0] + parts[1][0]).upper()

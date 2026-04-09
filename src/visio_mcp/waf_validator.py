@@ -21,6 +21,18 @@ class WafValidator:
     """Validates an architecture diagram against the Azure WAF pillars."""
 
     def validate(self, state: DiagramState) -> ValidationReport:
+        """Run all WAF pillar checks and return a scored validation report.
+
+        Evaluates the diagram against the 5 WAF pillars plus reference
+        architecture alignment. Each check appends findings with severity
+        levels (critical/warning/info) that are deducted from a base score of 100.
+
+        Args:
+            state: The current diagram state to validate.
+
+        Returns:
+            A ValidationReport with score (0-100), findings list, and summary.
+        """
         findings: list[ValidationFinding] = []
         findings.extend(self._check_reliability(state))
         findings.extend(self._check_security(state))
@@ -42,6 +54,7 @@ class WafValidator:
     # ── Reliability ───────────────────────────────────────────────
 
     def _check_reliability(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check Reliability pillar: load balancing, multi-region, AZ, DB failover, storage redundancy."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
         resources = list(state.resources.values())
@@ -125,6 +138,7 @@ class WafValidator:
     # ── Security ──────────────────────────────────────────────────
 
     def _check_security(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check Security pillar: Key Vault, managed identity, NSG/Firewall, private endpoints, DDoS, WAF."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
         resources = list(state.resources.values())
@@ -231,6 +245,7 @@ class WafValidator:
     # ── Cost Optimization ─────────────────────────────────────────
 
     def _check_cost_optimization(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check Cost Optimization pillar: autoscaling, premium SKU justification, standalone VMs."""
         findings = []
         resources = list(state.resources.values())
 
@@ -277,6 +292,7 @@ class WafValidator:
     # ── Operational Excellence ────────────────────────────────────
 
     def _check_operational_excellence(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check Operational Excellence pillar: monitoring, CI/CD, Azure Policy."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -317,6 +333,7 @@ class WafValidator:
     # ── Performance Efficiency ────────────────────────────────────
 
     def _check_performance_efficiency(self, state: DiagramState) -> list[ValidationFinding]:
+        """Check Performance Efficiency pillar: caching, CDN, async messaging."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
         resources = list(state.resources.values())
@@ -457,7 +474,7 @@ class WafValidator:
     # ── Scoring ───────────────────────────────────────────────────
 
     def _calculate_score(self, findings: list[ValidationFinding]) -> float:
-        """Calculate a 0-100 score based on findings severity."""
+        """Calculate WAF score: 100 minus weighted deductions (critical=15, warning=8, info=3)."""
         if not findings:
             return 100.0
 
@@ -473,6 +490,7 @@ class WafValidator:
         return max(0.0, min(100.0, 100.0 - deductions))
 
     def _generate_summary(self, findings: list[ValidationFinding], score: float) -> str:
+        """Generate a human-readable summary with counts by severity and affected pillars."""
         critical = sum(1 for f in findings if f.severity == "critical")
         warnings = sum(1 for f in findings if f.severity == "warning")
         info = sum(1 for f in findings if f.severity == "info")

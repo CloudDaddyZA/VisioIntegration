@@ -90,6 +90,7 @@ def run_async(coro):
 # ── Session state initialization ─────────────────────────────────
 
 def init_session():
+    """Initialize Streamlit session state keys for messages, MCP client, AI agent, and diagram state."""
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "mcp_client" not in st.session_state:
@@ -112,7 +113,7 @@ init_session()
 # ── Connection management ────────────────────────────────────────
 
 def ensure_connection():
-    """Connect to MCP server if not already connected."""
+    """Connect to MCP server if not already connected. Returns True on success, False on failure."""
     if not st.session_state.connected:
         with st.spinner("Connecting to Visio MCP server..."):
             try:
@@ -128,7 +129,7 @@ def ensure_connection():
 
 
 def refresh_diagram_state():
-    """Fetch current diagram state from MCP server."""
+    """Fetch current diagram state from MCP server and increment the revision counter for SVG re-render."""
     if st.session_state.mcp_client and st.session_state.connected:
         try:
             state = st.session_state.mcp_client.call_tool("get_diagram_state", {})
