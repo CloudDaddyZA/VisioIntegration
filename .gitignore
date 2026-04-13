@@ -12,6 +12,9 @@ dist/
 build/
 *.egg
 
+# PyInstaller
+*.spec.bak
+
 # IDE
 .vscode/
 .idea/

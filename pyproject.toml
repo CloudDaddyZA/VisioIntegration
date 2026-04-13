@@ -18,6 +18,12 @@ app = [
     "streamlit>=1.38.0",
     "openai>=1.40.0",
 ]
+desktop = [
+    "streamlit>=1.38.0",
+    "openai>=1.40.0",
+    "pywebview>=5.0",
+    "pyinstaller>=6.0",
+]
 vsdx = [
     "python-vsdx>=0.5.0",
 ]
@@ -29,6 +35,7 @@ dev = [
 [project.scripts]
 visio-mcp = "visio_mcp.server:main"
 visio-app = "app.run:main"
+visio-desktop = "app.desktop:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/visio_mcp"]
