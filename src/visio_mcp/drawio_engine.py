@@ -157,11 +157,21 @@ class DrawioEngine:
 
     def __init__(self) -> None:
         self._cell_id = 2  # 0 and 1 are reserved by mxGraph root cells
+        # Absolute positions of boundaries (inches) for coordinate conversion.
+        # draw.io uses parent-relative coordinates, so children must subtract
+        # their parent's absolute position.
+        self._boundary_abs_pos: dict[str, tuple[float, float]] = {}
 
     def _next_id(self) -> str:
         cid = str(self._cell_id)
         self._cell_id += 1
         return cid
+
+    def _get_parent_offset(self, parent_id: str | None) -> tuple[float, float]:
+        """Return the absolute position (inches) of a parent boundary, or (0,0) for root."""
+        if parent_id and parent_id in self._boundary_abs_pos:
+            return self._boundary_abs_pos[parent_id]
+        return (0.0, 0.0)
 
     # ── Public API ────────────────────────────────────────────────
 
@@ -189,6 +199,11 @@ class DrawioEngine:
 
         # Track resource_id → mxCell id for connections
         id_map: dict[str, str] = {}
+
+        # Pre-compute absolute positions for all boundaries so children
+        # can calculate parent-relative coordinates.
+        for b in state.boundaries.values():
+            self._boundary_abs_pos[b.id] = (b.position.x, b.position.y)
 
         # ── Boundaries ────────────────────────────────────────────
         # Sort by area descending so larger containers come first
@@ -262,11 +277,16 @@ class DrawioEngine:
         # Parent cell: nest inside parent boundary if specified
         parent = id_map.get(boundary.parent_id, "1") if boundary.parent_id else "1"
 
+        # Convert to parent-relative coordinates
+        off_x, off_y = self._get_parent_offset(boundary.parent_id)
+        rel_x = boundary.position.x - off_x
+        rel_y = boundary.position.y - off_y
+
         cell = ET.SubElement(root, "mxCell", id=cell_id, value=boundary.display_name,
                              style=style, vertex="1", parent=parent)
         ET.SubElement(cell, "mxGeometry",
-                      x=str(_in2px(boundary.position.x)),
-                      y=str(_in2px(boundary.position.y)),
+                      x=str(_in2px(rel_x)),
+                      y=str(_in2px(rel_y)),
                       width=str(_in2px(boundary.size.width)),
                       height=str(_in2px(boundary.size.height)),
                       **{"as": "geometry"})
@@ -282,6 +302,11 @@ class DrawioEngine:
         # Parent cell: if resource belongs to a boundary group
         parent = id_map.get(resource.group_id, "1") if resource.group_id else "1"
 
+        # Convert to parent-relative coordinates
+        off_x, off_y = self._get_parent_offset(resource.group_id)
+        rel_x = resource.position.x - off_x
+        rel_y = resource.position.y - off_y
+
         icon_w = _in2px(0.6)
         icon_h = _in2px(0.6)
 
@@ -290,8 +315,8 @@ class DrawioEngine:
             cell = ET.SubElement(root, "mxCell", id=cell_id, value="",
                                  style=style, vertex="1", parent=parent)
             ET.SubElement(cell, "mxGeometry",
-                          x=str(_in2px(resource.position.x)),
-                          y=str(_in2px(resource.position.y)),
+                          x=str(_in2px(rel_x)),
+                          y=str(_in2px(rel_y)),
                           width=str(icon_w), height=str(icon_h),
                           **{"as": "geometry"})
 
@@ -305,8 +330,8 @@ class DrawioEngine:
                                        value=resource.display_name,
                                        style=label_style, vertex="1", parent=parent)
             label_w = max(_in2px(1.2), len(resource.display_name) * 6.5)
-            label_x = _in2px(resource.position.x) + icon_w / 2 - label_w / 2
-            label_y = _in2px(resource.position.y) + icon_h + 4
+            label_x = _in2px(rel_x) + icon_w / 2 - label_w / 2
+            label_y = _in2px(rel_y) + icon_h + 4
             ET.SubElement(label_cell, "mxGeometry",
                           x=str(round(label_x, 1)),
                           y=str(round(label_y, 1)),
@@ -318,8 +343,8 @@ class DrawioEngine:
                                  value=resource.display_name,
                                  style=style, vertex="1", parent=parent)
             ET.SubElement(cell, "mxGeometry",
-                          x=str(_in2px(resource.position.x)),
-                          y=str(_in2px(resource.position.y)),
+                          x=str(_in2px(rel_x)),
+                          y=str(_in2px(rel_y)),
                           width=str(_in2px(resource.size.width)),
                           height=str(_in2px(resource.size.height)),
                           **{"as": "geometry"})
