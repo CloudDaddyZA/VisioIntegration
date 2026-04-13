@@ -49,6 +49,7 @@ from .reference_architectures import (
     search_architecture_catalog,
     get_architecture_catalog_entry,
 )
+from .drawio_engine import DrawioEngine
 from .visio_engine import VisioEngine
 from .waf_validator import WafValidator
 
@@ -579,25 +580,29 @@ def validate_caf(principle: str | None = None) -> dict[str, Any]:
 @mcp.tool()
 def save_diagram(
     output_path: str,
+    format: str = "vsdx",
     stencil_dir: str | None = None,
     icons_root: str | None = None,
     auto_layout_before_save: bool = True,
     layout_strategy: str = "tiered",
 ) -> dict[str, Any]:
-    """Save the current diagram as a Visio .vsdx file.
+    """Save the current diagram as a Visio .vsdx or draw.io (.drawio) file.
 
     If Microsoft Visio is installed, uses COM automation for full-fidelity output
     with official Azure SVG icons imported directly. Otherwise, uses python-vsdx
-    for basic .vsdx creation.
+    for basic .vsdx creation. Alternatively, choose 'drawio' format for a
+    portable XML file that opens in draw.io desktop, VS Code, or diagrams.net.
 
     Args:
-        output_path: File path for the output .vsdx file
+        output_path: File path for the output file
                      (e.g., 'C:/diagrams/my-architecture.vsdx').
+        format: Output format — 'vsdx' (default) or 'drawio'.
         stencil_dir: Optional directory containing Azure Visio stencil files (.vssx).
                      These take priority over SVG icons if both are available.
+                     Only used for 'vsdx' format.
         icons_root: Optional directory containing the Azure Public Service Icons
                     (the 'Icons' folder with category subfolders like compute/, networking/).
-                    Defaults to the bundled stencils directory.
+                    Defaults to the bundled stencils directory. Only used for 'vsdx' format.
         auto_layout_before_save: Whether to auto-layout before saving (default: True).
         layout_strategy: Layout strategy if auto-layout is enabled
                          ('tiered', 'grid', 'grouped').
@@ -605,13 +610,21 @@ def save_diagram(
     Returns:
         Save status, output path, and rendering method used.
     """
+    fmt = format.lower().strip()
+    if fmt not in ("vsdx", "drawio"):
+        return {"status": "error", "message": f"Unsupported format '{format}'. Use 'vsdx' or 'drawio'."}
+
     # Resolve relative paths to a well-known output directory
     _output_dir = Path(__file__).resolve().parent.parent.parent / "output"
     out = Path(output_path)
     if not out.is_absolute():
         out = _output_dir / out.name  # always land in output/
     if not out.suffix:
-        out = out.with_suffix(".vsdx")
+        out = out.with_suffix(f".{fmt}")
+    # Force correct extension for the chosen format
+    expected_ext = f".{fmt}"
+    if out.suffix.lower() != expected_ext:
+        out = out.with_suffix(expected_ext)
     out.parent.mkdir(parents=True, exist_ok=True)
     output_path = str(out)
 
@@ -635,7 +648,14 @@ def save_diagram(
             if not has_positioned:
                 _layout.auto_layout(_diagram.state, strategy=layout_strategy)
 
-    engine = VisioEngine(stencil_dir=stencil_dir, icons_root=icons_root)
+    if fmt == "drawio":
+        engine = DrawioEngine()
+        rendering_method = "draw.io (mxGraph XML)"
+    else:
+        engine = VisioEngine(stencil_dir=stencil_dir, icons_root=icons_root)
+        from .visio_engine import VISIO_AVAILABLE
+        rendering_method = "Visio COM automation (SVG icons)" if VISIO_AVAILABLE else "python-vsdx (basic)"
+
     try:
         saved_path = engine.render(_diagram.state, output_path)
     except Exception as e:
@@ -644,12 +664,11 @@ def save_diagram(
             "message": f"Failed to save diagram: {e}",
         }
 
-    from .visio_engine import VISIO_AVAILABLE
-
     return {
         "status": "saved",
         "output_path": saved_path,
-        "rendering_method": "Visio COM automation (SVG icons)" if VISIO_AVAILABLE else "python-vsdx (basic)",
+        "format": fmt,
+        "rendering_method": rendering_method,
         "resource_count": len(_diagram.state.resources),
         "connection_count": len(_diagram.state.connections),
         "boundary_count": len(_diagram.state.boundaries),

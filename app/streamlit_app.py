@@ -597,6 +597,26 @@ with st.sidebar:
     _default_save = str(_ROOT / "output" / "diagram.vsdx")
     if "save_path" not in st.session_state:
         st.session_state.save_path = _default_save
+    if "save_format" not in st.session_state:
+        st.session_state.save_format = "Visio (.vsdx)"
+
+    # Format selector
+    save_format = st.radio(
+        "Output format",
+        ["Visio (.vsdx)", "draw.io (.drawio)"],
+        index=0 if st.session_state.save_format == "Visio (.vsdx)" else 1,
+        horizontal=True,
+        key="save_format_radio",
+    )
+    st.session_state.save_format = save_format
+
+    # Update default extension when format changes
+    _fmt_ext = ".vsdx" if "vsdx" in save_format else ".drawio"
+    _current_path = Path(st.session_state.save_path)
+    if _current_path.suffix.lower() not in (".vsdx", ".drawio"):
+        st.session_state.save_path = str(_current_path.with_suffix(_fmt_ext))
+    elif _current_path.suffix.lower() != _fmt_ext:
+        st.session_state.save_path = str(_current_path.with_suffix(_fmt_ext))
 
     save_col1, save_col2 = st.columns([4, 1])
     with save_col1:
@@ -614,16 +634,17 @@ with st.sidebar:
         import subprocess as _sp
         _init_dir = str(Path(st.session_state.save_path).parent)
         _init_file = Path(st.session_state.save_path).name
-        # Use a VBS script for a non-blocking-style Save dialog
-        _vbs = (
-            'Set d = CreateObject("UserAccounts.CommonDialog")\n'
+        _filter_str = (
+            'Visio files (*.vsdx)|*.vsdx|All files (*.*)|*.*'
+            if "vsdx" in save_format
+            else 'draw.io files (*.drawio)|*.drawio|All files (*.*)|*.*'
         )
         # WinForms dialog via PowerShell with -STA to avoid threading issues
         _ps_script = (
             "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; "
             "$f = New-Object System.Windows.Forms.SaveFileDialog; "
-            "$f.Title = 'Save Visio Diagram'; "
-            "$f.Filter = 'Visio files (*.vsdx)|*.vsdx|All files (*.*)|*.*'; "
+            "$f.Title = 'Save Diagram'; "
+            f"$f.Filter = '{_filter_str}'; "
             f"$f.InitialDirectory = '{_init_dir}'; "
             f"$f.FileName = '{_init_file}'; "
             "$f.OverwritePrompt = $true; "
@@ -643,19 +664,26 @@ with st.sidebar:
         except Exception as e:
             st.warning(f"Browse dialog failed: {e}")
 
-    if st.button("💾 Save as .vsdx", use_container_width=True):
+    _save_label = "💾 Save as .vsdx" if "vsdx" in save_format else "💾 Save as .drawio"
+    if st.button(_save_label, use_container_width=True):
         if ensure_connection():
+            _fmt_key = "vsdx" if "vsdx" in save_format else "drawio"
             # Ensure output directory exists
             save_path = st.session_state.save_path
             save_dir = Path(save_path).parent
             save_dir.mkdir(parents=True, exist_ok=True)
-            with st.spinner("Saving diagram (Visio rendering may take a moment)..."):
+            _spinner_msg = (
+                "Saving diagram (Visio rendering may take a moment)..."
+                if _fmt_key == "vsdx"
+                else "Saving diagram as draw.io..."
+            )
+            with st.spinner(_spinner_msg):
                 try:
                     result = st.session_state.mcp_client.call_tool(
-                        "save_diagram", {"output_path": save_path}, timeout=300
+                        "save_diagram", {"output_path": save_path, "format": _fmt_key}, timeout=300
                     )
                 except TimeoutError:
-                    st.error("Save timed out — Visio COM may be unresponsive. Try closing any open Visio windows and retry.")
+                    st.error("Save timed out — try again.")
                     result = None
                 except Exception as e:
                     st.error(f"Save failed: {e}")
@@ -667,7 +695,7 @@ with st.sidebar:
                     file_size = os.path.getsize(saved_to)
                     st.caption(f"File size: {file_size / 1024:.1f} KB")
                 else:
-                    st.warning("File not found at reported path — check Visio COM output.")
+                    st.warning("File not found at reported path.")
             elif result:
                 st.error(result.get("message", "Save failed"))
 

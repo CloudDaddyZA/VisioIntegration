@@ -18,6 +18,11 @@ build/
 *.swp
 *.swo
 
+# Environment / secrets
+.env
+*.env
+!.env.example
+
 # OS
 Thumbs.db
 Desktop.ini
