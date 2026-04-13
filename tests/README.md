@@ -52,6 +52,7 @@ Focused tests for the `ai_landing_zone` reference architecture:
    from visio_mcp.waf_validator import WafValidator
    from visio_mcp.caf_validator import CafValidator
    from visio_mcp.layout_engine import LayoutEngine
+   from visio_mcp.drawio_engine import DrawioEngine
    from visio_mcp.azure_catalog import AZURE_SHAPE_CATALOG, resolve_alias
    ```
 3. Use `DiagramManager()` to build diagrams programmatically:
@@ -70,4 +71,5 @@ Focused tests for the `ai_landing_zone` reference architecture:
 
 Tests do **not** require Microsoft Visio to be installed — they validate
 the in-memory diagram state, layout, and validation logic. Only `save_diagram`
-and Visio COM rendering require a Windows machine with Visio.
+with `format="vsdx"` requires a Windows machine with Visio. The `format="drawio"`
+output works on any platform without Visio.

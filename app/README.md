@@ -42,7 +42,7 @@ and sidebar controls for the Visio Azure MCP server.
 
 ## Module Reference
 
-### `streamlit_app.py` (~790 lines)
+### `streamlit_app.py` (~830 lines)
 
 Main application entry point. Manages:
 
@@ -57,6 +57,7 @@ Main application entry point. Manages:
   - Architecture Catalog expander (206 entries, filterable by category/type/search)
   - Import tabs: Visio `.vsdx` upload, Image upload (PNG/JPG/SVG → AI conversion)
   - Diagram info metrics (resources, connections, boundaries)
+  - Output format selector: Visio (`.vsdx`) or draw.io (`.drawio`)
   - Save with file browser dialog (PowerShell WinForms)
 - **Main area**: Two-column layout — chat history + tool-call log | SVG diagram preview
 

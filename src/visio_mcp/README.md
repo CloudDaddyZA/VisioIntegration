@@ -19,6 +19,7 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 | **Design Patterns** | 36 | Cloud design patterns with diagram implications |
 | **Architecture Styles** | 6 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute |
 | **Reference Architectures** | 5 | Hand-tuned templates with position hints and workflow steps |
+| **Output Formats** | 2 | Visio `.vsdx` (COM / python-vsdx) and draw.io `.drawio` (mxGraph XML) |
 
 ---
 
@@ -30,7 +31,7 @@ FastMCP server entry point. Registers all 28 tools, 8 resources, and 5 prompts.
 
 Key responsibilities:
 - Tool registration with parameter schemas and docstrings
-- Request routing to `DiagramManager`, `VisioEngine`, `WafValidator`, `CafValidator`
+- Request routing to `DiagramManager`, `VisioEngine`, `DrawioEngine`, `WafValidator`, `CafValidator`
 - Alias resolution via `resolve_alias()` before resource type lookups
 - Category-aware shape metadata injection on add_resource
 - Architecture catalog search and browsing endpoints
@@ -77,6 +78,17 @@ Automatic diagram layout:
 - Connection-aware: positions connected resources near each other
 - Preserves reference architecture position hints when available
 - Page size auto-calculation with margins
+
+### `drawio_engine.py` (~275 lines)
+
+Draw.io (mxGraph XML) rendering engine — **no Visio or Windows required**:
+- **`DrawioEngine.render()`** — Converts `DiagramState` to a `.drawio` file
+- **`DRAWIO_AZURE_STYLES`** (97+ entries) — Maps resource type keys to draw.io style strings using the built-in `img/lib/azure2/` Azure icon library
+- Boundaries rendered as styled rounded rectangles with fill/stroke from `BOUNDARY_STYLES`
+- Connectors rendered as orthogonal edges with colors/patterns from `CONNECTOR_STYLES`
+- Labels positioned below icons, matching the Visio rendering layout
+- Nested boundary support via mxGraph's `parent` cell relationships
+- Output readable by draw.io Desktop, VS Code draw.io extension, and diagrams.net
 
 ### `visio_engine.py` (~715 lines)
 

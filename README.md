@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server and interactive Streamlit app that creates **production-quality Microsoft Visio architecture diagrams** aligned with [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/) standards.
 
-Combines AI-driven natural language understanding with Visio COM automation to go from *"build me a 3-tier web app"* to a fully rendered `.vsdx` file — with official Azure SVG icons, Microsoft-standard boundary styling, numbered workflow steps, and WAF/CAF validation.
+Combines AI-driven natural language understanding with Visio COM automation to go from *"build me a 3-tier web app"* to a fully rendered `.vsdx` or `.drawio` file — with official Azure SVG icons, Microsoft-standard boundary styling, numbered workflow steps, and WAF/CAF validation.
 
 ---
 
@@ -18,7 +18,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 | **Architecture Catalog** | `browse_architecture_catalog`, `search_arch_catalog`, `get_arch_catalog_entry` | Browse/search 206 real architectures from Azure Architecture Center |
 | **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 36 cloud design patterns + 6 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
-| **Rendering** | `save_diagram` | Renders to `.vsdx` via Visio COM with official Azure SVG icons |
+| **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
 | **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files or convert screenshots/whiteboard photos/SVGs to diagrams |
 | **Reference** | `list_azure_shapes`, `get_diagram_state`, `get_diagram_standards` | Catalog browsing and diagram inspection |
 
@@ -30,7 +30,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 - **Reference Architecture Templates** — One-click apply for 5 Azure Architecture Center patterns
 - **Architecture Catalog Browser** — Sidebar browser with category/type filters for 206 Azure architectures
 - **Import & Assess** — Upload existing `.vsdx` for WAF/CAF assessment, or upload an image for AI-powered conversion
-- **Save to Visio** — Export as `.vsdx` with browse dialog
+- **Save to Visio or draw.io** — Export as `.vsdx` or `.drawio` with format selector and browse dialog
 
 ### Visual Standards (from actual Microsoft Architecture Center SVGs)
 
@@ -64,8 +64,8 @@ Every diagram follows the exact visual conventions extracted from published Azur
 │  │ WAF        │ │ CAF         │ │ Azure Catalog       │ │
 │  │ Validator  │ │ Validator   │ │ (123 shapes, 97 SVG)│ │
 │  ├────────────┤ ├─────────────┤ ├─────────────────────┤ │
-│  │ Visio COM  │ │ VSDX Import │ │ Architecture Catalog│ │
-│  │ Engine     │ │ (COM parse) │ │ (206 entries)       │ │
+│  │ Visio COM  │ │ Draw.io     │ │ Architecture Catalog│ │
+│  │ Engine     │ │ Engine      │ │ (206 entries)       │ │
 │  └────────────┘ └─────────────┘ └─────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -77,7 +77,7 @@ Every diagram follows the exact visual conventions extracted from published Azur
 | Requirement | Version | Notes |
 |-------------|---------|-------|
 | **Python** | ≥ 3.11 | Tested on 3.14 |
-| **Microsoft Visio** | 2019+ / Microsoft 365 | Required for `.vsdx` rendering (COM automation) |
+| **Microsoft Visio** | 2019+ / Microsoft 365 | Required for `.vsdx` rendering (COM automation); **not required** for `.drawio` output |
 | **Windows** | 10/11 | Visio COM is Windows-only |
 | **GitHub CLI** (optional) | Any | For GitHub Copilot auto-auth (`gh auth login`) |
 
@@ -168,6 +168,7 @@ The app auto-connects to the MCP server on startup (spawns a subprocess via stdi
 - *"Apply the baseline Foundry chat reference architecture"*
 - *"Validate my architecture against WAF"*
 - *"Save as production-web-app.vsdx"*
+- *"Save as drawio format"*
 
 ### Option B: VS Code MCP Integration
 
@@ -316,6 +317,7 @@ VisioIntegration/
 │   ├── diagram_state.py               # In-memory diagram state manager (DiagramManager)
 │   ├── azure_catalog.py               # 123 resource shapes, 97 SVG icons, 40+ aliases
 │   ├── visio_engine.py                # Visio COM rendering engine (SVG import, connectors)
+│   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, Azure icons)
 │   ├── layout_engine.py               # Auto-layout (tiered, grid, grouped strategies)
 │   ├── reference_architectures.py     # 5 templates + 206 catalog + 36 patterns + 6 styles
 │   ├── waf_validator.py               # WAF 5-pillar validation engine
@@ -338,6 +340,18 @@ VisioIntegration/
 ├── scripts/                           # Build/maintenance scripts (git-ignored)
 └── output/                            # Generated diagrams (git-ignored)
 ```
+
+---
+
+## Draw.io Output
+
+The `.drawio` format is a portable alternative that **does not require Microsoft Visio**. Files can be opened in:
+
+- [draw.io Desktop](https://github.com/jgraph/drawio-desktop)
+- [VS Code draw.io extension](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio)
+- [diagrams.net](https://app.diagrams.net/) (browser)
+
+The draw.io engine maps all 97+ Azure resource types to draw.io's built-in Azure 2021 icon library (`img/lib/azure2/`), styled boundaries with correct fill/stroke colors, and orthogonal connectors with arrow styles matching the Visio output.
 
 ---
 
@@ -368,7 +382,8 @@ VisioIntegration/
 1. Add an SVG path to `SVG_ICON_MAP` in [`azure_catalog.py`](src/visio_mcp/azure_catalog.py)
 2. Add an `AzureShapeInfo` entry to `AZURE_SHAPE_CATALOG` with category, stencil name, icon color, and optional WAF considerations
 3. *(Optional)* Add common aliases to `RESOURCE_ALIASES` (e.g., `"aks": "kubernetes_service"`)
-4. Place the SVG file in `stencils/Azure_Public_Service_Icons/Icons/<category>/`
+4. Add a draw.io style entry to `DRAWIO_AZURE_STYLES` in [`drawio_engine.py`](src/visio_mcp/drawio_engine.py)
+5. Place the SVG file in `stencils/Azure_Public_Service_Icons/Icons/<category>/`
 
 ### Adding a New Reference Architecture
 
