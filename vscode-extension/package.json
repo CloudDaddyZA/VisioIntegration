@@ -1,0 +1,177 @@
+{
+  "name": "azure-visio-assistant",
+  "displayName": "Azure Visio AI Assistant",
+  "description": "AI-powered Azure architecture diagram creation with Visio and draw.io output, WAF/CAF validation, and 200+ reference architectures.",
+  "version": "0.1.0",
+  "publisher": "CloudDaddyZA",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CloudDaddyZA/VisioIntegration"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "azure",
+    "architecture",
+    "visio",
+    "drawio",
+    "diagram",
+    "WAF",
+    "CAF",
+    "MCP"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "azureVisio.newDiagram",
+        "title": "Azure Visio: New Diagram",
+        "icon": "$(add)"
+      },
+      {
+        "command": "azureVisio.openPreview",
+        "title": "Azure Visio: Open Diagram Preview",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "azureVisio.saveDiagram",
+        "title": "Azure Visio: Save Diagram",
+        "icon": "$(save)"
+      },
+      {
+        "command": "azureVisio.addResource",
+        "title": "Azure Visio: Add Resource"
+      },
+      {
+        "command": "azureVisio.addConnection",
+        "title": "Azure Visio: Add Connection"
+      },
+      {
+        "command": "azureVisio.addBoundary",
+        "title": "Azure Visio: Add Boundary Group"
+      },
+      {
+        "command": "azureVisio.autoLayout",
+        "title": "Azure Visio: Auto-Layout Diagram"
+      },
+      {
+        "command": "azureVisio.validateWAF",
+        "title": "Azure Visio: Validate WAF Alignment"
+      },
+      {
+        "command": "azureVisio.validateCAF",
+        "title": "Azure Visio: Validate CAF Naming"
+      },
+      {
+        "command": "azureVisio.loadReferenceArch",
+        "title": "Azure Visio: Load Reference Architecture"
+      },
+      {
+        "command": "azureVisio.browseShapeCatalog",
+        "title": "Azure Visio: Browse Shape Catalog"
+      },
+      {
+        "command": "azureVisio.startMcpServer",
+        "title": "Azure Visio: Start MCP Server"
+      },
+      {
+        "command": "azureVisio.stopMcpServer",
+        "title": "Azure Visio: Stop MCP Server"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "azureVisio",
+          "title": "Azure Visio",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "azureVisio": [
+        {
+          "id": "azureVisio.resources",
+          "name": "Resources"
+        },
+        {
+          "id": "azureVisio.connections",
+          "name": "Connections"
+        },
+        {
+          "id": "azureVisio.validation",
+          "name": "Validation"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "azureVisio.addResource",
+          "when": "view == azureVisio.resources",
+          "group": "navigation"
+        },
+        {
+          "command": "azureVisio.addConnection",
+          "when": "view == azureVisio.connections",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Azure Visio AI Assistant",
+      "properties": {
+        "azureVisio.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python interpreter with visio_mcp installed. Leave empty to auto-detect from the workspace .venv."
+        },
+        "azureVisio.mcpServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the visio_mcp source directory. Leave empty to auto-detect from the workspace."
+        },
+        "azureVisio.defaultFormat": {
+          "type": "string",
+          "enum": ["vsdx", "drawio"],
+          "default": "drawio",
+          "description": "Default diagram output format."
+        },
+        "azureVisio.autoStartServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the MCP server when the extension activates."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "npm run compile -- --watch",
+    "lint": "eslint src --ext ts",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.6.0",
+    "@vscode/vsce": "^3.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
