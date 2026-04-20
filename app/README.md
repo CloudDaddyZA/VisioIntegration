@@ -13,11 +13,11 @@ and sidebar controls for the Visio Azure MCP server.
 │ ┌─────────────────┐  ┌────────────────────────────────────┐ │
 │ │ Sidebar          │  │ Main Area                          │ │
 │ │ • AI Config      │  │ ┌──────────────┐ ┌──────────────┐ │ │
-│ │ • Quick Actions  │  │ │ Chat Column  │ │ Preview Col  │ │ │
-│ │ • Ref Archs      │  │ │ (3/5 width)  │ │ (2/5 width)  │ │ │
-│ │ • Arch Catalog   │  │ │              │ │ diagram_     │ │ │
-│ │   (206 entries)  │  │ │ ai_agent.py  │ │ preview.py   │ │ │
-│ │ • Import (Visio/ │  │ │   ↕ OpenAI   │ │ (SVG render) │ │ │
+│ │ • Business →     │  │ │ Chat Column  │ │ Preview Col  │ │ │
+│ │   Architecture  │  │ │ (3/5 width)  │ │ (2/5 width)  │ │ │
+│ │ • Quick Actions  │  │ │              │ │ diagram_     │ │ │
+│ │ • Ref Archs      │  │ │ ai_agent.py  │ │ preview.py   │ │ │
+│ │ • Arch Catalog   │  │ │   ↕ OpenAI   │ │ (SVG render) │ │ │
 │ │   Image)         │  │ │              │ │              │ │ │
 │ │ • Diagram Info   │  │ └──────┬───────┘ └──────────────┘ │ │
 │ │ • Save / Browse  │  │        │                           │ │
@@ -34,7 +34,7 @@ and sidebar controls for the Visio Azure MCP server.
                     │ visio_mcp.server     │
                     │ (MCP Server – 28     │
                     │  tools, 8 resources, │
-                    │  6 prompts)          │
+                    │  7 prompts)          │
                     └──────────────────────┘
 ```
 
@@ -42,17 +42,18 @@ and sidebar controls for the Visio Azure MCP server.
 
 ## Module Reference
 
-### `streamlit_app.py` (~780 lines)
+### `streamlit_app.py` (~940 lines)
 
 Main application entry point. Manages:
 
 - **Page config & CSS** — Wide layout, Azure-blue accent on tool-call/result callouts
-- **Session state** — `messages`, `mcp_client`, `ai_agent`, `diagram_state`, `diagram_rev`, `tool_log`
+- **Session state** — `messages`, `mcp_client`, `ai_agent`, `diagram_state`, `diagram_rev`, `tool_log`, `biz_req_text`
 - **Connection management** — `init_session()`, `ensure_connection()`, `refresh_diagram_state()`
 - **GitHub CLI auto-auth** — Detects `gh auth token` and pre-sets `GITHUB_TOKEN`
-- **First-run onboarding** — Expandable sidebar guide with quick start, example prompts, and tool overview
+- **First-run onboarding** — Expandable sidebar guide with quick start (4 steps including business requirements), example prompts, and tool overview
 - **Sidebar controls**:
   - AI provider radio (GitHub Copilot / OpenAI / Azure OpenAI) with model picker
+  - **Business → Architecture**: Text area for business requirements + "Generate Architecture" button — injects a structured prompt that triggers the AI’s business-to-architecture workflow (analyse → style → catalog → patterns → build → validate → explain)
   - Quick Actions: New Diagram, Validate WAF
   - Reference Architecture dropdown (5 templates)
   - Architecture Catalog expander (206 entries, filterable by category/type/search)
@@ -62,12 +63,12 @@ Main application entry point. Manages:
   - Save with file browser dialog (PowerShell WinForms)
 - **Main area**: Two-column layout — chat history + tool-call log | HTML/SVG diagram preview with page tabs
 
-### `ai_agent.py` (~297 lines)
+### `ai_agent.py` (~380 lines)
 
 Orchestrates AI ↔ MCP tool-calling loop:
 
 - **`AIAgent` class** — Wraps OpenAI function-calling with MCP tool definitions
-- **`SYSTEM_PROMPT`** — 13-guideline prompt covering:
+- **`SYSTEM_PROMPT`** — 14-guideline prompt covering:
   - Step-by-step architecture builds
   - CAF naming conventions
   - WAF/CAF validation reminders
@@ -76,6 +77,7 @@ Orchestrates AI ↔ MCP tool-calling loop:
   - Architecture styles (6) and design patterns (36)
   - Extended icons (Fabric, Entra)
   - Architecture Catalog (206 entries)
+  - Business requirements → architecture workflow (analyse → style → catalog → patterns → build → validate → explain)
 - **Provider support** — Automatic client creation for:
   - GitHub Copilot (GitHub Models at `models.inference.ai.azure.com`)
   - Azure OpenAI (with deployment + API version)

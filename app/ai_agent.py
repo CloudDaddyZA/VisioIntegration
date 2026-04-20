@@ -78,6 +78,18 @@ specific entry. Categories: AI + Machine Learning, Analytics, Compute, Container
 Databases, DevOps, Developer Tools, Hybrid + Multicloud, Identity, Integration, IoT, \
 Media, Migration, Networking, Security, Storage, Web. Types: Architecture, Reference \
 Architecture, Solution Idea, Best Practice.
+14. BUSINESS REQUIREMENTS: When the user describes a business case or business need \
+(rather than a technical architecture), follow this workflow: \
+(a) Analyse the requirement — identify workload type, scale, data needs, integrations, \
+security/compliance, availability, and budget sensitivity. \
+(b) Use suggest_architecture_style to pick the best-fit pattern. \
+(c) Use search_arch_catalog to find matching reference architectures from the 206-entry catalog. \
+(d) Use suggest_design_patterns for cross-cutting concerns. \
+(e) Build the diagram step-by-step: create_diagram → add boundaries (CAF naming) → \
+add resources → add connections → auto_layout. \
+(f) Validate with validate_waf and validate_caf. \
+(g) Explain every design decision — why each service was chosen, key trade-offs, \
+estimated cost tier, and next-step recommendations.
 
 Available architecture styles:
 - n_tier: N-Tier (layered tiers separated by subnets)

@@ -127,10 +127,13 @@ standards — official icons, reference architectures, WAF & CAF validation.
 **1. Just describe what you need** — type in the chat:
 > *"Create a 3-tier web app with App Service, SQL Database, and Redis Cache"*
 
-**2. Or start from a template** — use **Reference Architectures** in the sidebar:
+**2. Or describe a business need** — use **💡 Business → Architecture** in the sidebar:
+> *"We need an e-commerce platform for 10K users with payments and inventory"*
+
+**3. Or start from a template** — use **Reference Architectures** in the sidebar:
 - Baseline Foundry Chat · Azure Landing Zone · Baseline Web App · AI Landing Zone · Microservices on AKS
 
-**3. Save your diagram** — pick **.vsdx** (Visio) or **.drawio** format at the bottom of the sidebar.
+**4. Save your diagram** — pick **.vsdx** (Visio) or **.drawio** format at the bottom of the sidebar.
 
 ---
 
@@ -138,6 +141,7 @@ standards — official icons, reference architectures, WAF & CAF validation.
 | What you say | What happens |
 |---|---|
 | *"Build a hub-spoke network with Azure Firewall"* | Creates full landing zone diagram |
+| *"We need an online store for 5K users with payments"* | Analyses business needs → builds architecture |
 | *"Add an Azure SQL Database connected to the App Service"* | Adds resource + connection |
 | *"Validate my architecture against WAF"* | Runs Well-Architected Framework checks |
 | *"Validate CAF naming conventions"* | Checks Cloud Adoption Framework compliance |
@@ -347,6 +351,40 @@ with st.sidebar:
                 os.environ["AZURE_OPENAI_API_KEY"] = az_key
             if deployment:
                 os.environ["AZURE_OPENAI_DEPLOYMENT"] = deployment
+
+    st.divider()
+
+    # Business Requirements → Architecture
+    st.subheader("💡 Business → Architecture")
+    st.caption("Describe a business need and the AI will design the architecture.")
+
+    if "biz_req_text" not in st.session_state:
+        st.session_state.biz_req_text = ""
+
+    biz_req = st.text_area(
+        "Business requirement",
+        value=st.session_state.biz_req_text,
+        height=120,
+        placeholder="e.g. We need an e-commerce platform for 10K concurrent users with payment processing, inventory management, and a mobile API.",
+        key="biz_req_input",
+    )
+    st.session_state.biz_req_text = biz_req
+
+    if st.button("🚀 Generate Architecture", use_container_width=True, disabled=not biz_req.strip()):
+        if ensure_connection():
+            # Build the chat prompt using the business_to_architecture template guidance
+            user_prompt = (
+                f"**Business Requirement:**\n\n{biz_req.strip()}\n\n"
+                "Please analyse this business requirement and build a complete "
+                "Azure architecture diagram following the business-to-architecture workflow: "
+                "identify workload characteristics, select an architecture style, check the "
+                "architecture catalog for matching references, choose Azure services, build "
+                "the diagram with proper CAF naming, validate with WAF and CAF, and explain "
+                "your design decisions."
+            )
+            st.session_state.messages.append({"role": "user", "content": user_prompt})
+            st.session_state.biz_req_text = ""  # Clear after submission
+            st.rerun()
 
     st.divider()
 
@@ -844,9 +882,12 @@ with chat_col:
 **Try these:**
 - *"Create a 3-tier web application architecture"*
 - *"Build a hub-spoke landing zone with Azure Firewall"*
+- *"We need an e-commerce platform for 10K users with payment processing"*
 - *"Apply the baseline Foundry chat reference architecture"*
 - *"Add an Azure SQL Database and connect it to the App Service"*
 - *"Validate my architecture against WAF"*
+
+Use **💡 Business → Architecture** in the sidebar to describe a business need and auto-generate the architecture.
 
 GitHub Copilot auth is auto-detected from `gh auth login`.
 """)

@@ -2495,6 +2495,71 @@ Source: https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenari
 Validate with WAF and CAF after creation."""
 
 
+@mcp.prompt()
+def business_to_architecture() -> str:
+    """Translate a business case or business requirement into an Azure architecture diagram — analyze workload characteristics, select architecture style, build resources, and validate."""
+    return """\
+You are an Azure Solutions Architect. The user will describe a **business case** or \
+**business requirement** (not a technical architecture). Your job is to translate their \
+business needs into an Azure architecture diagram.
+
+Follow this structured workflow:
+
+## 1. Analyse the Business Requirement
+Break the requirement into these dimensions:
+- **Workload type** — Web app, API, batch processing, real-time analytics, AI/ML, IoT, etc.
+- **Users & scale** — Expected concurrent users, requests/sec, data volume, growth trajectory
+- **Data requirements** — Relational, NoSQL, files/blobs, search, caching, data lake
+- **Integration** — Third-party APIs, on-premises connectivity, messaging/events
+- **Security & compliance** — Authentication (B2C, B2B, internal), regulatory (PCI, HIPAA, SOC2), data residency
+- **Availability & DR** — SLA target, RPO/RTO, multi-region needs
+- **Budget sensitivity** — Cost-optimised vs. performance-first
+
+## 2. Select Architecture Style
+Use `suggest_architecture_style` with a description of the workload to pick the best-fit \
+pattern (N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute). \
+Use `get_architecture_style_detail` for deeper guidance.
+
+## 3. Check the Architecture Catalog
+Use `search_arch_catalog` with keywords from the business domain to find matching reference \
+architectures or solution ideas from the 206-entry Azure Architecture Center catalog. \
+If a good match exists, prefer using `apply_reference_architecture` or the catalog entry \
+as a blueprint.
+
+## 4. Identify Design Patterns
+Use `suggest_design_patterns` for any cross-cutting concerns (caching, resilience, \
+async processing, CQRS, etc.). Apply the returned diagram_implications when placing resources.
+
+## 5. Build the Diagram Step-by-Step
+1. `create_diagram` with a descriptive name derived from the business case
+2. Add **boundaries** first (resource groups, VNets, subnets) using CAF naming: \
+   `rg-<app>-<env>-<region>`, `vnet-<app>-<env>-<region>`
+3. Add **resources** one by one inside boundaries, choosing the right Azure service \
+   for each requirement (e.g., App Service for web, Azure SQL for relational data, \
+   Redis Cache for caching, Service Bus for messaging)
+4. Add **connections** with descriptive labels (e.g., "HTTPS", "Private Endpoint", \
+   "Service Bus Queue")
+5. `auto_layout` for clean arrangement
+
+## 6. Validate & Iterate
+Run `validate_waf` and `validate_caf` to check compliance. Fix any findings, \
+then re-validate until scores are acceptable.
+
+## 7. Explain Your Decisions
+After building, provide a brief summary:
+- Why you chose each Azure service
+- Key architecture decisions and trade-offs
+- Estimated cost tier (Dev/Test, Production, Enterprise)
+- Recommendations for next steps (monitoring, CI/CD, disaster recovery)
+
+**Important rules:**
+- Always explain your reasoning *before* making tool calls
+- Use CAF-compliant naming conventions throughout
+- Prefer managed PaaS services over IaaS unless the requirement demands it
+- Include security (NSGs, Private Endpoints, Managed Identity) by default
+- Add monitoring (Application Insights, Log Analytics) unless explicitly out of scope"""
+
+
 # ═══════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════

@@ -8,7 +8,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 ## Features
 
-### MCP Server (28 tools · 8 resources · 6 prompts)
+### MCP Server (28 tools · 8 resources · 7 prompts)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -25,6 +25,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 ### Interactive Streamlit App
 
 - **AI Chat Interface** — Describe your architecture in natural language; the AI agent translates to MCP tool calls
+- **Business Requirements → Architecture** — Describe a business need (e.g., "e-commerce platform for 10K users") and the AI analyses workload characteristics, selects an architecture style, picks Azure services, builds the diagram with CAF naming, validates WAF/CAF, and explains every design decision
 - **Live Diagram Preview** — SVG preview updates in real-time as you build, with page tabs for multi-page Visio imports
 - **Multiple AI Providers** — GitHub Copilot (GitHub Models), OpenAI, Azure OpenAI
 - **Reference Architecture Templates** — One-click apply for 5 Azure Architecture Center patterns
@@ -179,6 +180,7 @@ $env:GITHUB_TOKEN = (gh auth token)
 
 The app auto-connects to the MCP server on startup (spawns a subprocess via stdio). Open http://localhost:8501 and try:
 - *"Create a 3-tier web application architecture"*
+- *"We need an e-commerce platform for 10K users with payment processing"* (business → architecture)
 - *"Apply the baseline Foundry chat reference architecture"*
 - *"Validate my architecture against WAF"*
 - *"Save as production-web-app.vsdx"*
@@ -324,10 +326,10 @@ VisioIntegration/
 ├── desktop.spec                       # PyInstaller build spec for desktop app
 ├── .gitignore                         # Excludes .venv, stencils, output, scripts
 │
-├── src/visio_mcp/                     # MCP Server package (~9,900 lines total)
+├── src/visio_mcp/                     # MCP Server package (~10,300 lines total)
 │   ├── __init__.py                    # Package marker with version
 │   ├── __main__.py                    # Entry point: python -m visio_mcp
-│   ├── server.py                      # FastMCP server — 28 tools, 8 resources, 6 prompts
+│   ├── server.py                      # FastMCP server — 28 tools, 8 resources, 7 prompts
 │   ├── models.py                      # Pydantic data models (DiagramState, resources, etc.)
 │   ├── diagram_state.py               # In-memory diagram state manager (DiagramManager)
 │   ├── azure_catalog.py               # 123 resource shapes, 97 SVG icons, 40+ aliases
@@ -339,7 +341,7 @@ VisioIntegration/
 │   ├── caf_validator.py               # CAF 7-principle validation engine
 │   └── stencils/                      # Azure icon SVGs (not in git — download separately)
 │
-├── app/                               # Streamlit interactive UI (~1,590 lines total)
+├── app/                               # Streamlit interactive UI (~1,870 lines total)
 │   ├── __init__.py                    # Package marker
 │   ├── streamlit_app.py               # Main app — chat, preview, sidebar, import, onboarding
 │   ├── ai_agent.py                    # AI agent — OpenAI function calling, 3 providers

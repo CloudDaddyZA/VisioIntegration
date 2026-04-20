@@ -11,7 +11,7 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 |------|------:|-------------|
 | **Tools** | 28 | Diagram CRUD, layout, validation, reference architectures, rendering, import |
 | **Resources** | 8 | Diagram state, catalog browsing, shape listings |
-| **Prompts** | 6 | Architecture creation, validation, import, style guidance, getting started |
+| **Prompts** | 7 | Architecture creation, validation, import, style guidance, business requirements, getting started |
 | **Azure Shapes** | 123 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
 | **SVG Icons** | 97+ | Azure Public Service, Entra (7), and Fabric (28) icon sets |
 | **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
@@ -25,9 +25,9 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 ## Module Reference
 
-### `server.py` (~2,140 lines)
+### `server.py` (~2,570 lines)
 
-FastMCP server entry point. Registers all 28 tools, 8 resources, and 6 prompts.
+FastMCP server entry point. Registers all 28 tools, 8 resources, and 7 prompts.
 
 Key responsibilities:
 - Tool registration with parameter schemas and docstrings
@@ -36,6 +36,7 @@ Key responsibilities:
 - Category-aware shape metadata injection on add_resource
 - Architecture catalog search and browsing endpoints
 - Image import with OpenAI vision API integration
+- Business-to-architecture prompt with 7-step structured workflow
 
 ### `models.py` (~109 lines)
 
