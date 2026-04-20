@@ -37,9 +37,13 @@ export class ConnectionTreeProvider
 
       return Object.values(state.connections).map((c: any) => {
         const srcName =
-          (resources[c.source_id] as any)?.display_name ?? c.source_id;
+          (resources[c.from ?? c.source_id] as any)?.name ??
+          (resources[c.from ?? c.source_id] as any)?.display_name ??
+          c.from ?? c.source_id;
         const tgtName =
-          (resources[c.target_id] as any)?.display_name ?? c.target_id;
+          (resources[c.to ?? c.target_id] as any)?.name ??
+          (resources[c.to ?? c.target_id] as any)?.display_name ??
+          c.to ?? c.target_id;
         return new ConnectionItem(
           `${srcName} → ${tgtName}`,
           c.label ?? c.connection_type ?? "",

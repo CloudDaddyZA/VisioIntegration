@@ -8,7 +8,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 ## Features
 
-### MCP Server (28 tools · 8 resources · 5 prompts)
+### MCP Server (28 tools · 8 resources · 6 prompts)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -19,18 +19,32 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 | **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 36 cloud design patterns + 6 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
 | **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
-| **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files or convert screenshots/whiteboard photos/SVGs to diagrams |
+| **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files (multi-page support) or convert screenshots/whiteboard photos/SVGs to diagrams |
 | **Reference** | `list_azure_shapes`, `get_diagram_state`, `get_diagram_standards` | Catalog browsing and diagram inspection |
 
 ### Interactive Streamlit App
 
 - **AI Chat Interface** — Describe your architecture in natural language; the AI agent translates to MCP tool calls
-- **Live Diagram Preview** — SVG preview updates in real-time as you build
+- **Live Diagram Preview** — SVG preview updates in real-time as you build, with page tabs for multi-page Visio imports
 - **Multiple AI Providers** — GitHub Copilot (GitHub Models), OpenAI, Azure OpenAI
 - **Reference Architecture Templates** — One-click apply for 5 Azure Architecture Center patterns
 - **Architecture Catalog Browser** — Sidebar browser with category/type filters for 206 Azure architectures
-- **Import & Assess** — Upload existing `.vsdx` for WAF/CAF assessment, or upload an image for AI-powered conversion
+- **Import & Assess** — Upload existing `.vsdx` (multi-page) for WAF/CAF assessment, or upload an image for AI-powered conversion
 - **Save to Visio or draw.io** — Export as `.vsdx` or `.drawio` with format selector and browse dialog
+- **First-run Onboarding** — Expandable getting-started guide with example prompts and tool overview
+
+### Desktop App (PyInstaller)
+
+- **Standalone Windows executable** — Single-package `AzureVisioAssistant.exe` bundled via PyInstaller
+- **Embedded browser** — Uses `pywebview` to wrap the Streamlit interface in a native window
+- **Includes all assets** — Stencil SVGs, Streamlit runtime, and MCP server bundled together
+
+### VS Code Extension
+
+- **Tree views** — Connection status, resource list, validation findings in the sidebar
+- **13 Commands** — Create diagram, add resource, connect resources, validate, save, and more
+- **Auto-start MCP** — Spawns the Python MCP server on activation with auto-detected `.venv`
+- **Diagram preview** — Webview-based architecture diagram preview panel
 
 ### Visual Standards (from actual Microsoft Architecture Center SVGs)
 
@@ -279,10 +293,10 @@ AI agents and users can use common abbreviations — they resolve automatically:
 
 | Pillar | Checks |
 |--------|--------|
-| **Reliability** | Load balancers, multi-region, availability zones, geo-replication, storage redundancy |
+| **Reliability** | Load balancers, multi-region (name/boundary/Traffic Manager/Front Door detection), availability zones (boundary + name detection), geo-replication (paired DBs, DB-to-DB connections, boundary notes), storage redundancy |
 | **Security** | Key Vault, managed identity, NSG/Firewall, private endpoints, DDoS, WAF, Defender |
 | **Cost Optimization** | Autoscale, premium SKU justification, standalone VM count |
-| **Operational Excellence** | Monitoring, CI/CD, Azure Policy |
+| **Operational Excellence** | Monitoring, CI/CD (resource type + name-based detection), Azure Policy |
 | **Performance Efficiency** | Caching, CDN, async messaging |
 
 ### CAF — Cloud Adoption Framework
@@ -307,12 +321,13 @@ Scoring: starts at 100, critical findings deduct 15, warnings deduct 8, info ded
 VisioIntegration/
 ├── README.md                          # This file
 ├── pyproject.toml                     # Package config (hatchling build system)
+├── desktop.spec                       # PyInstaller build spec for desktop app
 ├── .gitignore                         # Excludes .venv, stencils, output, scripts
 │
-├── src/visio_mcp/                     # MCP Server package (~10,600 lines total)
+├── src/visio_mcp/                     # MCP Server package (~9,900 lines total)
 │   ├── __init__.py                    # Package marker with version
 │   ├── __main__.py                    # Entry point: python -m visio_mcp
-│   ├── server.py                      # FastMCP server — 28 tools, 8 resources, 5 prompts
+│   ├── server.py                      # FastMCP server — 28 tools, 8 resources, 6 prompts
 │   ├── models.py                      # Pydantic data models (DiagramState, resources, etc.)
 │   ├── diagram_state.py               # In-memory diagram state manager (DiagramManager)
 │   ├── azure_catalog.py               # 123 resource shapes, 97 SVG icons, 40+ aliases
@@ -320,24 +335,38 @@ VisioIntegration/
 │   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, Azure icons)
 │   ├── layout_engine.py               # Auto-layout (tiered, grid, grouped strategies)
 │   ├── reference_architectures.py     # 5 templates + 206 catalog + 36 patterns + 6 styles
-│   ├── waf_validator.py               # WAF 5-pillar validation engine
+│   ├── waf_validator.py               # WAF 6-pillar validation engine (smart multi-region detection)
 │   ├── caf_validator.py               # CAF 7-principle validation engine
 │   └── stencils/                      # Azure icon SVGs (not in git — download separately)
 │
-├── app/                               # Streamlit interactive UI (~1,550 lines total)
+├── app/                               # Streamlit interactive UI (~1,590 lines total)
 │   ├── __init__.py                    # Package marker
-│   ├── streamlit_app.py               # Main app — chat, preview, sidebar, import
+│   ├── streamlit_app.py               # Main app — chat, preview, sidebar, import, onboarding
 │   ├── ai_agent.py                    # AI agent — OpenAI function calling, 3 providers
 │   ├── mcp_client.py                  # Thread-safe MCP client — stdio, background loop
-│   ├── diagram_preview.py             # Browser-side SVG diagram renderer
+│   ├── diagram_preview.py             # Browser-side SVG/HTML diagram renderer with page tabs
+│   ├── desktop.py                     # PyWebView desktop wrapper
 │   ├── run.py                         # CLI launcher (visio-app entry point)
 │   └── .env.example                   # Environment variable template
+│
+├── vscode-extension/                  # VS Code extension (TypeScript, esbuild)
+│   ├── src/
+│   │   ├── extension.ts               # Extension entry — 13 commands, 3 tree views
+│   │   ├── mcpServer.ts               # MCP server lifecycle (spawn, connect, reconnect)
+│   │   ├── diagramPreview.ts          # Webview-based diagram preview panel
+│   │   └── views/                     # Tree data providers
+│   │       ├── connectionTree.ts      # MCP connection status tree
+│   │       ├── resourceTree.ts        # Diagram resource list tree
+│   │       └── validationTree.ts      # WAF/CAF validation findings tree
+│   ├── package.json                   # Extension manifest (commands, views, menus)
+│   └── esbuild.js                     # Build config
 │
 ├── tests/                             # Integration test suite
 │   ├── test_reference_arch.py         # Tests all 5 reference architecture templates
 │   └── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
 │
 ├── scripts/                           # Build/maintenance scripts (git-ignored)
+├── dist/                              # Desktop app build output (git-ignored)
 └── output/                            # Generated diagrams (git-ignored)
 ```
 

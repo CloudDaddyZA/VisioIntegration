@@ -521,6 +521,8 @@ def validate_waf(pillar: str | None = None) -> dict[str, Any]:
                 "message": f.message,
                 "recommendation": f.recommendation,
                 "affected_resources": f.affected_resources,
+                "page": f.page,
+                "page_name": f.page_name or "",
             }
             for f in report.findings
         ],
@@ -567,6 +569,8 @@ def validate_caf(principle: str | None = None) -> dict[str, Any]:
                 "message": f.message,
                 "recommendation": f.recommendation,
                 "affected_resources": f.affected_resources,
+                "page": f.page,
+                "page_name": f.page_name or "",
             }
             for f in report.findings
         ],
@@ -1385,6 +1389,7 @@ def get_diagram_standards() -> dict[str, Any]:
 @mcp.tool()
 def import_vsdx(
     file_path: str,
+    page: int | str = "all",
     assess_waf: bool = True,
     assess_caf: bool = True,
 ) -> dict[str, Any]:
@@ -1395,8 +1400,14 @@ def import_vsdx(
     Azure resource types), connections, and boundary rectangles, then populates
     the diagram state so you can build on top of it.
 
+    Supports multi-page/tab Visio files. By default imports all pages.
+
     Args:
         file_path: Absolute or relative path to the .vsdx file to import.
+        page: Which page(s) to import. Options:
+              - "all" (default): Import all pages/tabs.
+              - "list": Return page names and counts without importing.
+              - An integer (1-based): Import only that page number.
         assess_waf: Run WAF validation after import (default True).
         assess_caf: Run CAF validation after import (default True).
 
@@ -1538,16 +1549,55 @@ def import_vsdx(
         app.Visible = False
         app.AlertResponse = 6
         doc = app.Documents.Open(file_path)
-        page = doc.Pages(1)
 
-        # Parse all shapes on Page 1
+        total_pages = doc.Pages.Count
+
+        # "list" mode — return page info without importing
+        if isinstance(page, str) and page.lower() == "list":
+            page_info = []
+            for pi in range(1, total_pages + 1):
+                pg = doc.Pages(pi)
+                page_info.append({
+                    "page_number": pi,
+                    "name": pg.Name,
+                    "shape_count": pg.Shapes.Count,
+                })
+            doc.Close()
+            return {
+                "status": "page_list",
+                "file_path": file_path,
+                "total_pages": total_pages,
+                "pages": page_info,
+            }
+
+        # Determine which pages to import
+        if isinstance(page, str) and page.lower() == "all":
+            page_numbers = list(range(1, total_pages + 1))
+        else:
+            page_num = int(page)
+            if page_num < 1 or page_num > total_pages:
+                doc.Close()
+                return {
+                    "status": "error",
+                    "message": f"Page {page_num} out of range. File has {total_pages} page(s).",
+                }
+            page_numbers = [page_num]
+
+        # Parse shapes from selected pages
         resources_found = []
         boundaries_found = []
         connectors_found = []
+        page_names = []
 
-        for i in range(1, page.Shapes.Count + 1):
-            shape = page.Shapes(i)
-            text = (shape.Text or "").strip()
+        for page_idx in page_numbers:
+            pg = doc.Pages(page_idx)
+            page_names.append(pg.Name)
+            # Prefix for IDs to avoid collisions across pages
+            prefix = f"p{page_idx}-" if len(page_numbers) > 1 else ""
+
+            for i in range(1, pg.Shapes.Count + 1):
+                shape = pg.Shapes(i)
+                text = (shape.Text or "").strip()
             if not text:
                 continue
 
@@ -1576,6 +1626,8 @@ def import_vsdx(
                             "source_text": src_id,
                             "target_text": tgt_id,
                             "label": text if text != src_id and text != tgt_id else "",
+                            "page": page_idx,
+                            "prefix": prefix,
                         })
                 except Exception:
                     pass
@@ -1620,6 +1672,8 @@ def import_vsdx(
                     "y": py - h / 2,
                     "width": w,
                     "height": h,
+                    "page": page_idx,
+                    "prefix": prefix,
                 })
             else:
                 rtype = _guess_resource_type(text, master_name)
@@ -1631,6 +1685,8 @@ def import_vsdx(
                     "y": py,
                     "width": w,
                     "height": h,
+                    "page": page_idx,
+                    "prefix": prefix,
                 })
 
         doc.Close()
@@ -1645,51 +1701,86 @@ def import_vsdx(
 
     # Populate diagram state
     diagram_name = Path(file_path).stem.replace("_", " ").replace("-", " ").title()
+    if len(page_names) == 1:
+        diagram_name = f"{diagram_name} — {page_names[0]}"
     _diagram.new_diagram(diagram_name)
+    # Store page metadata on the state for preview/validators
+    _diagram.state.properties["pages"] = [
+        {"number": pn, "name": page_names[idx]}
+        for idx, pn in enumerate(page_numbers)
+    ]
+
+    # For multi-page imports, offset each page's Y position so they don't overlap
+    page_y_offsets: dict[int, float] = {}
+    if len(page_numbers) > 1:
+        y_offset = 0.0
+        for pidx in page_numbers:
+            page_y_offsets[pidx] = y_offset
+            # Find max Y extent on this page
+            max_y = 0.0
+            for b in boundaries_found:
+                if b["page"] == pidx:
+                    max_y = max(max_y, b["y"] + b["height"])
+            for r in resources_found:
+                if r["page"] == pidx:
+                    max_y = max(max_y, r["y"] + r.get("height", 1.0))
+            y_offset += max_y + 2.0  # 2-inch gap between pages
+    else:
+        for pidx in page_numbers:
+            page_y_offsets[pidx] = 0.0
 
     # Add boundaries
     text_to_bid: dict[str, str] = {}
     for i, b in enumerate(boundaries_found):
-        bid = f"imported-boundary-{i}"
+        bid = f"{b['prefix']}imported-boundary-{i}"
+        y_off = page_y_offsets.get(b["page"], 0.0)
+        _page_name = page_names[page_numbers.index(b["page"])] if b["page"] in page_numbers else ""
         _diagram.add_boundary(
             boundary_type=b["boundary_type"],
             display_name=b["text"],
             boundary_id=bid,
-            x=b["x"], y=b["y"],
+            x=b["x"], y=b["y"] + y_off,
             width=b["width"], height=b["height"],
+            properties={"page": b["page"], "page_name": _page_name},
         )
-        text_to_bid[b["text"]] = bid
+        # Key by prefix+text to handle same name on different pages
+        text_to_bid[b["prefix"] + b["text"]] = bid
 
     # Add resources
     text_to_rid: dict[str, str] = {}
     for i, r in enumerate(resources_found):
-        rid = f"imported-resource-{i}"
+        rid = f"{r['prefix']}imported-resource-{i}"
         rtype = r["resource_type"]
         if rtype == "generic":
             rtype = "app_service"  # safe fallback
 
+        y_off = page_y_offsets.get(r["page"], 0.0)
+        _page_name = page_names[page_numbers.index(r["page"])] if r["page"] in page_numbers else ""
         _diagram.add_resource(
             resource_type=rtype,
             display_name=r["text"],
             resource_id=rid,
-            x=r["x"], y=r["y"],
+            x=r["x"], y=r["y"] + y_off,
+            properties={"page": r["page"], "page_name": _page_name},
         )
-        text_to_rid[r["text"]] = rid
+        text_to_rid[r["prefix"] + r["text"]] = rid
 
-        # Auto-assign to containing boundary (check if resource position is inside boundary)
+        # Auto-assign to containing boundary (same page only)
         for b in boundaries_found:
+            if b["page"] != r["page"]:
+                continue
             bx1, by1 = b["x"], b["y"]
             bx2, by2 = bx1 + b["width"], by1 + b["height"]
             if bx1 <= r["x"] <= bx2 and by1 <= r["y"] <= by2:
-                bid = text_to_bid[b["text"]]
+                bid = text_to_bid[b["prefix"] + b["text"]]
                 _diagram.assign_to_boundary(rid, bid)
                 break
 
-    # Add connections
+    # Add connections (match within same page)
     connection_count = 0
     for c in connectors_found:
-        src_rid = text_to_rid.get(c["source_text"])
-        tgt_rid = text_to_rid.get(c["target_text"])
+        src_rid = text_to_rid.get(c["prefix"] + c["source_text"])
+        tgt_rid = text_to_rid.get(c["prefix"] + c["target_text"])
         if src_rid and tgt_rid:
             try:
                 _diagram.add_connection(
@@ -1712,7 +1803,7 @@ def import_vsdx(
             "summary": waf_report.summary,
             "findings_count": len(waf_report.findings),
             "top_findings": [
-                {"severity": f.severity, "pillar": f.pillar, "message": f.message, "recommendation": f.recommendation}
+                {"severity": f.severity, "pillar": f.pillar, "message": f.message, "recommendation": f.recommendation, "page": f.page, "page_name": f.page_name or ""}
                 for f in waf_report.findings[:10]
             ],
         }
@@ -1723,7 +1814,7 @@ def import_vsdx(
             "summary": caf_report.summary,
             "findings_count": len(caf_report.findings),
             "top_findings": [
-                {"severity": f.severity, "pillar": f.pillar, "message": f.message, "recommendation": f.recommendation}
+                {"severity": f.severity, "pillar": f.pillar, "message": f.message, "recommendation": f.recommendation, "page": f.page, "page_name": f.page_name or ""}
                 for f in caf_report.findings[:10]
             ],
         }
@@ -1732,6 +1823,8 @@ def import_vsdx(
         "status": "imported",
         "name": diagram_name,
         "file_path": file_path,
+        "pages_imported": len(page_numbers),
+        "page_names": page_names,
         "resources_imported": len(resources_found),
         "boundaries_imported": len(boundaries_found),
         "connections_imported": connection_count,
@@ -2106,6 +2199,95 @@ Rules:
 # ═══════════════════════════════════════════════════════════════════
 # PROMPTS
 # ═══════════════════════════════════════════════════════════════════
+
+@mcp.prompt()
+def getting_started() -> str:
+    """How-to guide for first-time users of the Azure Visio MCP server."""
+    return """# Getting Started with Azure Visio MCP Server
+
+## Quick Start (3 steps)
+
+1. **Create a diagram** — call `create_diagram` with a name, e.g.:
+   `create_diagram(name="My Azure Architecture")`
+
+2. **Add resources** — use `add_azure_resource` with a shape key from the catalog:
+   `add_azure_resource(resource_type="app_service", display_name="Web App")`
+   Use `list_azure_shapes()` to see all 123 available Azure resource types.
+
+3. **Save** — call `save_diagram` with a path and format:
+   `save_diagram(output_path="diagram.vsdx", format="vsdx")`
+   Supported formats: `vsdx` (Microsoft Visio) or `drawio` (draw.io XML).
+
+## Common Workflows
+
+### Build from a reference architecture template
+```
+list_reference_archs()                        # See 5 available templates
+apply_reference_architecture("baseline_web_app")  # Creates full diagram
+```
+Templates: baseline_foundry_chat, azure_landing_zone, baseline_web_app, ai_landing_zone, microservices_aks
+
+### Add resources and connect them
+```
+add_azure_resource(resource_type="app_service", display_name="web-app-prod")
+add_azure_resource(resource_type="sql_database", display_name="sqldb-prod")
+connect_resources(source_id="web-app-prod", target_id="sqldb-prod", label="SQL")
+```
+
+### Group resources inside boundaries
+```
+add_boundary(boundary_type="virtual_network", display_name="vnet-prod")
+add_azure_resource(resource_type="app_service", display_name="app-01", group_id="vnet-prod")
+```
+
+### Validate architecture quality
+```
+validate_waf()   # Well-Architected Framework (6 pillars: Reliability, Security, Cost, etc.)
+validate_caf()   # Cloud Adoption Framework (naming, tagging, structure)
+```
+
+### Browse the architecture catalog (206 entries)
+```
+browse_architecture_catalog(category="AI + Machine Learning")
+search_arch_catalog(query="kubernetes")
+```
+
+## Available Resources (read with resources/read)
+- `azure://shape-catalog` — All 123 Azure shapes with icons & WAF tips
+- `azure://reference-architectures` — 5 buildable architecture templates
+- `azure://architecture-catalog` — 206 Architecture Center entries
+- `azure://architecture-styles` — 6 architecture styles (microservices, event-driven, etc.)
+- `azure://design-patterns` — 36 cloud design patterns
+- `azure://connector-styles` — Connection line types and styles
+- `azure://boundary-styles` — Boundary grouping types (VNet, subnet, etc.)
+- `azure://diagram-standards` — Microsoft visual standards and color palette
+
+## 28 Tools Summary
+| Tool | Purpose |
+|------|---------|
+| create_diagram | Create new empty diagram |
+| list_azure_shapes | Browse 123 Azure resource types |
+| add_azure_resource | Place a resource on the diagram |
+| add_boundary | Add a grouping boundary (VNet, subnet, RG, etc.) |
+| connect_resources | Connect two resources with a line/arrow |
+| assign_resource_to_boundary | Move a resource into a boundary |
+| remove_resource / remove_boundary | Remove elements |
+| auto_layout | Auto-arrange the diagram layout |
+| get_diagram_state | Get current diagram contents |
+| save_diagram | Save as .vsdx or .drawio |
+| validate_waf / validate_caf | Architecture validation |
+| get_waf_tips | WAF tips for a specific resource type |
+| suggest_architecture_improvements | AI-powered improvement suggestions |
+| list_reference_archs | List 5 reference architecture templates |
+| apply_reference_architecture | Build a full diagram from a template |
+| suggest_architecture_style | Recommend a style for your workload |
+| suggest_design_patterns | Recommend design patterns |
+| browse_architecture_catalog | Browse 206 Architecture Center entries |
+| search_arch_catalog | Search the catalog by keyword |
+| import_vsdx | Import an existing Visio file |
+| import_image | Convert an image/screenshot to a diagram |
+"""
+
 
 @mcp.prompt()
 def hub_spoke_architecture() -> str:

@@ -41,6 +41,9 @@ class WafValidator:
         findings.extend(self._check_performance_efficiency(state))
         findings.extend(self._check_reference_arch_alignment(state))
 
+        # Annotate findings with page info from affected resources
+        self._annotate_pages(findings, state)
+
         score = self._calculate_score(findings)
         summary = self._generate_summary(findings, score)
 
@@ -75,13 +78,43 @@ class WafValidator:
             ))
 
         # Check: Single region deployment
+        # Detect multi-region via: resource properties, region boundaries, global load-balancer
+        # presence (Traffic Manager / Front Door), or region names in resource/boundary names.
         regions = set()
         for r in resources:
             region = r.properties.get("region") or r.properties.get("location")
             if region:
-                regions.add(region)
+                regions.add(region.lower())
         region_boundaries = [b for b in state.boundaries.values() if b.boundary_type == "region"]
-        if len(regions) <= 1 and len(region_boundaries) <= 1:
+        # Also infer regions from boundary display names that contain common Azure region patterns
+        _REGION_KEYWORDS = {
+            "eastus", "eastus2", "westus", "westus2", "westus3", "centralus", "northcentralus",
+            "southcentralus", "westcentralus", "canadacentral", "canadaeast",
+            "westeurope", "northeurope", "uksouth", "ukwest", "francecentral",
+            "germanywestcentral", "norwayeast", "switzerlandnorth", "swedencentral",
+            "eastasia", "southeastasia", "japaneast", "japanwest", "koreacentral",
+            "australiaeast", "australiasoutheast", "centralindia", "southindia",
+            "brazilsouth", "southafricanorth", "uaenorth", "qatarcentral",
+        }
+        for b in state.boundaries.values():
+            name_lower = b.display_name.lower().replace(" ", "").replace("-", "").replace("_", "")
+            for kw in _REGION_KEYWORDS:
+                if kw in name_lower:
+                    regions.add(kw)
+                    break
+        # Infer regions from resource display names
+        for r in resources:
+            name_lower = r.display_name.lower().replace(" ", "").replace("-", "").replace("_", "")
+            for kw in _REGION_KEYWORDS:
+                if kw in name_lower:
+                    regions.add(kw)
+                    break
+        # Global failover resources count as multi-region intent
+        global_lb_types = {"traffic_manager", "front_door"}
+        has_global_lb = bool(resource_types & global_lb_types)
+
+        is_multi_region = len(regions) > 1 or len(region_boundaries) > 1 or has_global_lb
+        if not is_multi_region:
             findings.append(ValidationFinding(
                 severity="warning",
                 pillar=WafPillar.RELIABILITY,
@@ -92,7 +125,16 @@ class WafValidator:
 
         # Check: No availability zones
         az_boundaries = [b for b in state.boundaries.values() if b.boundary_type == "availability_zone"]
-        if compute_resources and not az_boundaries:
+        # Also detect AZ references in boundary/resource names
+        _az_keywords = {"availability zone", "availability_zone", "az-1", "az-2", "az-3", "az 1", "az 2", "az 3", "zone 1", "zone 2", "zone 3"}
+        az_in_names = any(
+            any(kw in b.display_name.lower() for kw in _az_keywords)
+            for b in state.boundaries.values()
+        ) or any(
+            any(kw in r.display_name.lower() for kw in _az_keywords)
+            for r in resources
+        )
+        if compute_resources and not az_boundaries and not az_in_names:
             az_mentioned = any(
                 r.properties.get("availability_zone") or r.properties.get("zones")
                 for r in resources
@@ -107,11 +149,33 @@ class WafValidator:
                 ))
 
         # Check: Database without replication/failover
+        # Detect via: explicit properties, connections between same-type DBs (geo-replication),
+        # boundary notes mentioning failover/replication, or multiple DBs of same type in different regions.
         db_types = {"sql_database", "sql_managed_instance", "cosmos_db", "mysql_database", "postgresql_database"}
         db_resources = [r for r in resources if r.resource_type in db_types]
+
+        # Check if there are DB-to-DB connections (indicating replication)
+        db_ids = {r.id for r in db_resources}
+        has_db_replication_conn = any(
+            c.source_id in db_ids and c.target_id in db_ids
+            for c in state.connections.values()
+        )
+        # Check for boundary notes mentioning replication/failover
+        _replication_keywords = {"geo-replication", "replication", "failover", "auto-failover", "geo_replication", "failover_group"}
+        has_replication_boundary = any(
+            any(kw in b.display_name.lower() for kw in _replication_keywords)
+            for b in state.boundaries.values()
+        )
+        # Check if multiple DBs of same type exist (implies replication across regions)
+        from collections import Counter
+        db_type_counts = Counter(r.resource_type for r in db_resources)
+        has_paired_dbs = any(count >= 2 for count in db_type_counts.values())
+
+        # Only flag individual DBs if none of the above global indicators are present
+        global_db_failover = has_db_replication_conn or has_replication_boundary or has_paired_dbs
         for db in db_resources:
             has_geo = db.properties.get("geo_replication") or db.properties.get("failover_group")
-            if not has_geo:
+            if not has_geo and not global_db_failover:
                 findings.append(ValidationFinding(
                     severity="warning",
                     pillar=WafPillar.RELIABILITY,
@@ -309,7 +373,16 @@ class WafValidator:
             ))
 
         # Check: No DevOps / CI/CD
-        if "devops" not in resource_types and len(state.resources) > 3:
+        cicd_types = {"devops", "github_actions", "data_factory", "logic_app"}
+        has_cicd = bool(resource_types & cicd_types)
+        # Also detect CI/CD from resource names
+        _cicd_keywords = {"ci/cd", "cicd", "pipeline", "devops", "github actions", "deployment"}
+        if not has_cicd:
+            has_cicd = any(
+                any(kw in r.display_name.lower() for kw in _cicd_keywords)
+                for r in state.resources.values()
+            )
+        if not has_cicd and len(state.resources) > 3:
             findings.append(ValidationFinding(
                 severity="info",
                 pillar=WafPillar.OPERATIONAL_EXCELLENCE,
@@ -470,6 +543,22 @@ class WafValidator:
             ))
 
         return findings
+
+    # ── Page annotation ───────────────────────────────────────────
+
+    @staticmethod
+    def _annotate_pages(findings: list[ValidationFinding], state: "DiagramState") -> None:
+        """Annotate each finding with page number/name from its affected resources."""
+        for f in findings:
+            if not f.affected_resources:
+                continue
+            # Find the page from the first affected resource that has one
+            for rid in f.affected_resources:
+                res = state.resources.get(rid)
+                if res and res.properties.get("page"):
+                    f.page = res.properties["page"]
+                    f.page_name = res.properties.get("page_name", "")
+                    break
 
     # ── Scoring ───────────────────────────────────────────────────
 

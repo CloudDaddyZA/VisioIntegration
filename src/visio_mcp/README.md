@@ -11,7 +11,7 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 |------|------:|-------------|
 | **Tools** | 28 | Diagram CRUD, layout, validation, reference architectures, rendering, import |
 | **Resources** | 8 | Diagram state, catalog browsing, shape listings |
-| **Prompts** | 5 | Architecture creation, validation, import, style guidance |
+| **Prompts** | 6 | Architecture creation, validation, import, style guidance, getting started |
 | **Azure Shapes** | 123 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
 | **SVG Icons** | 97+ | Azure Public Service, Entra (7), and Fabric (28) icon sets |
 | **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
@@ -25,9 +25,9 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 ## Module Reference
 
-### `server.py` (~2,310 lines)
+### `server.py` (~2,140 lines)
 
-FastMCP server entry point. Registers all 28 tools, 8 resources, and 5 prompts.
+FastMCP server entry point. Registers all 28 tools, 8 resources, and 6 prompts.
 
 Key responsibilities:
 - Tool registration with parameter schemas and docstrings
@@ -37,25 +37,25 @@ Key responsibilities:
 - Architecture catalog search and browsing endpoints
 - Image import with OpenAI vision API integration
 
-### `models.py` (135 lines)
+### `models.py` (~109 lines)
 
 Pydantic data models shared across all modules:
-- `DiagramState` — Top-level state container (resources, connections, boundaries, page dimensions)
+- `DiagramState` — Top-level state container (resources, connections, boundaries, page dimensions, properties dict for page metadata)
 - `DiagramResource` — Azure resource with position, size, properties, group assignment
 - `Connection` — Labeled typed connector between two resources
 - `BoundaryGroup` — Visual container (VNet, subnet, resource group, etc.)
-- `ValidationFinding` / `ValidationReport` — WAF/CAF validation results
+- `ValidationFinding` / `ValidationReport` — WAF/CAF validation results (with page/page_name fields)
 - `AzureShapeInfo` — Shape catalog entry metadata
 - Enums: `AzureServiceCategory` (19), `WafPillar` (5), `CafPrinciple` (7)
 
-### `diagram_state.py` (189 lines)
+### `diagram_state.py` (~209 lines)
 
 In-memory diagram state management:
 - `DiagramManager` class with CRUD operations for resources, connections, boundaries
 - Automatic cleanup: removing a resource also removes its connections
 - Boundary assignment/unassignment with cascading parent cleanup
 - Query helpers: `get_resources_in_boundary()`, `get_connections_for_resource()`
-- `summary()` — Compact serialization for MCP tool responses
+- `summary()` — Compact serialization for MCP tool responses (includes page metadata per resource/boundary)
 
 ### `azure_catalog.py` (~1,490 lines)
 
@@ -106,16 +106,21 @@ Microsoft Visio COM automation + python-vsdx fallback:
   - Always call `RemoveTheme()` after document creation
   - Y-axis flip: Visio uses bottom-up, layout uses top-down
 
-### `waf_validator.py` (~495 lines)
+### `waf_validator.py` (~530 lines)
 
 Azure Well-Architected Framework validation:
 - Checks against all 5 WAF pillars plus reference architecture alignment
 - Severity levels: `critical` (−15), `warning` (−8), `info` (−3)
-- Checks include: load balancer presence, multi-region, AZ deployment, Key Vault, managed identity, NSG/Firewall, private endpoints, DDoS, WAF on ingress, monitoring, caching, CDN
+- **Smart multi-region detection**: Scans resource/boundary names for Azure region keywords (eastus, westeurope, etc.), recognizes Traffic Manager/Front Door as multi-region intent
+- **Intelligent DB failover detection**: Detects paired databases of the same type, DB-to-DB connections (geo-replication), and boundary notes mentioning replication/failover
+- **AZ detection**: Boundary types + name-based scanning for availability zone keywords
+- **CI/CD detection**: Multiple resource types (`devops`, `github_actions`, `data_factory`) plus name-based detection ("pipeline", "ci/cd")
+- Checks include: load balancer presence, Key Vault, managed identity, NSG/Firewall, private endpoints, DDoS, WAF on ingress, monitoring, caching, CDN
 - Reference architecture alignment: private endpoints per PaaS, subnet segmentation, egress control
+- Page annotation: findings are tagged with page number/name from affected resources
 - Score: 100 minus severity-weighted deductions
 
-### `caf_validator.py` (~416 lines)
+### `caf_validator.py` (~383 lines)
 
 Azure Cloud Adoption Framework validation:
 - Checks against 7 CAF principles
@@ -128,7 +133,7 @@ Azure Cloud Adoption Framework validation:
 - **Security Baseline** — Defender for Cloud, Sentinel
 - **Management** — Monitoring, Log Analytics
 
-### `reference_architectures.py` (~2,940 lines)
+### `reference_architectures.py` (~3,750 lines)
 
 Built-in reference architecture definitions:
 - 5 hand-crafted architecture templates with position hints and workflow steps

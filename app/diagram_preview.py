@@ -47,23 +47,69 @@ CATEGORY_COLORS = {
 }
 
 
-def render_diagram_svg(state: dict[str, Any], width: int = 1100, height: int = 750) -> str:
+def render_diagram_svg(state: dict[str, Any], width: int = 1100, height: int = 750, page_filter: int | None = None) -> str:
     """Render a diagram state dict as an SVG string for browser display.
 
     Args:
         state: The diagram state dict (from get_diagram_state).
         width: SVG canvas width in pixels.
         height: SVG canvas height in pixels.
+        page_filter: If set, only render resources/boundaries/connections from this page number.
 
     Returns:
         SVG markup string.
     """
-    resources = state.get("resources", {})
-    connections = state.get("connections", {})
-    boundaries = state.get("boundaries", {})
+    all_resources = state.get("resources", {})
+    all_connections = state.get("connections", {})
+    all_boundaries = state.get("boundaries", {})
     name = state.get("name", "Diagram")
     page_w = state.get("page_width", 22.0)
     page_h = state.get("page_height", 17.0)
+
+    # Filter by page if requested
+    if page_filter is not None:
+        resources = {
+            rid: r for rid, r in (all_resources.items() if isinstance(all_resources, dict) else [])
+            if _get_field(r, "page", default=None) == page_filter
+        }
+        boundaries = {
+            bid: b for bid, b in (all_boundaries.items() if isinstance(all_boundaries, dict) else [])
+            if _get_field(b, "page", default=None) == page_filter
+        }
+        # Include connections where both endpoints are on this page
+        page_rids = set(resources.keys())
+        connections = {
+            cid: c for cid, c in (all_connections.items() if isinstance(all_connections, dict) else [])
+            if _get_field(c, "source_id", "from", default="") in page_rids
+            and _get_field(c, "target_id", "to", default="") in page_rids
+        }
+    else:
+        resources = all_resources
+        connections = all_connections
+        boundaries = all_boundaries
+
+    # When filtering by page, compute bounding box of visible elements
+    # to normalize positions (undo the multi-page Y stacking offset)
+    origin_x = 0.0
+    origin_y = 0.0
+    if page_filter is not None:
+        ys: list[float] = []
+        xs: list[float] = []
+        for r in (resources.values() if isinstance(resources, dict) else []):
+            pos = _get_field(r, "position", default={})
+            xs.append(_to_float(pos, "x", 0.0))
+            ys.append(_to_float(pos, "y", 0.0))
+        for b in (boundaries.values() if isinstance(boundaries, dict) else []):
+            pos = _get_field(b, "position", default={})
+            xs.append(_to_float(pos, "x", 0.0))
+            ys.append(_to_float(pos, "y", 0.0))
+        if ys:
+            origin_y = min(ys)
+        if xs:
+            origin_x = min(xs)
+        # Add small margin so shapes aren't flush with the edge
+        origin_x = max(0.0, origin_x - 1.0)
+        origin_y = max(0.0, origin_y - 1.0)
 
     # Scale: convert inches to pixels
     scale_x = (width - 40) / page_w
@@ -71,10 +117,10 @@ def render_diagram_svg(state: dict[str, Any], width: int = 1100, height: int = 7
     scale = min(scale_x, scale_y)
 
     def tx(x: float) -> float:
-        return 20 + x * scale
+        return 20 + (x - origin_x) * scale
 
     def ty(y: float) -> float:
-        return 60 + y * scale
+        return 60 + (y - origin_y) * scale
 
     parts: list[str] = []
 
@@ -237,6 +283,68 @@ def render_diagram_svg(state: dict[str, Any], width: int = 1100, height: int = 7
 
     parts.append("</svg>")
     return "\n".join(parts)
+
+
+def render_diagram_html(state: dict[str, Any], width: int = 1100, height: int = 750) -> str:
+    """Render diagram state as HTML, with page tabs if the diagram has multiple pages.
+
+    Falls back to a plain SVG when the diagram has no page metadata.
+    """
+    pages = state.get("pages", [])
+
+    # No pages metadata – single SVG, wrap in minimal HTML
+    if not pages:
+        svg = render_diagram_svg(state, width=width, height=height)
+        return svg
+
+    # Build tabbed HTML
+    tab_css = """
+    <style>
+      .page-tabs { display:flex; gap:4px; margin-bottom:6px; }
+      .page-tab {
+        padding:6px 16px; border:1px solid #ccc; border-bottom:none;
+        border-radius:6px 6px 0 0; background:#f0f0f0; cursor:pointer;
+        font-family:Segoe UI,sans-serif; font-size:13px; font-weight:500;
+        color:#333;
+      }
+      .page-tab.active { background:#fff; border-bottom:1px solid #fff; color:#0078D4; font-weight:600; }
+      .page-panel { display:none; }
+      .page-panel.active { display:block; }
+    </style>
+    """
+
+    tab_buttons: list[str] = []
+    panels: list[str] = []
+
+    for idx, pg in enumerate(pages):
+        pg_num = pg.get("number", idx)
+        pg_name = html.escape(pg.get("name", f"Page {pg_num + 1}"))
+        active = " active" if idx == 0 else ""
+
+        tab_buttons.append(
+            f'<div class="page-tab{active}" onclick="switchTab({idx})" id="tab-{idx}">{pg_name}</div>'
+        )
+
+        svg = render_diagram_svg(state, width=width, height=height, page_filter=pg_num)
+        panels.append(f'<div class="page-panel{active}" id="panel-{idx}">{svg}</div>')
+
+    tab_js = """
+    <script>
+    function switchTab(idx) {
+      document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + idx).classList.add('active');
+      document.getElementById('panel-' + idx).classList.add('active');
+    }
+    </script>
+    """
+
+    return (
+        tab_css
+        + '<div class="page-tabs">' + "".join(tab_buttons) + "</div>"
+        + "".join(panels)
+        + tab_js
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────

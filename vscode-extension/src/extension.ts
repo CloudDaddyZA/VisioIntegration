@@ -12,7 +12,7 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel.appendLine("Azure Visio AI Assistant activating...");
 
   // ── MCP Server Manager ─────────────────────────────────────────
-  mcpManager = new McpServerManager(outputChannel);
+  mcpManager = new McpServerManager(outputChannel, context.extensionPath);
 
   // ── Tree View Providers ────────────────────────────────────────
   const resourceTree = new ResourceTreeProvider(mcpManager);
@@ -53,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!name) {
         return;
       }
-      await mcpManager.callTool("new_diagram", { name });
+      await mcpManager.callTool("create_diagram", { name });
       resourceTree.refresh();
       connectionTree.refresh();
       DiagramPreviewPanel.createOrShow(context.extensionUri, mcpManager);
@@ -89,14 +89,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Add resource (quick pick from catalog)
     vscode.commands.registerCommand("azureVisio.addResource", async () => {
-      const catalogResult = await mcpManager.callTool("list_shapes", {});
+      const catalogResult = await mcpManager.callTool("list_azure_shapes", {});
       if (!catalogResult?.shapes) {
         return;
       }
 
       const items = catalogResult.shapes.map(
-        (s: { key: string; display_name: string; category: string }) => ({
-          label: s.display_name,
+        (s: { key: string; name: string; category: string }) => ({
+          label: s.name,
           description: s.category,
           detail: s.key,
         })
@@ -118,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      await mcpManager.callTool("add_resource", {
+      await mcpManager.callTool("add_azure_resource", {
         resource_type: picked.detail,
         display_name: displayName,
       });
@@ -139,7 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const resourceItems = Object.values(state.resources).map(
         (r: any) => ({
-          label: r.display_name,
+          label: r.name ?? r.display_name,
           detail: r.id,
         })
       );
@@ -159,7 +159,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      await mcpManager.callTool("add_connection", {
+      await mcpManager.callTool("connect_resources", {
         source_id: source.detail,
         target_id: target.detail,
       });
@@ -235,18 +235,18 @@ export async function activate(context: vscode.ExtensionContext) {
       "azureVisio.loadReferenceArch",
       async () => {
         const archList = await mcpManager.callTool(
-          "list_reference_architectures",
+          "list_reference_archs",
           {}
         );
-        if (!archList?.architectures) {
+        if (!archList?.reference_architectures) {
           return;
         }
 
-        const items = archList.architectures.map(
-          (a: { id: string; name: string; description: string }) => ({
+        const items = archList.reference_architectures.map(
+          (a: { key: string; name: string; description: string }) => ({
             label: a.name,
             description: a.description,
-            detail: a.id,
+            detail: a.key,
           })
         );
 
@@ -259,7 +259,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         await mcpManager.callTool("apply_reference_architecture", {
-          architecture_id: picked.detail,
+          architecture_key: picked.detail,
         });
 
         resourceTree.refresh();
@@ -275,7 +275,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "azureVisio.browseShapeCatalog",
       async () => {
-        const result = await mcpManager.callTool("list_shapes", {});
+        const result = await mcpManager.callTool("list_azure_shapes", {});
         if (!result?.shapes) {
           return;
         }
@@ -297,8 +297,8 @@ export async function activate(context: vscode.ExtensionContext) {
           : result.shapes;
 
         const items = filtered.map(
-          (s: { key: string; display_name: string; category: string }) => ({
-            label: s.display_name,
+          (s: { key: string; name: string; category: string }) => ({
+            label: s.name,
             description: s.category,
             detail: s.key,
           })
@@ -323,7 +323,12 @@ export async function activate(context: vscode.ExtensionContext) {
       await mcpManager.start();
       outputChannel.appendLine("MCP server auto-started.");
     } catch (err) {
-      outputChannel.appendLine(`MCP server auto-start failed: ${err}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      outputChannel.appendLine(`MCP server auto-start failed: ${msg}`);
+      outputChannel.show(true);
+      vscode.window.showWarningMessage(
+        `Azure Visio: MCP server failed to start. ${msg}`
+      );
     }
   }
 

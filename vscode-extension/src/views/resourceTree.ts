@@ -43,8 +43,8 @@ export class ResourceTreeProvider
       return Object.values(state.resources).map(
         (r: any) =>
           new ResourceItem(
-            r.display_name ?? r.id,
-            r.resource_type ?? "unknown",
+            r.name ?? r.display_name ?? r.id,
+            r.type ?? r.resource_type ?? "unknown",
             r.id,
             vscode.TreeItemCollapsibleState.None
           )

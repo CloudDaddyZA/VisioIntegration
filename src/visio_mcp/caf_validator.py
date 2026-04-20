@@ -96,6 +96,9 @@ class CafValidator:
         findings.extend(self._check_security_baseline(state))
         findings.extend(self._check_management(state))
 
+        # Annotate findings with page info from affected resources
+        self._annotate_pages(findings, state)
+
         score = self._calculate_score(findings)
         summary = self._generate_summary(findings, score)
 
@@ -392,6 +395,21 @@ class CafValidator:
             ))
 
         return findings
+
+    # ── Page annotation ───────────────────────────────────────────
+
+    @staticmethod
+    def _annotate_pages(findings: list[ValidationFinding], state: DiagramState) -> None:
+        """Annotate each finding with page number/name from its affected resources."""
+        for f in findings:
+            if not f.affected_resources:
+                continue
+            for rid in f.affected_resources:
+                res = state.resources.get(rid)
+                if res and res.properties.get("page"):
+                    f.page = res.properties["page"]
+                    f.page_name = res.properties.get("page_name", "")
+                    break
 
     # ── Scoring ───────────────────────────────────────────────────
 

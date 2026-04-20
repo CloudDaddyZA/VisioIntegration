@@ -191,6 +191,7 @@ class DiagramManager:
             "resource_count": len(self._state.resources),
             "connection_count": len(self._state.connections),
             "boundary_count": len(self._state.boundaries),
+            "pages": self._state.properties.get("pages", []),
             "resources": {
                 r.id: {
                     "id": r.id,
@@ -200,6 +201,8 @@ class DiagramManager:
                     "size": {"width": r.size.width, "height": r.size.height},
                     "group_id": r.group_id,
                     "category": r.properties.get("category", ""),
+                    "page": r.properties.get("page"),
+                    "page_name": r.properties.get("page_name", ""),
                 }
                 for r in self._state.resources.values()
             },
@@ -222,6 +225,8 @@ class DiagramManager:
                     "position": {"x": b.position.x, "y": b.position.y},
                     "size": {"width": b.size.width, "height": b.size.height},
                     "parent_id": b.parent_id,
+                    "page": b.properties.get("page"),
+                    "page_name": b.properties.get("page_name", ""),
                 }
                 for b in self._state.boundaries.values()
             },

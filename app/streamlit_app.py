@@ -25,7 +25,7 @@ sys.path.insert(0, str(_ROOT))
 
 from app.mcp_client import VisioMCPClient
 from app.ai_agent import AIAgent
-from app.diagram_preview import render_diagram_svg
+from app.diagram_preview import render_diagram_svg, render_diagram_html
 
 # ── Page config ───────────────────────────────────────────────────
 
@@ -97,6 +97,8 @@ def init_session():
         st.session_state.mcp_client = None
     if "ai_agent" not in st.session_state:
         st.session_state.ai_agent = None
+    if "onboarding_dismissed" not in st.session_state:
+        st.session_state.onboarding_dismissed = False
     if "diagram_state" not in st.session_state:
         st.session_state.diagram_state = None
     if "diagram_rev" not in st.session_state:
@@ -108,6 +110,57 @@ def init_session():
 
 
 init_session()
+
+
+# ── First-time onboarding ─────────────────────────────────────────
+
+_ONBOARDING_CONTENT = """
+### What is this?
+A conversational AI assistant that creates **Microsoft Visio** and **draw.io** architecture
+diagrams following [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/)
+standards — official icons, reference architectures, WAF & CAF validation.
+
+---
+
+### 🚀 Quick Start (3 steps)
+
+**1. Just describe what you need** — type in the chat:
+> *"Create a 3-tier web app with App Service, SQL Database, and Redis Cache"*
+
+**2. Or start from a template** — use **Reference Architectures** in the sidebar:
+- Baseline Foundry Chat · Azure Landing Zone · Baseline Web App · AI Landing Zone · Microservices on AKS
+
+**3. Save your diagram** — pick **.vsdx** (Visio) or **.drawio** format at the bottom of the sidebar.
+
+---
+
+### 💬 Example Prompts
+| What you say | What happens |
+|---|---|
+| *"Build a hub-spoke network with Azure Firewall"* | Creates full landing zone diagram |
+| *"Add an Azure SQL Database connected to the App Service"* | Adds resource + connection |
+| *"Validate my architecture against WAF"* | Runs Well-Architected Framework checks |
+| *"Validate CAF naming conventions"* | Checks Cloud Adoption Framework compliance |
+| *"Import my existing Visio file"* | Upload .vsdx in the sidebar |
+| *"Convert this whiteboard photo to a diagram"* | Upload image → AI identifies components |
+
+---
+
+### 🧰 Available Tools
+| Category | Tools |
+|---|---|
+| **Diagram** | Create, save, import Visio/image, auto-layout |
+| **Resources** | 123 Azure shapes with official SVG icons |
+| **Reference Archs** | 5 buildable templates + 206-entry catalog |
+| **Validation** | WAF (6 pillars) + CAF (naming, tagging, structure) |
+| **Architecture** | 6 styles, 36 design patterns, catalog search |
+
+---
+
+### 🔑 AI Configuration
+The sidebar lets you choose **GitHub Copilot** (auto-detected from `gh auth login`),
+**OpenAI**, or **Azure OpenAI** as the AI backend.
+"""
 
 
 # ── Connection management ────────────────────────────────────────
@@ -180,6 +233,13 @@ ensure_connection()
 with st.sidebar:
     st.title("🏗️ Azure Visio AI")
     st.caption("Interactive architecture diagram assistant")
+
+    with st.expander("❓ How to Use", expanded=not st.session_state.onboarding_dismissed):
+        st.markdown(_ONBOARDING_CONTENT)
+        if not st.session_state.onboarding_dismissed:
+            if st.button("Got it!", type="primary", use_container_width=True, key="btn_dismiss_onboarding"):
+                st.session_state.onboarding_dismissed = True
+                st.rerun()
 
     # Connection status
     if st.session_state.connected:
@@ -454,6 +514,18 @@ with st.sidebar:
             key="vsdx_upload",
             help="Import an existing Visio diagram — shapes are matched to Azure resources, then WAF/CAF assessed.",
         )
+        if uploaded_vsdx:
+            vsdx_page_option = st.radio(
+                "Pages to import",
+                ["All pages", "Specific page"],
+                horizontal=True,
+                key="vsdx_page_option",
+            )
+            vsdx_page_num = None
+            if vsdx_page_option == "Specific page":
+                vsdx_page_num = st.number_input(
+                    "Page number (1-based)", min_value=1, value=1, step=1, key="vsdx_page_num"
+                )
         vsdx_assess = st.checkbox("Run WAF/CAF assessment", value=True, key="vsdx_assess")
         if uploaded_vsdx and st.button("Import .vsdx", use_container_width=True, key="btn_import_vsdx"):
             if ensure_connection():
@@ -464,11 +536,16 @@ with st.sidebar:
                 tmp_path = tmp_dir / uploaded_vsdx.name
                 tmp_path.write_bytes(uploaded_vsdx.getvalue())
 
+                page_arg: int | str = "all"
+                if vsdx_page_option == "Specific page" and vsdx_page_num:
+                    page_arg = int(vsdx_page_num)
+
                 with st.spinner(f"Importing {uploaded_vsdx.name} (Visio COM parsing)..."):
                     result = st.session_state.mcp_client.call_tool(
                         "import_vsdx",
                         {
                             "file_path": str(tmp_path),
+                            "page": page_arg,
                             "assess_waf": vsdx_assess,
                             "assess_caf": vsdx_assess,
                         },
@@ -476,9 +553,16 @@ with st.sidebar:
                     )
 
                 if result.get("status") == "imported":
+                    page_info = ""
+                    pages_imported = result.get("pages_imported", 1)
+                    page_names = result.get("page_names", [])
+                    if pages_imported > 1:
+                        page_info = f"- {pages_imported} pages: {', '.join(page_names)}\n"
+                    elif page_names:
+                        page_info = f"- Page: {page_names[0]}\n"
                     msg_parts = [
                         f"**Imported** `{uploaded_vsdx.name}` as **{result.get('name', 'Diagram')}**",
-                        f"- {result.get('resources_imported', 0)} resources",
+                        page_info + f"- {result.get('resources_imported', 0)} resources",
                         f"- {result.get('boundaries_imported', 0)} boundaries",
                         f"- {result.get('connections_imported', 0)} connections",
                     ]
@@ -718,11 +802,11 @@ chat_col, preview_col = st.columns([3, 2])
 with preview_col:
     st.subheader("Diagram Preview")
     if st.session_state.diagram_state:
-        svg = render_diagram_svg(st.session_state.diagram_state)
+        preview_html = render_diagram_html(st.session_state.diagram_state)
         import streamlit.components.v1 as components
         # Embed revision marker so Streamlit detects content change and re-renders
-        svg_with_rev = f"<!-- rev {st.session_state.diagram_rev} -->\n{svg}"
-        components.html(svg_with_rev, height=780, scrolling=True)
+        html_with_rev = f"<!-- rev {st.session_state.diagram_rev} -->\n{preview_html}"
+        components.html(html_with_rev, height=780, scrolling=True)
     else:
         st.info("No diagram yet. Start by creating one or applying a reference architecture.")
 

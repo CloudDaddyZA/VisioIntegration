@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as cp from "child_process";
+import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
 
@@ -12,6 +13,7 @@ import * as readline from "readline";
 export class McpServerManager {
   private process: cp.ChildProcess | undefined;
   private outputChannel: vscode.OutputChannel;
+  private extensionPath: string;
   private requestId = 0;
   private pendingRequests = new Map<
     number,
@@ -22,8 +24,9 @@ export class McpServerManager {
   >();
   private rl: readline.Interface | undefined;
 
-  constructor(outputChannel: vscode.OutputChannel) {
+  constructor(outputChannel: vscode.OutputChannel, extensionPath: string) {
     this.outputChannel = outputChannel;
+    this.extensionPath = extensionPath;
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────
@@ -35,14 +38,18 @@ export class McpServerManager {
     }
 
     const pythonPath = this.resolvePythonPath();
-    const srcPath = this.resolveSrcPath();
+    const workspaceRoot = this.resolveWorkspaceRoot();
+    const srcPath = path.join(workspaceRoot, "src");
 
     this.outputChannel.appendLine(
       `Starting MCP server: ${pythonPath} -m visio_mcp.server`
     );
+    this.outputChannel.appendLine(`  cwd: ${workspaceRoot}`);
+    this.outputChannel.appendLine(`  PYTHONPATH: ${srcPath}`);
+    this.outputChannel.show(true);
 
     this.process = cp.spawn(pythonPath, ["-m", "visio_mcp.server"], {
-      cwd: srcPath,
+      cwd: workspaceRoot,
       env: {
         ...process.env,
         PYTHONPATH: srcPath,
@@ -225,29 +232,50 @@ export class McpServerManager {
       return custom;
     }
 
-    // Try workspace .venv
+    // Collect candidate roots: workspace folders + extension parent (project root)
+    const roots: string[] = [];
     const folders = vscode.workspace.workspaceFolders;
     if (folders) {
-      for (const folder of folders) {
-        const venvPython = path.join(
-          folder.uri.fsPath,
-          ".venv",
-          "Scripts",
-          "python.exe"
-        );
-        try {
-          cp.execSync(`"${venvPython}" --version`, { stdio: "ignore" });
+      roots.push(...folders.map((f) => f.uri.fsPath));
+    }
+    // Extension lives in <projectRoot>/vscode-extension, so parent = project root
+    const extensionParent = path.dirname(this.extensionPath);
+    if (!roots.includes(extensionParent)) {
+      roots.push(extensionParent);
+    }
+
+    this.outputChannel.appendLine(`Python search roots: ${roots.join(", ")}`);
+
+    for (const root of roots) {
+      const candidates = [
+        path.join(root, ".venv", "Scripts", "python.exe"),
+        path.join(root, ".venv", "bin", "python"),
+      ];
+      for (const venvPython of candidates) {
+        this.outputChannel.appendLine(`Checking: ${venvPython}`);
+        if (fs.existsSync(venvPython)) {
+          this.outputChannel.appendLine(`Found Python: ${venvPython}`);
           return venvPython;
-        } catch {
-          // Try next
         }
       }
     }
 
-    return "python";
+    // Try python3 / python on PATH
+    for (const name of ["python3", "python"]) {
+      try {
+        cp.execSync(`${name} --version`, { stdio: "ignore" });
+        return name;
+      } catch {
+        // Try next
+      }
+    }
+
+    throw new Error(
+      "Python not found. Install Python or set azureVisio.pythonPath in settings."
+    );
   }
 
-  private resolveSrcPath(): string {
+  private resolveWorkspaceRoot(): string {
     const config = vscode.workspace.getConfiguration("azureVisio");
     const custom = config.get<string>("mcpServerPath", "");
     if (custom) {
@@ -256,10 +284,21 @@ export class McpServerManager {
 
     const folders = vscode.workspace.workspaceFolders;
     if (folders) {
-      return path.join(folders[0].uri.fsPath, "src");
+      return folders[0].uri.fsPath;
     }
 
-    return process.cwd();
+    // Fallback: extension lives in <projectRoot>/vscode-extension
+    const extensionParent = path.dirname(this.extensionPath);
+    if (fs.existsSync(path.join(extensionParent, "src", "visio_mcp"))) {
+      this.outputChannel.appendLine(
+        `No workspace folder — using extension parent as project root: ${extensionParent}`
+      );
+      return extensionParent;
+    }
+
+    throw new Error(
+      "No workspace folder open. Open the VisioIntegration folder first."
+    );
   }
 
   private cleanup(): void {

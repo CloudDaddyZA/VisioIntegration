@@ -52,7 +52,6 @@ Focused tests for the `ai_landing_zone` reference architecture:
    from visio_mcp.waf_validator import WafValidator
    from visio_mcp.caf_validator import CafValidator
    from visio_mcp.layout_engine import LayoutEngine
-   from visio_mcp.drawio_engine import DrawioEngine
    from visio_mcp.azure_catalog import AZURE_SHAPE_CATALOG, resolve_alias
    ```
 3. Use `DiagramManager()` to build diagrams programmatically:

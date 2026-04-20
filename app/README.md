@@ -34,7 +34,7 @@ and sidebar controls for the Visio Azure MCP server.
                     │ visio_mcp.server     │
                     │ (MCP Server – 28     │
                     │  tools, 8 resources, │
-                    │  5 prompts)          │
+                    │  6 prompts)          │
                     └──────────────────────┘
 ```
 
@@ -42,7 +42,7 @@ and sidebar controls for the Visio Azure MCP server.
 
 ## Module Reference
 
-### `streamlit_app.py` (~830 lines)
+### `streamlit_app.py` (~780 lines)
 
 Main application entry point. Manages:
 
@@ -50,16 +50,17 @@ Main application entry point. Manages:
 - **Session state** — `messages`, `mcp_client`, `ai_agent`, `diagram_state`, `diagram_rev`, `tool_log`
 - **Connection management** — `init_session()`, `ensure_connection()`, `refresh_diagram_state()`
 - **GitHub CLI auto-auth** — Detects `gh auth token` and pre-sets `GITHUB_TOKEN`
+- **First-run onboarding** — Expandable sidebar guide with quick start, example prompts, and tool overview
 - **Sidebar controls**:
   - AI provider radio (GitHub Copilot / OpenAI / Azure OpenAI) with model picker
   - Quick Actions: New Diagram, Validate WAF
   - Reference Architecture dropdown (5 templates)
   - Architecture Catalog expander (206 entries, filterable by category/type/search)
-  - Import tabs: Visio `.vsdx` upload, Image upload (PNG/JPG/SVG → AI conversion)
+  - Import tabs: Visio `.vsdx` upload (multi-page with page selector), Image upload (PNG/JPG/SVG → AI conversion)
   - Diagram info metrics (resources, connections, boundaries)
   - Output format selector: Visio (`.vsdx`) or draw.io (`.drawio`)
   - Save with file browser dialog (PowerShell WinForms)
-- **Main area**: Two-column layout — chat history + tool-call log | SVG diagram preview
+- **Main area**: Two-column layout — chat history + tool-call log | HTML/SVG diagram preview with page tabs
 
 ### `ai_agent.py` (~297 lines)
 
@@ -97,11 +98,13 @@ Thread-safe MCP client using stdio transport:
   with configurable timeout (default 120s)
 - **`get_tools_for_openai()`** — Formats MCP tool schemas into OpenAI function-calling format
 
-### `diagram_preview.py` (~305 lines)
+### `diagram_preview.py` (~350 lines)
 
-Client-side SVG renderer for real-time diagram preview:
+Client-side SVG/HTML renderer for real-time diagram preview:
 
-- **`render_diagram_svg(state, width, height)`** — Converts diagram state dict to SVG markup
+- **`render_diagram_svg(state, width, height, page_filter)`** — Converts diagram state dict to SVG markup, with optional page filtering
+- **`render_diagram_html(state, width, height)`** — Wraps SVG output in tabbed HTML when multiple pages exist; falls back to plain SVG for single-page diagrams
+- **Page tab support** — JavaScript-based tab switching for multi-page Visio imports, with per-page coordinate normalization
 - **Color palettes** matching Azure Architecture Center:
 
   | Element | Colors |

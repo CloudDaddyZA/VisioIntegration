@@ -96,6 +96,7 @@ class DiagramState(BaseModel):
     resources: dict[str, DiagramResource] = Field(default_factory=dict)
     connections: dict[str, Connection] = Field(default_factory=dict)
     boundaries: dict[str, BoundaryGroup] = Field(default_factory=dict)
+    properties: dict = Field(default_factory=dict, description="Diagram-level metadata (e.g. pages)")
     page_width: float = Field(default=22.0, description="Page width in inches")
     page_height: float = Field(default=17.0, description="Page height in inches")
     # Layout hints from reference architectures (preserved for re-layout)
@@ -112,6 +113,8 @@ class ValidationFinding(BaseModel):
     message: str = Field(description="Description of the finding")
     recommendation: str = Field(description="Recommended action")
     affected_resources: list[str] = Field(default_factory=list)
+    page: Optional[int] = Field(default=None, description="Page number the finding relates to (for multi-page imports)")
+    page_name: Optional[str] = Field(default=None, description="Page name the finding relates to")
 
 
 class ValidationReport(BaseModel):
