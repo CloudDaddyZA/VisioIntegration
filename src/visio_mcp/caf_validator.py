@@ -68,6 +68,43 @@ CAF_NAMING_PREFIXES: dict[str, str] = {
     "iot_hub": "iot-",
     "resource_group": "rg-",
     "monitor": "mon-",
+    # ── New prefixes (grounded from Azure GitHub org review) ──
+    "route_table": "rt-",
+    "private_link_service": "pls-",
+    "public_ip": "pip-",
+    "service_endpoint": "se-",
+    "firewall_policy": "afwp-",
+    "application_security_group": "asg-",
+    "container_app_environment": "cae-",
+    "purview": "pview-",
+    "data_share": "ds-",
+    "event_grid_domain": "evgd-",
+    "event_grid_system_topic": "evgt-",
+    "blueprint": "bp-",
+    "managed_grafana": "amg-",
+    "action_group": "ag-",
+    "alert_rule": "ar-",
+    "diagnostic_setting": "diag-",
+    "github_actions": "gh-",
+    "load_testing": "alt-",
+    "iot_edge": "iotedge-",
+    "digital_twins": "dt-",
+    "time_series_insights": "tsi-",
+    "migrate": "migr-",
+    "database_migration_service": "dms-",
+    "api_for_fhir": "fhir-",
+    "chaos_studio": "chaos-",
+    "application_gateway_waf_v2": "agw-",
+    "container_app_environment": "cae-",
+    "container_registry": "cr",
+    "static_web_app": "stapp-",
+    "signalr": "sigr-",
+    "defender_for_cloud": "mdc-",
+    "sentinel": "msent-",
+    "recovery_services_vault": "rsv-",
+    "automation_account": "aa-",
+    "batch_account": "ba-",
+    "synapse_analytics": "synw-",
 }
 
 
@@ -143,6 +180,20 @@ class CafValidator:
                     pillar=CafPrinciple.NAMING,
                     message=f"Resource '{res.display_name}' name does not include an environment indicator.",
                     recommendation="Include environment (prod, dev, test) in resource names for clarity. Example: 'vm-webapp-prod-eastus-001'.",
+                    affected_resources=[res.id],
+                ))
+
+            # Check for region indicator in name (enhanced CAF naming pattern)
+            region_pattern = r"(eastus|westus|westeurope|northeurope|centralus|uksouth|southeastasia|eastasia|australiaeast|japaneast|brazilsouth)"
+            if not re.search(region_pattern, name_lower, re.IGNORECASE):
+                findings.append(ValidationFinding(
+                    severity="info",
+                    pillar=CafPrinciple.NAMING,
+                    message=f"Resource '{res.display_name}' name does not include a region indicator.",
+                    recommendation=(
+                        "CAF naming pattern: '<prefix>-<workload>-<env>-<region>-<instance>'. "
+                        "Include region to support multi-region deployments. Example: 'vm-webapp-prod-eastus-001'."
+                    ),
                     affected_resources=[res.id],
                 ))
 
@@ -306,7 +357,7 @@ class CafValidator:
     # ── Governance ────────────────────────────────────────────────
 
     def _check_governance(self, state: DiagramState) -> list[ValidationFinding]:
-        """Check governance: Azure Policy and resource tagging strategy."""
+        """Check governance: Azure Policy, resource tagging strategy, and required tags."""
         findings = []
         resource_types = {r.resource_type for r in state.resources.values()}
 
@@ -333,6 +384,31 @@ class CafValidator:
                 recommendation="Define a tagging strategy. CAF recommends tags for: Environment, Owner, CostCenter, Application, Criticality.",
                 affected_resources=[r.id for r in untagged[:5]],
             ))
+
+        # ── Enhanced tagging checks (grounded from Azure GitHub org review) ──
+        # Check: Required tag keys per CAF tagging strategy
+        _REQUIRED_TAGS = {"environment", "workload", "costcenter", "owner", "dataclassification"}
+        _EXCLUDED_TYPES = {"user", "internet", "on_premises"}
+        tagged_resources = [
+            r for r in state.resources.values()
+            if r.properties.get("tags") and r.resource_type not in _EXCLUDED_TYPES
+        ]
+        for r in tagged_resources:
+            tags = r.properties.get("tags", {})
+            if isinstance(tags, dict):
+                tag_keys = {k.lower().replace("-", "").replace("_", "") for k in tags}
+                missing = _REQUIRED_TAGS - tag_keys
+                if missing:
+                    findings.append(ValidationFinding(
+                        severity="info",
+                        pillar=CafPrinciple.GOVERNANCE,
+                        message=f"Resource '{r.display_name}' missing CAF recommended tags: {', '.join(sorted(missing))}.",
+                        recommendation=(
+                            "CAF recommends these tags on all resources: Environment, Workload, CostCenter, "
+                            "Owner, DataClassification. Enforce via Azure Policy."
+                        ),
+                        affected_resources=[r.id],
+                    ))
 
         return findings
 

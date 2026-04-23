@@ -8,7 +8,7 @@ Integration and unit tests for the Visio Azure MCP server.
 
 ### `test_reference_arch.py`
 
-Tests the 5 built-in reference architecture templates:
+Tests the 12 built-in reference architecture templates:
 
 - Validates that `apply_reference_architecture` produces the expected resource count,
   boundary count, and connection count for each template

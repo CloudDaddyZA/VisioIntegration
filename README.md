@@ -12,11 +12,11 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Diagram CRUD** | `create_diagram`, `add_azure_resource`, `add_boundary`, `connect_resources`, `assign_resource_to_boundary`, `remove_resource`, `remove_boundary` | Build diagrams programmatically with 123 Azure resource types |
+| **Diagram CRUD** | `create_diagram`, `add_azure_resource`, `add_boundary`, `connect_resources`, `assign_resource_to_boundary`, `remove_resource`, `remove_boundary` | Build diagrams programmatically with 151 Azure resource types |
 | **Layout** | `auto_layout` | Automatic tiered/grid/grouped layout following Architecture Center conventions |
-| **Reference Architectures** | `apply_reference_architecture`, `list_reference_archs`, `get_reference_arch_details` | 5 built-in templates from Azure Architecture Center with hand-tuned position hints |
+| **Reference Architectures** | `apply_reference_architecture`, `list_reference_archs`, `get_reference_arch_details` | 12 built-in templates from Azure Architecture Center with hand-tuned position hints |
 | **Architecture Catalog** | `browse_architecture_catalog`, `search_arch_catalog`, `get_arch_catalog_entry` | Browse/search 206 real architectures from Azure Architecture Center |
-| **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 36 cloud design patterns + 6 architecture styles with guidance |
+| **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 40 cloud design patterns + 6 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
 | **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
 | **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files (multi-page support) or convert screenshots/whiteboard photos/SVGs to diagrams |
@@ -364,7 +364,7 @@ VisioIntegration/
 │   └── esbuild.js                     # Build config
 │
 ├── tests/                             # Integration test suite
-│   ├── test_reference_arch.py         # Tests all 5 reference architecture templates
+│   ├── test_reference_arch.py         # Tests all 12 reference architecture templates
 │   └── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
 │
 ├── scripts/                           # Build/maintenance scripts (git-ignored)

@@ -878,6 +878,55 @@ DESIGN_PATTERNS: dict[str, DesignPattern] = {
         azure_services=["storage_account", "blob_storage", "key_vault"],
         diagram_implications=["Show app generating SAS token, client using token to access storage directly", "Two-step flow: 1) request token, 2) direct access with token"],
     ),
+    # ═══ New design patterns (grounded from Azure GitHub org review) ═══
+    "medallion_architecture": DesignPattern(
+        key="medallion_architecture",
+        name="Medallion Architecture (Bronze/Silver/Gold)",
+        description="A data design pattern that organizes data in a lakehouse into three layers: Bronze (raw ingestion), Silver (cleansed/conformed), and Gold (curated business-level aggregates). Enables incremental data quality improvement.",
+        source_url="https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion",
+        waf_pillars=["Operational Excellence", "Performance Efficiency", "Reliability"],
+        when_to_use=["Building analytics platforms with data lakehouse", "Incremental ETL with data quality tiers", "Need auditability of raw data alongside curated views"],
+        when_not_to_use=["Simple OLTP applications", "Real-time streaming with no batch analytics"],
+        related_patterns=["pipes_and_filters", "event_sourcing"],
+        azure_services=["databricks", "data_lake_storage", "synapse_analytics", "data_factory", "purview"],
+        diagram_implications=["Show three layers left-to-right: Bronze → Silver → Gold", "Each layer in a separate boundary or swimlane", "Data Factory/Databricks arrows between layers"],
+    ),
+    "zero_trust_network": DesignPattern(
+        key="zero_trust_network",
+        name="Zero Trust Network",
+        description="Assume breach; verify explicitly. Every network flow is authenticated, authorized, and encrypted regardless of source location. Micro-segmentation, least-privilege access, and continuous verification.",
+        source_url="https://learn.microsoft.com/en-us/security/zero-trust/azure-networking",
+        waf_pillars=["Security", "Reliability"],
+        when_to_use=["Enterprise workloads requiring strict security posture", "Hybrid/multi-cloud environments", "Compliance-driven architectures (PCI-DSS, HIPAA)"],
+        when_not_to_use=["Simple dev/test environments where overhead is unjustified"],
+        related_patterns=["gateway_routing", "ambassador"],
+        azure_services=["firewall", "private_endpoint", "nsg", "application_gateway", "entra_id", "managed_identity", "key_vault", "defender_for_cloud", "sentinel"],
+        diagram_implications=["Every PaaS service connects via private endpoint", "No public IPs on workload resources", "NSG on every subnet", "Firewall as central egress/ingress point", "Show identity verification on all flows"],
+    ),
+    "policy_as_code": DesignPattern(
+        key="policy_as_code",
+        name="Policy as Code",
+        description="Define, manage, and enforce organizational policies through code (Azure Policy, OPA/Gatekeeper). Enables consistent governance, automated compliance checks, and drift detection across subscriptions.",
+        source_url="https://learn.microsoft.com/en-us/azure/governance/policy/concepts/policy-as-code",
+        waf_pillars=["Operational Excellence", "Security"],
+        when_to_use=["Enterprise governance at scale", "Enforcing tagging, SKU restrictions, region constraints", "Compliance reporting for auditors"],
+        when_not_to_use=["Single-subscription sandbox environments"],
+        related_patterns=["external_configuration_store"],
+        azure_services=["policy", "blueprint", "management_group", "devops", "github_actions"],
+        diagram_implications=["Show Policy as a governance layer above subscriptions", "Arrows from management group → subscription showing policy inheritance", "CI/CD pipeline deploying policy definitions"],
+    ),
+    "change_data_capture": DesignPattern(
+        key="change_data_capture",
+        name="Change Data Capture (CDC)",
+        description="Capture row-level changes in source databases and propagate them to downstream systems in near real-time. Enables event-driven data pipelines without polling.",
+        source_url="https://learn.microsoft.com/en-us/azure/cosmos-db/change-feed",
+        waf_pillars=["Performance Efficiency", "Reliability"],
+        when_to_use=["Real-time data synchronization between operational and analytical stores", "Event-driven architectures triggered by data changes", "Maintaining read replicas or materialized views"],
+        when_not_to_use=["Batch-only analytics where latency is acceptable", "Simple CRUD apps without downstream consumers"],
+        related_patterns=["event_sourcing", "cqrs", "materialized_view"],
+        azure_services=["cosmos_db", "sql_database", "event_hub", "data_factory", "stream_analytics", "databricks"],
+        diagram_implications=["Show change feed arrow from source DB to event stream", "Downstream consumers reading from event stream", "Separate read and write paths"],
+    ),
 }
 
 
@@ -3881,6 +3930,693 @@ MICROSERVICES_AKS = ReferenceArchitecture(
 
 
 # ═════════════════════════════════════════════════════════════════
+# NEW REFERENCE ARCHITECTURES (grounded from Azure GitHub org review)
+# ═════════════════════════════════════════════════════════════════
+
+# ── Mission-Critical Baseline ─────────────────────────────────────
+MISSION_CRITICAL_BASELINE = ReferenceArchitecture(
+    name="Mission-Critical Baseline (Multi-Region)",
+    description=(
+        "Mission-critical workload deployed across multiple active regions with "
+        "global load balancing, regional stamps, and health-model-driven failover. "
+        "Based on Azure/Mission-Critical GitHub reference."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks-mission-critical/mission-critical-intro",
+    category="Web",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("global", "management_group", "Global Resources"),
+        BoundaryTemplate("stamp-1", "region", "Region 1 – Active Stamp"),
+        BoundaryTemplate("rg-stamp1", "resource_group", "rg-mission-stamp1", "stamp-1"),
+        BoundaryTemplate("vnet-stamp1", "vnet", "vnet-stamp1", "rg-stamp1"),
+        BoundaryTemplate("snet-aks1", "subnet", "snet-aks", "vnet-stamp1"),
+        BoundaryTemplate("snet-pe1", "subnet", "snet-privateEndpoints", "vnet-stamp1"),
+        BoundaryTemplate("stamp-2", "region", "Region 2 – Active Stamp"),
+        BoundaryTemplate("rg-stamp2", "resource_group", "rg-mission-stamp2", "stamp-2"),
+        BoundaryTemplate("vnet-stamp2", "vnet", "vnet-stamp2", "rg-stamp2"),
+        BoundaryTemplate("snet-aks2", "subnet", "snet-aks", "vnet-stamp2"),
+        BoundaryTemplate("snet-pe2", "subnet", "snet-privateEndpoints", "vnet-stamp2"),
+        BoundaryTemplate("rg-global", "resource_group", "rg-mission-global", "global"),
+    ],
+
+    resources=[
+        ResourceTemplate("front_door", "fd1", "Front Door Premium + WAF", "rg-global",
+                         {"sku": "Premium", "waf_mode": "Prevention"}),
+        ResourceTemplate("cosmos_db", "cosmos-global", "Cosmos DB (multi-region write)", "rg-global",
+                         {"multi_region_write": True, "consistency": "Session", "zone_redundant": True}),
+        ResourceTemplate("container_registry", "cr-global", "Azure Container Registry (geo-replicated)", "rg-global",
+                         {"sku": "Premium", "geo_replication": True}),
+        ResourceTemplate("kubernetes_service", "aks1", "AKS Cluster (Region 1)", "snet-aks1",
+                         {"sku": "Standard", "availability_zones": "1,2,3", "private_cluster": True}),
+        ResourceTemplate("kubernetes_service", "aks2", "AKS Cluster (Region 2)", "snet-aks2",
+                         {"sku": "Standard", "availability_zones": "1,2,3", "private_cluster": True}),
+        ResourceTemplate("event_hub", "eh1", "Event Hub (health telemetry)", "rg-stamp1"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault (Region 1)", "rg-stamp1"),
+        ResourceTemplate("key_vault", "kv2", "Key Vault (Region 2)", "rg-stamp2"),
+        ResourceTemplate("private_endpoint", "pe-cosmos1", "PE: Cosmos DB (R1)", "snet-pe1"),
+        ResourceTemplate("private_endpoint", "pe-cosmos2", "PE: Cosmos DB (R2)", "snet-pe2"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics (central)", "rg-global"),
+        ResourceTemplate("application_insights", "appi1", "Application Insights", "rg-global"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-global"),
+        ResourceTemplate("entra_id", "entra1", "Microsoft Entra ID", "rg-global"),
+        ResourceTemplate("user", "user1", "Users", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("user1", "fd1", "HTTPS", "data_flow", workflow_step=1),
+        ConnectionTemplate("fd1", "aks1", "Route to stamp 1", "data_flow", workflow_step=2),
+        ConnectionTemplate("fd1", "aks2", "Route to stamp 2", "data_flow", workflow_step=2),
+        ConnectionTemplate("aks1", "pe-cosmos1", "Data queries", "data_flow", workflow_step=3),
+        ConnectionTemplate("pe-cosmos1", "cosmos-global", "Private Link", "network"),
+        ConnectionTemplate("aks2", "pe-cosmos2", "Data queries", "data_flow"),
+        ConnectionTemplate("pe-cosmos2", "cosmos-global", "Private Link", "network"),
+        ConnectionTemplate("aks1", "kv1", "Secrets", "dependency"),
+        ConnectionTemplate("aks2", "kv2", "Secrets", "dependency"),
+        ConnectionTemplate("aks1", "eh1", "Health events", "data_flow"),
+        ConnectionTemplate("aks1", "appi1", "Telemetry", "dependency"),
+        ConnectionTemplate("aks2", "appi1", "Telemetry", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "User sends HTTPS request to Front Door (global)", "user1", "fd1"),
+        WorkflowStep(2, "Front Door routes to healthy regional stamp based on health model", "fd1", "aks1"),
+        WorkflowStep(3, "AKS accesses Cosmos DB via private endpoint (multi-region write)", "aks1", "cosmos-global"),
+    ],
+
+    waf_notes={
+        "Reliability": "Active-active multi-region stamps; health-model-driven failover; Cosmos multi-region write",
+        "Security": "Private AKS clusters; PE for all PaaS; WAF on Front Door; workload identity",
+        "Cost Optimization": "Scale stamps independently; use zone-redundant SKUs to avoid over-provisioning",
+        "Operational Excellence": "Centralized monitoring; GitOps deployment; automated health checks",
+        "Performance Efficiency": "Regional stamps reduce latency; Cosmos DB session consistency",
+    },
+
+    caf_notes={
+        "Naming": "rg-mission-<stamp>-<env>-<region>",
+        "Network": "Isolated VNets per stamp; no VNet peering between stamps; Front Door for global routing",
+    },
+
+    layout_hints={
+        "user1": (1, 6), "fd1": (4, 6),
+        "aks1": (9, 4), "aks2": (9, 8),
+        "eh1": (6, 2), "kv1": (12, 2), "kv2": (12, 10),
+        "pe-cosmos1": (13, 4), "pe-cosmos2": (13, 8),
+        "cosmos-global": (17, 6), "cr-global": (4, 2),
+        "log1": (5, 12), "appi1": (8, 12), "mid1": (11, 12), "entra1": (14, 12),
+    },
+    boundary_hints={
+        "global": (2, 0.5, 18, 14),
+        "stamp-1": (5.5, 1, 11, 5.5),
+        "stamp-2": (5.5, 7, 11, 5.5),
+        "rg-stamp1": (6, 1.5, 10, 4.5),
+        "rg-stamp2": (6, 7.5, 10, 4.5),
+        "vnet-stamp1": (6.5, 2, 9, 3.5),
+        "vnet-stamp2": (6.5, 8, 9, 3.5),
+        "snet-aks1": (7, 2.5, 4, 2.5),
+        "snet-aks2": (7, 8.5, 4, 2.5),
+        "snet-pe1": (11.5, 2.5, 3.5, 2.5),
+        "snet-pe2": (11.5, 8.5, 3.5, 2.5),
+        "rg-global": (3, 11, 14, 3),
+    },
+)
+
+
+# ── Container Apps Microservices ──────────────────────────────────
+CONTAINER_APPS_MICROSERVICES = ReferenceArchitecture(
+    name="Microservices on Azure Container Apps",
+    description=(
+        "Containerized microservices running on Azure Container Apps with Dapr, "
+        "KEDA autoscaling, VNet injection, and private endpoints for backends."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/guide/microservices/azure-container-apps",
+    category="Containers",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "Production Subscription"),
+        BoundaryTemplate("rg-app", "resource_group", "rg-containerapp-prod", "sub-prod"),
+        BoundaryTemplate("rg-data", "resource_group", "rg-containerapp-data-prod", "sub-prod"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-containerapp-shared-prod", "sub-prod"),
+        BoundaryTemplate("vnet-app", "vnet", "vnet-containerapp-prod", "rg-app"),
+        BoundaryTemplate("snet-cae", "subnet", "snet-containerAppsEnv", "vnet-app"),
+        BoundaryTemplate("snet-pe", "subnet", "snet-privateEndpoints", "vnet-app"),
+    ],
+
+    resources=[
+        ResourceTemplate("application_gateway", "agw1", "Application Gateway + WAF v2", "rg-app",
+                         {"sku": "WAF_v2", "waf_mode": "Prevention"}),
+        ResourceTemplate("container_apps", "ca-api", "API Service (Container App)", "snet-cae",
+                         {"dapr_enabled": True, "autoscale": True, "min_replicas": 1, "max_replicas": 10}),
+        ResourceTemplate("container_apps", "ca-worker", "Worker Service (Container App)", "snet-cae",
+                         {"dapr_enabled": True, "scale_rule": "service-bus-queue-length"}),
+        ResourceTemplate("container_apps", "ca-web", "Web Frontend (Container App)", "snet-cae",
+                         {"dapr_enabled": True, "autoscale": True}),
+        ResourceTemplate("container_registry", "cr1", "Azure Container Registry", "rg-shared",
+                         {"sku": "Premium"}),
+        ResourceTemplate("service_bus", "sb1", "Service Bus", "rg-data"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB", "rg-data",
+                         {"consistency": "Session", "zone_redundant": True}),
+        ResourceTemplate("redis_cache", "redis1", "Azure Cache for Redis", "rg-data"),
+        ResourceTemplate("private_endpoint", "pe-cosmos", "PE: Cosmos DB", "snet-pe"),
+        ResourceTemplate("private_endpoint", "pe-sb", "PE: Service Bus", "snet-pe"),
+        ResourceTemplate("private_endpoint", "pe-redis", "PE: Redis", "snet-pe"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-shared"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-shared"),
+        ResourceTemplate("application_insights", "appi1", "Application Insights", "rg-shared"),
+        ResourceTemplate("user", "user1", "Users", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("user1", "agw1", "HTTPS", "data_flow", workflow_step=1),
+        ConnectionTemplate("agw1", "ca-web", "Route to frontend", "data_flow", workflow_step=2),
+        ConnectionTemplate("ca-web", "ca-api", "Dapr service invoke", "data_flow", workflow_step=3),
+        ConnectionTemplate("ca-api", "pe-cosmos", "Data queries (Dapr state)", "data_flow", workflow_step=4),
+        ConnectionTemplate("pe-cosmos", "cosmos1", "Private Link", "network"),
+        ConnectionTemplate("ca-api", "pe-sb", "Async messages", "data_flow"),
+        ConnectionTemplate("pe-sb", "sb1", "Private Link", "network"),
+        ConnectionTemplate("ca-worker", "pe-sb", "Process messages (KEDA)", "data_flow"),
+        ConnectionTemplate("ca-api", "pe-redis", "Cache", "data_flow"),
+        ConnectionTemplate("pe-redis", "redis1", "Private Link", "network"),
+        ConnectionTemplate("ca-api", "kv1", "Secrets (Dapr)", "dependency"),
+        ConnectionTemplate("ca-api", "appi1", "Telemetry", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "User sends HTTPS to Application Gateway with WAF", "user1", "agw1"),
+        WorkflowStep(2, "App Gateway routes to Container Apps web frontend", "agw1", "ca-web"),
+        WorkflowStep(3, "Frontend calls API via Dapr service invocation", "ca-web", "ca-api"),
+        WorkflowStep(4, "API queries Cosmos DB via private endpoint (Dapr state store)", "ca-api", "cosmos1"),
+    ],
+
+    waf_notes={
+        "Reliability": "KEDA autoscaling, zone-redundant Cosmos DB, Dapr retry policies",
+        "Security": "VNet-injected Container Apps env, WAF on ingress, PE for all PaaS, managed identity",
+        "Cost Optimization": "Consumption plan for bursty workloads; KEDA scales to zero for workers",
+        "Operational Excellence": "Dapr for service mesh, Container Insights, revision management",
+        "Performance Efficiency": "KEDA event-driven scaling, Redis caching, Dapr pub/sub",
+    },
+
+    caf_notes={
+        "Naming": "ca-<service>-<env>-<region>, rg-containerapp-<function>-<env>",
+        "Network": "VNet-injected environment, dedicated PE subnet",
+    },
+
+    layout_hints={
+        "user1": (1, 5), "agw1": (4, 5),
+        "ca-web": (7.5, 3.5), "ca-api": (7.5, 5.5), "ca-worker": (7.5, 7.5),
+        "cr1": (4.5, 1),
+        "pe-cosmos": (11, 4), "pe-sb": (11, 6), "pe-redis": (11, 8),
+        "cosmos1": (15, 4), "sb1": (15, 6), "redis1": (15, 8),
+        "kv1": (5, 11), "mid1": (8, 11), "log1": (11, 11), "appi1": (14, 11),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 17, 12),
+        "rg-app": (3, 1, 10, 8),
+        "rg-data": (13.5, 1, 5, 8),
+        "rg-shared": (3.5, 10, 13, 3),
+        "vnet-app": (3.5, 1.5, 9, 7),
+        "snet-cae": (5.5, 2, 4, 7),
+        "snet-pe": (10, 2, 3, 7),
+    },
+)
+
+
+# ── IaaS Baseline (N-Tier) ───────────────────────────────────────
+IAAS_BASELINE = ReferenceArchitecture(
+    name="IaaS N-Tier Baseline",
+    description=(
+        "Traditional N-tier application on VMs with load balancers, "
+        "Availability Zones, NSGs per tier, and Bastion for secure access."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/n-tier/n-tier-sql-server",
+    category="Compute",
+    flow_direction="TB",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "Production Subscription"),
+        BoundaryTemplate("rg-ntier", "resource_group", "rg-ntier-prod", "sub-prod"),
+        BoundaryTemplate("vnet-ntier", "vnet", "vnet-ntier-prod", "rg-ntier"),
+        BoundaryTemplate("snet-web", "subnet", "snet-web-tier", "vnet-ntier"),
+        BoundaryTemplate("snet-biz", "subnet", "snet-business-tier", "vnet-ntier"),
+        BoundaryTemplate("snet-data", "subnet", "snet-data-tier", "vnet-ntier"),
+        BoundaryTemplate("snet-mgmt", "subnet", "snet-management", "vnet-ntier"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-ntier-shared-prod", "sub-prod"),
+    ],
+
+    resources=[
+        ResourceTemplate("application_gateway", "agw1", "Application Gateway + WAF v2", "snet-web",
+                         {"sku": "WAF_v2", "waf_mode": "Prevention"}),
+        ResourceTemplate("vm_scale_set", "vmss-web", "Web Tier VMSS", "snet-web",
+                         {"availability_zones": "1,2,3", "autoscale": True}),
+        ResourceTemplate("load_balancer", "lb-biz", "Internal Load Balancer", "snet-biz"),
+        ResourceTemplate("vm_scale_set", "vmss-biz", "Business Tier VMSS", "snet-biz",
+                         {"availability_zones": "1,2,3", "autoscale": True}),
+        ResourceTemplate("load_balancer", "lb-data", "Internal Load Balancer", "snet-data"),
+        ResourceTemplate("virtual_machine", "sql-primary", "SQL Server (Primary)", "snet-data",
+                         {"availability_zone": "1"}),
+        ResourceTemplate("virtual_machine", "sql-secondary", "SQL Server (Secondary)", "snet-data",
+                         {"availability_zone": "2"}),
+        ResourceTemplate("nsg", "nsg-web", "NSG: Web Tier", "snet-web"),
+        ResourceTemplate("nsg", "nsg-biz", "NSG: Business Tier", "snet-biz"),
+        ResourceTemplate("nsg", "nsg-data", "NSG: Data Tier", "snet-data"),
+        ResourceTemplate("bastion", "bas1", "Azure Bastion", "snet-mgmt"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-shared"),
+        ResourceTemplate("recovery_services_vault", "rsv1", "Recovery Services Vault", "rg-shared"),
+        ResourceTemplate("user", "user1", "Users", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("user1", "agw1", "HTTPS", "data_flow", workflow_step=1),
+        ConnectionTemplate("agw1", "vmss-web", "HTTP to web farm", "data_flow", workflow_step=2),
+        ConnectionTemplate("vmss-web", "lb-biz", "Business logic calls", "data_flow", workflow_step=3),
+        ConnectionTemplate("lb-biz", "vmss-biz", "Load-balanced requests", "data_flow"),
+        ConnectionTemplate("vmss-biz", "lb-data", "Data access", "data_flow", workflow_step=4),
+        ConnectionTemplate("lb-data", "sql-primary", "SQL queries", "data_flow"),
+        ConnectionTemplate("sql-primary", "sql-secondary", "Always-On replication", "network"),
+        ConnectionTemplate("bas1", "vmss-web", "Admin RDP/SSH", "dependency"),
+        ConnectionTemplate("vmss-web", "log1", "Diagnostics", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "User accesses web app via Application Gateway with WAF", "user1", "agw1"),
+        WorkflowStep(2, "App Gateway routes to web-tier VMSS", "agw1", "vmss-web"),
+        WorkflowStep(3, "Web tier calls business tier via internal load balancer", "vmss-web", "vmss-biz"),
+        WorkflowStep(4, "Business tier accesses SQL Server Always-On via internal LB", "vmss-biz", "sql-primary"),
+    ],
+
+    waf_notes={
+        "Reliability": "VMSS across AZs per tier, SQL Always-On, Recovery Services Vault",
+        "Security": "WAF on ingress, NSG per subnet, Bastion for admin, no public IPs on VMs",
+        "Cost Optimization": "Right-size VMSS, Reserved Instances for predictable workloads",
+        "Operational Excellence": "Centralized logging, Azure Backup via RSV, VMSS auto-updates",
+        "Performance Efficiency": "Autoscale per tier, Accelerated Networking on VMs",
+    },
+
+    caf_notes={
+        "Naming": "vmss-<tier>-<env>, snet-<tier>",
+        "Network": "Subnet per tier with NSG isolation",
+    },
+
+    layout_hints={
+        "user1": (8.5, 1),
+        "agw1": (8.5, 3.5), "nsg-web": (5, 4),
+        "vmss-web": (8.5, 5.5),
+        "lb-biz": (8.5, 7.5), "nsg-biz": (5, 8),
+        "vmss-biz": (8.5, 9.5),
+        "lb-data": (8.5, 11.5), "nsg-data": (5, 12),
+        "sql-primary": (7.5, 13.5), "sql-secondary": (10, 13.5),
+        "bas1": (14, 5),
+        "kv1": (3, 15), "log1": (6, 15), "rsv1": (9, 15),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 15, 16),
+        "rg-ntier": (2.5, 1, 12, 14),
+        "vnet-ntier": (3, 1.5, 11, 13),
+        "snet-web": (4, 2.5, 8, 4),
+        "snet-biz": (4, 7, 8, 4),
+        "snet-data": (4, 11.5, 8, 3),
+        "snet-mgmt": (12.5, 3.5, 3, 4),
+        "rg-shared": (2.5, 14.5, 10, 2),
+    },
+)
+
+
+# ── App Service Environment (ASE) ────────────────────────────────
+APP_SERVICE_ASE = ReferenceArchitecture(
+    name="App Service Environment (ASE v3) with Private Networking",
+    description=(
+        "Fully isolated, dedicated App Service Environment v3 for "
+        "compliance-critical workloads. VNet-injected with private endpoint "
+        "access to backend services and WAF on ingress."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/enterprise-integration/ase-high-availability-deployment",
+    category="Web",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "Production Subscription"),
+        BoundaryTemplate("rg-ase", "resource_group", "rg-ase-prod", "sub-prod"),
+        BoundaryTemplate("vnet-ase", "vnet", "vnet-ase-prod", "rg-ase"),
+        BoundaryTemplate("snet-agw", "subnet", "snet-appGateway", "vnet-ase"),
+        BoundaryTemplate("snet-ase", "subnet", "snet-aseInternal", "vnet-ase"),
+        BoundaryTemplate("snet-pe", "subnet", "snet-privateEndpoints", "vnet-ase"),
+        BoundaryTemplate("rg-data", "resource_group", "rg-ase-data-prod", "sub-prod"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-ase-shared-prod", "sub-prod"),
+    ],
+
+    resources=[
+        ResourceTemplate("application_gateway", "agw1", "Application Gateway WAF v2", "snet-agw",
+                         {"sku": "WAF_v2", "waf_mode": "Prevention"}),
+        ResourceTemplate("app_service", "ase-app", "App Service on ASE v3", "snet-ase",
+                         {"ase_v3": True, "zone_redundant": True, "internal_only": True}),
+        ResourceTemplate("app_service_plan", "asp-ase", "ASE Plan (Isolated v2)", "snet-ase",
+                         {"sku": "I1v2"}),
+        ResourceTemplate("sql_database", "sql1", "Azure SQL Database", "rg-data",
+                         {"sku": "BusinessCritical", "zone_redundant": True}),
+        ResourceTemplate("storage_account", "stor1", "Storage Account", "rg-data"),
+        ResourceTemplate("private_endpoint", "pe-sql", "PE: SQL Database", "snet-pe"),
+        ResourceTemplate("private_endpoint", "pe-stor", "PE: Storage", "snet-pe"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-shared"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-shared"),
+        ResourceTemplate("application_insights", "appi1", "Application Insights", "rg-shared"),
+        ResourceTemplate("user", "user1", "Users", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("user1", "agw1", "HTTPS", "data_flow", workflow_step=1),
+        ConnectionTemplate("agw1", "ase-app", "Internal VIP routing", "data_flow", workflow_step=2),
+        ConnectionTemplate("ase-app", "pe-sql", "SQL queries", "data_flow", workflow_step=3),
+        ConnectionTemplate("pe-sql", "sql1", "Private Link", "network"),
+        ConnectionTemplate("ase-app", "pe-stor", "Blob access", "data_flow"),
+        ConnectionTemplate("pe-stor", "stor1", "Private Link", "network"),
+        ConnectionTemplate("ase-app", "kv1", "Secrets", "dependency"),
+        ConnectionTemplate("ase-app", "appi1", "Telemetry", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "User sends HTTPS to App Gateway WAF", "user1", "agw1"),
+        WorkflowStep(2, "App Gateway routes to internal ASE v3 VIP", "agw1", "ase-app"),
+        WorkflowStep(3, "App accesses SQL via private endpoint", "ase-app", "sql1"),
+    ],
+
+    waf_notes={
+        "Reliability": "Zone-redundant ASE v3 + SQL Business Critical in AZs",
+        "Security": "Fully isolated environment; internal-only VIP; WAF on all ingress; PE for data",
+        "Cost Optimization": "ASE v3 is cheaper than v2; use reserved instances for Isolated v2 plans",
+        "Operational Excellence": "Deployment slots for zero-downtime; App Insights + Log Analytics",
+        "Performance Efficiency": "Dedicated compute environment removes noisy-neighbor risk",
+    },
+
+    caf_notes={
+        "Naming": "ase-<workload>-<env>, rg-ase-<function>-<env>",
+        "Network": "Internal ASE in dedicated subnet (minimum /24); PE in separate subnet",
+    },
+
+    layout_hints={
+        "user1": (1, 5), "agw1": (4.5, 5),
+        "ase-app": (8.5, 5), "asp-ase": (8.5, 2.5),
+        "pe-sql": (12, 4), "pe-stor": (12, 6.5),
+        "sql1": (16, 4), "stor1": (16, 6.5),
+        "kv1": (5, 10), "mid1": (8, 10), "log1": (11, 10), "appi1": (14, 10),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 16, 11),
+        "rg-ase": (2.5, 1, 11, 7.5),
+        "rg-data": (14, 1, 5, 7.5),
+        "rg-shared": (3, 9, 13, 2.5),
+        "vnet-ase": (3, 1.5, 10, 6.5),
+        "snet-agw": (3.5, 3, 3, 4.5),
+        "snet-ase": (7, 1.5, 4, 5),
+        "snet-pe": (11, 2.5, 2.5, 5),
+    },
+)
+
+
+# ── Data Analytics – Medallion Architecture ───────────────────────
+DATA_ANALYTICS_MEDALLION = ReferenceArchitecture(
+    name="Data Analytics Platform – Medallion Architecture",
+    description=(
+        "Lakehouse-style analytics platform with Bronze/Silver/Gold layers "
+        "using Azure Databricks and Data Lake Storage Gen2. Includes ingestion "
+        "via Data Factory and governance via Purview."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/solution-ideas/articles/azure-databricks-modern-analytics-architecture",
+    category="Analytics",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "Analytics Subscription"),
+        BoundaryTemplate("rg-ingest", "resource_group", "rg-analytics-ingest-prod", "sub-prod"),
+        BoundaryTemplate("rg-process", "resource_group", "rg-analytics-process-prod", "sub-prod"),
+        BoundaryTemplate("rg-serve", "resource_group", "rg-analytics-serve-prod", "sub-prod"),
+        BoundaryTemplate("rg-govern", "resource_group", "rg-analytics-govern-prod", "sub-prod"),
+    ],
+
+    resources=[
+        # Ingestion
+        ResourceTemplate("data_factory", "adf1", "Azure Data Factory", "rg-ingest"),
+        ResourceTemplate("event_hub", "eh1", "Event Hub (streaming)", "rg-ingest"),
+        # Processing (Medallion layers)
+        ResourceTemplate("data_lake_storage", "adls-bronze", "ADLS Gen2 (Bronze – Raw)", "rg-process",
+                         {"hierarchical_namespace": True, "replication": "ZRS"}),
+        ResourceTemplate("data_lake_storage", "adls-silver", "ADLS Gen2 (Silver – Cleansed)", "rg-process",
+                         {"hierarchical_namespace": True, "replication": "ZRS"}),
+        ResourceTemplate("data_lake_storage", "adls-gold", "ADLS Gen2 (Gold – Curated)", "rg-process",
+                         {"hierarchical_namespace": True, "replication": "ZRS"}),
+        ResourceTemplate("databricks", "dbw1", "Azure Databricks", "rg-process"),
+        # Serving
+        ResourceTemplate("synapse_analytics", "syn1", "Synapse Analytics (Serverless SQL)", "rg-serve"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (serving layer)", "rg-serve",
+                         {"consistency": "Session"}),
+        # Governance
+        ResourceTemplate("purview", "purview1", "Microsoft Purview", "rg-govern"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-govern"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-govern"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-govern"),
+        # External
+        ResourceTemplate("on_premises", "source1", "On-premises / External Sources", ""),
+        ResourceTemplate("user", "analyst1", "Data Analysts", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("source1", "adf1", "Batch ingestion", "data_flow", workflow_step=1),
+        ConnectionTemplate("source1", "eh1", "Streaming data", "data_flow", workflow_step=1),
+        ConnectionTemplate("adf1", "adls-bronze", "Raw data landing", "data_flow", workflow_step=2),
+        ConnectionTemplate("eh1", "adls-bronze", "Stream capture", "data_flow", workflow_step=2),
+        ConnectionTemplate("dbw1", "adls-bronze", "Read raw data", "data_flow", workflow_step=3),
+        ConnectionTemplate("dbw1", "adls-silver", "Write cleansed data", "data_flow", workflow_step=3),
+        ConnectionTemplate("dbw1", "adls-gold", "Write curated aggregates", "data_flow", workflow_step=4),
+        ConnectionTemplate("syn1", "adls-gold", "Query gold layer", "data_flow", workflow_step=5),
+        ConnectionTemplate("cosmos1", "adls-gold", "Serve curated data", "data_flow"),
+        ConnectionTemplate("analyst1", "syn1", "BI queries", "data_flow", workflow_step=5),
+        ConnectionTemplate("purview1", "adls-bronze", "Scan & catalog", "dependency"),
+        ConnectionTemplate("purview1", "adls-silver", "Scan & catalog", "dependency"),
+        ConnectionTemplate("purview1", "adls-gold", "Scan & catalog", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Data ingested from sources via Data Factory (batch) and Event Hub (stream)", "source1", "adf1"),
+        WorkflowStep(2, "Raw data lands in Bronze layer (ADLS Gen2)", "adf1", "adls-bronze"),
+        WorkflowStep(3, "Databricks cleanses and conforms data → Silver layer", "dbw1", "adls-silver"),
+        WorkflowStep(4, "Databricks aggregates business metrics → Gold layer", "dbw1", "adls-gold"),
+        WorkflowStep(5, "Analysts query Gold via Synapse Serverless SQL", "analyst1", "syn1"),
+    ],
+
+    waf_notes={
+        "Reliability": "ZRS for all ADLS accounts; Databricks cluster auto-recovery",
+        "Security": "Private endpoints for ADLS/Synapse; managed identity; Purview classification",
+        "Cost Optimization": "Serverless SQL pools (pay-per-query); Databricks spot instances; lifecycle policies on Bronze",
+        "Operational Excellence": "Purview for data lineage; centralized logging; CI/CD for notebooks",
+        "Performance Efficiency": "Delta Lake format for reads; partitioning strategy per layer",
+    },
+
+    caf_notes={
+        "Naming": "adls<layer><env><region>, dbw-<workload>-<env>",
+        "Network": "Private endpoints for all data services",
+    },
+
+    layout_hints={
+        "source1": (1, 5), "adf1": (4, 3.5), "eh1": (4, 6.5),
+        "adls-bronze": (8, 5), "dbw1": (11, 5),
+        "adls-silver": (14, 3.5), "adls-gold": (14, 6.5),
+        "syn1": (18, 4), "cosmos1": (18, 7), "analyst1": (22, 5),
+        "purview1": (11, 10), "kv1": (5, 10), "log1": (8, 10), "mid1": (14, 10),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 22, 11.5),
+        "rg-ingest": (2.5, 1, 4, 7.5),
+        "rg-process": (7, 1, 9.5, 7.5),
+        "rg-serve": (17, 1, 5, 7.5),
+        "rg-govern": (3.5, 9, 13, 3),
+    },
+)
+
+
+# ── Serverless Event-Driven ──────────────────────────────────────
+SERVERLESS_EVENT_DRIVEN = ReferenceArchitecture(
+    name="Serverless Event-Driven Architecture",
+    description=(
+        "Event-driven, serverless architecture using Azure Functions, Event Grid, "
+        "Service Bus, and Cosmos DB. No server management, pay-per-execution."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/serverless/event-processing",
+    category="Serverless",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "Production Subscription"),
+        BoundaryTemplate("rg-func", "resource_group", "rg-serverless-func-prod", "sub-prod"),
+        BoundaryTemplate("rg-data", "resource_group", "rg-serverless-data-prod", "sub-prod"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-serverless-shared-prod", "sub-prod"),
+    ],
+
+    resources=[
+        ResourceTemplate("api_management", "apim1", "API Management (Consumption)", "rg-func",
+                         {"sku": "Consumption"}),
+        ResourceTemplate("function_app", "func-api", "API Functions", "rg-func",
+                         {"runtime": "dotnet-isolated", "plan": "Consumption"}),
+        ResourceTemplate("function_app", "func-processor", "Event Processor Functions", "rg-func",
+                         {"runtime": "dotnet-isolated", "plan": "Consumption"}),
+        ResourceTemplate("event_grid", "eg1", "Event Grid Topic", "rg-func"),
+        ResourceTemplate("service_bus", "sb1", "Service Bus (dead-letter + retry)", "rg-data"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (event store)", "rg-data",
+                         {"consistency": "Session", "zone_redundant": True}),
+        ResourceTemplate("storage_account", "stor1", "Storage Account (function state)", "rg-data"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("application_insights", "appi1", "Application Insights", "rg-shared"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-shared"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-shared"),
+        ResourceTemplate("user", "user1", "Users / External Systems", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("user1", "apim1", "HTTPS API call", "data_flow", workflow_step=1),
+        ConnectionTemplate("apim1", "func-api", "Route to function", "data_flow", workflow_step=2),
+        ConnectionTemplate("func-api", "eg1", "Publish event", "data_flow", workflow_step=3),
+        ConnectionTemplate("eg1", "func-processor", "Event Grid trigger", "data_flow", workflow_step=4),
+        ConnectionTemplate("func-processor", "cosmos1", "Write event data", "data_flow", workflow_step=5),
+        ConnectionTemplate("func-processor", "sb1", "Dead-letter / retry", "data_flow"),
+        ConnectionTemplate("func-api", "stor1", "Function state", "dependency"),
+        ConnectionTemplate("func-api", "kv1", "Secrets", "dependency"),
+        ConnectionTemplate("func-api", "appi1", "Telemetry", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Client calls API via API Management", "user1", "apim1"),
+        WorkflowStep(2, "APIM routes to API Functions", "apim1", "func-api"),
+        WorkflowStep(3, "Function publishes event to Event Grid", "func-api", "eg1"),
+        WorkflowStep(4, "Event Grid triggers processor function", "eg1", "func-processor"),
+        WorkflowStep(5, "Processor writes to Cosmos DB", "func-processor", "cosmos1"),
+    ],
+
+    waf_notes={
+        "Reliability": "Event Grid guaranteed delivery; Service Bus dead-letter; Cosmos multi-region",
+        "Security": "APIM for API gateway security; managed identity; private endpoints",
+        "Cost Optimization": "Consumption plan – pay only for executions; no idle compute",
+        "Operational Excellence": "Application Insights distributed tracing; deployment slots",
+        "Performance Efficiency": "Event-driven auto-scale; Cosmos DB request units auto-scale",
+    },
+
+    caf_notes={
+        "Naming": "func-<purpose>-<env>, eg-<topic>-<env>",
+        "Network": "Consider VNet integration for premium Functions plan in production",
+    },
+
+    layout_hints={
+        "user1": (1, 5), "apim1": (4, 5),
+        "func-api": (7.5, 5), "eg1": (11, 5),
+        "func-processor": (14.5, 5),
+        "cosmos1": (18, 3.5), "sb1": (18, 6.5), "stor1": (7.5, 2),
+        "kv1": (5, 9), "appi1": (8, 9), "log1": (11, 9), "mid1": (14, 9),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 19, 10),
+        "rg-func": (2.5, 1, 14, 6.5),
+        "rg-data": (16.5, 1, 5, 6.5),
+        "rg-shared": (3, 8, 13, 2.5),
+    },
+)
+
+
+# ── IoT Reference Architecture ───────────────────────────────────
+IOT_REFERENCE = ReferenceArchitecture(
+    name="IoT Reference Architecture",
+    description=(
+        "End-to-end IoT solution with device provisioning, telemetry ingestion, "
+        "stream processing, warm/cold path analytics, and device management."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/iot",
+    category="IoT",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-prod", "subscription", "IoT Subscription"),
+        BoundaryTemplate("rg-iot", "resource_group", "rg-iot-prod", "sub-prod"),
+        BoundaryTemplate("rg-analytics", "resource_group", "rg-iot-analytics-prod", "sub-prod"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-iot-shared-prod", "sub-prod"),
+    ],
+
+    resources=[
+        ResourceTemplate("iot_hub", "iot1", "Azure IoT Hub", "rg-iot",
+                         {"sku": "S1", "partitions": 4}),
+        ResourceTemplate("iot_edge", "edge1", "IoT Edge (gateway)", ""),
+        ResourceTemplate("stream_analytics", "asa1", "Stream Analytics (hot path)", "rg-analytics"),
+        ResourceTemplate("data_lake_storage", "adls1", "ADLS Gen2 (cold path)", "rg-analytics",
+                         {"hierarchical_namespace": True}),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (warm path)", "rg-analytics",
+                         {"consistency": "Session"}),
+        ResourceTemplate("event_hub", "eh1", "Event Hub (routing)", "rg-iot"),
+        ResourceTemplate("function_app", "func1", "Functions (device commands)", "rg-iot"),
+        ResourceTemplate("databricks", "dbw1", "Databricks (batch analytics)", "rg-analytics"),
+        ResourceTemplate("time_series_insights", "tsi1", "Time Series Insights", "rg-analytics"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-shared"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-shared"),
+        ResourceTemplate("user", "operator1", "IoT Operators / Dashboard", ""),
+    ],
+
+    connections=[
+        ConnectionTemplate("edge1", "iot1", "Device telemetry (MQTT/AMQP)", "data_flow", workflow_step=1),
+        ConnectionTemplate("iot1", "eh1", "Message routing", "data_flow", workflow_step=2),
+        ConnectionTemplate("eh1", "asa1", "Hot path stream", "data_flow", workflow_step=3),
+        ConnectionTemplate("asa1", "cosmos1", "Real-time aggregates", "data_flow", workflow_step=4),
+        ConnectionTemplate("eh1", "adls1", "Cold path capture", "data_flow"),
+        ConnectionTemplate("adls1", "dbw1", "Batch processing", "data_flow"),
+        ConnectionTemplate("iot1", "func1", "Device commands", "data_flow"),
+        ConnectionTemplate("cosmos1", "tsi1", "Time series exploration", "data_flow"),
+        ConnectionTemplate("operator1", "tsi1", "Visualization", "data_flow", workflow_step=5),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "IoT Edge devices send telemetry to IoT Hub", "edge1", "iot1"),
+        WorkflowStep(2, "IoT Hub routes messages to Event Hub", "iot1", "eh1"),
+        WorkflowStep(3, "Stream Analytics processes hot path in real-time", "eh1", "asa1"),
+        WorkflowStep(4, "Aggregates written to Cosmos DB warm store", "asa1", "cosmos1"),
+        WorkflowStep(5, "Operators view dashboards via Time Series Insights", "operator1", "tsi1"),
+    ],
+
+    waf_notes={
+        "Reliability": "IoT Hub partitions for throughput; Cosmos multi-region; ADLS ZRS",
+        "Security": "Device provisioning with X.509 certs; managed identity; private endpoints",
+        "Cost Optimization": "Stream Analytics SU right-sizing; cold path in ADLS for infrequent access",
+        "Operational Excellence": "IoT Hub diagnostics → Log Analytics; device twin for config",
+        "Performance Efficiency": "Event Hub partitions aligned with Stream Analytics; Cosmos RU autoscale",
+    },
+
+    caf_notes={
+        "Naming": "iot-<workload>-<env>, asa-<purpose>-<env>",
+        "Network": "VNet service endpoints or PE for IoT Hub (premium) and Cosmos DB",
+    },
+
+    layout_hints={
+        "edge1": (1, 5), "iot1": (5, 5),
+        "eh1": (9, 5), "func1": (5, 2),
+        "asa1": (12.5, 3.5), "adls1": (12.5, 6.5),
+        "cosmos1": (16, 3.5), "dbw1": (16, 6.5), "tsi1": (19, 5),
+        "operator1": (22, 5),
+        "kv1": (5, 10), "log1": (9, 10), "mid1": (13, 10),
+    },
+    boundary_hints={
+        "sub-prod": (2, 0.5, 22, 11),
+        "rg-iot": (3, 1, 6, 7.5),
+        "rg-analytics": (10, 1, 12, 7.5),
+        "rg-shared": (3, 9, 12, 2.5),
+    },
+)
+
+
+# ═════════════════════════════════════════════════════════════════
 # REGISTRY: All reference architectures
 # ═════════════════════════════════════════════════════════════════
 
@@ -3890,6 +4626,14 @@ REFERENCE_ARCHITECTURES: dict[str, ReferenceArchitecture] = {
     "baseline_web_app": BASELINE_WEB_APP,
     "ai_landing_zone": AI_LANDING_ZONE,
     "microservices_aks": MICROSERVICES_AKS,
+    # ── New (grounded from Azure GitHub org review) ──
+    "mission_critical_baseline": MISSION_CRITICAL_BASELINE,
+    "container_apps_microservices": CONTAINER_APPS_MICROSERVICES,
+    "iaas_baseline": IAAS_BASELINE,
+    "app_service_ase": APP_SERVICE_ASE,
+    "data_analytics_medallion": DATA_ANALYTICS_MEDALLION,
+    "serverless_event_driven": SERVERLESS_EVENT_DRIVEN,
+    "iot_reference": IOT_REFERENCE,
 }
 
 

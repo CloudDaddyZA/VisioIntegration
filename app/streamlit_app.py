@@ -29,9 +29,11 @@ from app.diagram_preview import render_diagram_svg, render_diagram_html
 
 # ── Page config ───────────────────────────────────────────────────
 
+_LOGO_PATH = Path(__file__).parent / "assets" / "logo.png"
+
 st.set_page_config(
     page_title="Azure Visio AI Assistant",
-    page_icon="🏗️",
+    page_icon=str(_LOGO_PATH) if _LOGO_PATH.exists() else "🏗️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -157,7 +159,7 @@ standards — official icons, reference architectures, WAF & CAF validation.
 | **Resources** | 123 Azure shapes with official SVG icons |
 | **Reference Archs** | 5 buildable templates + 206-entry catalog |
 | **Validation** | WAF (6 pillars) + CAF (naming, tagging, structure) |
-| **Architecture** | 6 styles, 36 design patterns, catalog search |
+| **Architecture** | 6 styles, 40 design patterns, catalog search |
 
 ---
 
@@ -235,7 +237,9 @@ ensure_connection()
 # ── Sidebar ──────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.title("🏗️ Azure Visio AI")
+    if _LOGO_PATH.exists():
+        st.image(str(_LOGO_PATH), width=180)
+    st.title("Azure Visio AI")
     st.caption("Interactive architecture diagram assistant")
 
     with st.expander("❓ How to Use", expanded=not st.session_state.onboarding_dismissed):

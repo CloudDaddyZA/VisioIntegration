@@ -114,6 +114,44 @@ SVG_ICON_MAP: dict[str, str] = {
     "internet": "general/10808-icon-service-Globe-Success.svg",
     "static_web_app": "web/01007-icon-service-Static-Apps.svg",
     "signalr": "web/10052-icon-service-SignalR.svg",
+    # ── New resource types (grounded from Azure GitHub org review) ──
+    # Networking – advanced
+    "route_table": "networking/10082-icon-service-Route-Tables.svg",
+    "private_link_service": "networking/00427-icon-service-Private-Link.svg",
+    "ip_group": "networking/10351-icon-service-IP-Groups.svg",
+    "public_ip": "networking/10069-icon-service-Public-IP-Addresses.svg",
+    "service_endpoint": "networking/10068-icon-service-Service-Endpoint-Policies.svg",
+    # Containers – advanced
+    "container_app_environment": "other/02989-icon-service-Container-Apps-Environments.svg",
+    # Data – advanced
+    "purview": "management + governance/02305-icon-service-Azure-Purview-Accounts.svg",
+    "data_catalog": "analytics/10155-icon-service-Data-Catalog.svg",
+    "data_share": "analytics/02807-icon-service-Data-Shares.svg",
+    # Integration – advanced
+    "event_grid_domain": "integration/10206-icon-service-Event-Grid-Topics.svg",
+    "event_grid_system_topic": "integration/10206-icon-service-Event-Grid-Topics.svg",
+    # Management – advanced
+    "blueprint": "management + governance/10319-icon-service-Blueprints.svg",
+    "managed_grafana": "monitor/03422-icon-service-Azure-Managed-Grafana.svg",
+    "action_group": "monitor/10005-icon-service-Action-Groups.svg",
+    "alert_rule": "monitor/10013-icon-service-Alerts.svg",
+    "diagnostic_setting": "monitor/00001-icon-service-Monitor.svg",
+    # Security – advanced
+    "firewall_policy": "networking/10084-icon-service-Firewalls.svg",
+    "application_security_group": "networking/10082-icon-service-Route-Tables.svg",
+    # DevOps – advanced
+    "github_actions": "devops/10261-icon-service-Azure-DevOps.svg",
+    "load_testing": "devops/10261-icon-service-Azure-DevOps.svg",
+    # IoT – advanced
+    "iot_edge": "iot/10186-icon-service-Azure-IoT-Edge.svg",
+    "digital_twins": "iot/10190-icon-service-Digital-Twins.svg",
+    "time_series_insights": "iot/10188-icon-service-Time-Series-Insights-Environments.svg",
+    # Migration
+    "migrate": "migrate/10310-icon-service-Azure-Migrate.svg",
+    "database_migration_service": "databases/10139-icon-service-Azure-Database-Migration-Services.svg",
+    # Health / Specialized
+    "api_for_fhir": "integration/10042-icon-service-API-Management-Services.svg",
+    "chaos_studio": "management + governance/00022-icon-service-Automation-Accounts.svg",
 }
 
 # ── Additional icon packs (relative to stencils/ root) ───────────
@@ -215,6 +253,22 @@ RESOURCE_ALIASES: dict[str, str] = {
     "appinsights": "application_insights",
     "ai_search": "ai_search",
     "cognitive": "cognitive_services",
+    # ── New aliases (grounded from Azure GitHub org review) ──
+    "rt": "route_table",
+    "pls": "private_link_service",
+    "pip": "public_ip",
+    "cae": "container_app_environment",
+    "purview": "purview",
+    "egdt": "event_grid_domain",
+    "grafana": "managed_grafana",
+    "dte": "digital_twins",
+    "tsi": "time_series_insights",
+    "dms": "database_migration_service",
+    "chaos": "chaos_studio",
+    "fhir": "api_for_fhir",
+    "iot_edge": "iot_edge",
+    "blueprint": "blueprint",
+    "asg": "application_security_group",
 }
 
 
@@ -1342,6 +1396,293 @@ AZURE_SHAPE_CATALOG: dict[str, AzureShapeInfo] = {
         stencil_name="Copilot",
         stencil_file="FabricIcons",
         icon_color="#692B7C",
+    ),
+    # ═══ New resource types (grounded from Azure GitHub org review) ═══
+    # ── Networking – advanced ─────────────────────────────────────
+    "route_table": AzureShapeInfo(
+        key="route_table",
+        display_name="Route Table",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Route Table",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "Use UDRs to force traffic through Azure Firewall or NVAs for inspection.",
+            "Reliability": "Avoid overly complex route tables that can cause black-holing.",
+        },
+    ),
+    "private_link_service": AzureShapeInfo(
+        key="private_link_service",
+        display_name="Private Link Service",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Private Link Service",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "Expose services privately to consumers across tenants/subscriptions.",
+        },
+    ),
+    "ip_group": AzureShapeInfo(
+        key="ip_group",
+        display_name="IP Group",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="IP Groups",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+    ),
+    "public_ip": AzureShapeInfo(
+        key="public_ip",
+        display_name="Public IP Address",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Public IP Addresses",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "Minimize public IPs. Use DDoS Protection Standard. Prefer private endpoints.",
+            "Cost Optimization": "Standard SKU Public IPs incur charges even when unassociated.",
+        },
+    ),
+    "service_endpoint": AzureShapeInfo(
+        key="service_endpoint",
+        display_name="Service Endpoint Policy",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Service Endpoint Policies",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+    ),
+    "firewall_policy": AzureShapeInfo(
+        key="firewall_policy",
+        display_name="Firewall Policy",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Firewall Policies",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "Centralize firewall rules with Firewall Policy. Use rule collection groups for hierarchical policy.",
+        },
+    ),
+    "application_security_group": AzureShapeInfo(
+        key="application_security_group",
+        display_name="Application Security Group",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Application Security Groups",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "Group VMs by workload for simplified NSG rule management.",
+        },
+    ),
+    # ── Containers – advanced ─────────────────────────────────────
+    "container_app_environment": AzureShapeInfo(
+        key="container_app_environment",
+        display_name="Container Apps Environment",
+        category=AzureServiceCategory.CONTAINERS,
+        stencil_name="Container Apps Environment",
+        stencil_file="AzureContainers.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Reliability": "Deploy across Availability Zones. Use consumption+dedicated profiles for critical workloads.",
+            "Security": "Use VNet injection and internal-only load balancer for private deployments.",
+        },
+    ),
+    # ── Data & Analytics – advanced ───────────────────────────────
+    "purview": AzureShapeInfo(
+        key="purview",
+        display_name="Microsoft Purview",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Azure Purview Accounts",
+        stencil_file="AzureGovernance.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Operational Excellence": "Catalog and govern data assets. Automate data classification and lineage.",
+            "Security": "Discover and classify sensitive data across the estate.",
+        },
+    ),
+    "data_catalog": AzureShapeInfo(
+        key="data_catalog",
+        display_name="Data Catalog",
+        category=AzureServiceCategory.ANALYTICS,
+        stencil_name="Data Catalog",
+        stencil_file="AzureAnalytics.vssx",
+        icon_color="#0078D4",
+    ),
+    "data_share": AzureShapeInfo(
+        key="data_share",
+        display_name="Azure Data Share",
+        category=AzureServiceCategory.ANALYTICS,
+        stencil_name="Data Share",
+        stencil_file="AzureAnalytics.vssx",
+        icon_color="#0078D4",
+    ),
+    # ── Integration – advanced ────────────────────────────────────
+    "event_grid_domain": AzureShapeInfo(
+        key="event_grid_domain",
+        display_name="Event Grid Domain",
+        category=AzureServiceCategory.INTEGRATION,
+        stencil_name="Event Grid Domains",
+        stencil_file="AzureIntegration.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Performance Efficiency": "Use domains for multi-tenant event architectures with thousands of topics.",
+        },
+    ),
+    "event_grid_system_topic": AzureShapeInfo(
+        key="event_grid_system_topic",
+        display_name="Event Grid System Topic",
+        category=AzureServiceCategory.INTEGRATION,
+        stencil_name="Event Grid System Topics",
+        stencil_file="AzureIntegration.vssx",
+        icon_color="#0078D4",
+    ),
+    # ── Management & Governance – advanced ────────────────────────
+    "blueprint": AzureShapeInfo(
+        key="blueprint",
+        display_name="Azure Blueprint",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Blueprints",
+        stencil_file="AzureGovernance.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Operational Excellence": "Declaratively deploy sets of ARM templates, policies, and role assignments.",
+        },
+    ),
+    "managed_grafana": AzureShapeInfo(
+        key="managed_grafana",
+        display_name="Azure Managed Grafana",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Azure Managed Grafana",
+        stencil_file="AzureMonitor.vssx",
+        icon_color="#F46800",
+        waf_considerations={
+            "Operational Excellence": "Visualize metrics from Azure Monitor, Prometheus, and other sources.",
+        },
+    ),
+    "action_group": AzureShapeInfo(
+        key="action_group",
+        display_name="Action Group",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Action Groups",
+        stencil_file="AzureMonitor.vssx",
+        icon_color="#0078D4",
+    ),
+    "alert_rule": AzureShapeInfo(
+        key="alert_rule",
+        display_name="Alert Rule",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Alerts",
+        stencil_file="AzureMonitor.vssx",
+        icon_color="#0078D4",
+    ),
+    "diagnostic_setting": AzureShapeInfo(
+        key="diagnostic_setting",
+        display_name="Diagnostic Setting",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Diagnostic Settings",
+        stencil_file="AzureMonitor.vssx",
+        icon_color="#0078D4",
+    ),
+    # ── Security – advanced ───────────────────────────────────────
+    "application_gateway_waf_v2": AzureShapeInfo(
+        key="application_gateway_waf_v2",
+        display_name="Application Gateway WAF v2",
+        category=AzureServiceCategory.NETWORKING,
+        stencil_name="Application Gateways",
+        stencil_file="AzureNetworking.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Security": "WAF v2 with OWASP 3.2 rule sets. Use Prevention mode in production.",
+            "Reliability": "Zone-redundant by default. Configure health probes.",
+            "Performance Efficiency": "Autoscale instance count based on traffic.",
+        },
+    ),
+    # ── DevOps – advanced ─────────────────────────────────────────
+    "github_actions": AzureShapeInfo(
+        key="github_actions",
+        display_name="GitHub Actions",
+        category=AzureServiceCategory.DEVOPS,
+        stencil_name="GitHub Actions",
+        stencil_file="AzureDevOps.vssx",
+        icon_color="#2088FF",
+        waf_considerations={
+            "Operational Excellence": "Use OIDC federated credentials for keyless deployment to Azure.",
+        },
+    ),
+    "load_testing": AzureShapeInfo(
+        key="load_testing",
+        display_name="Azure Load Testing",
+        category=AzureServiceCategory.DEVOPS,
+        stencil_name="Azure Load Testing",
+        stencil_file="AzureDevOps.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Performance Efficiency": "Run JMeter-based load tests. Integrate into CI/CD for regression.",
+        },
+    ),
+    # ── IoT – advanced ────────────────────────────────────────────
+    "iot_edge": AzureShapeInfo(
+        key="iot_edge",
+        display_name="Azure IoT Edge",
+        category=AzureServiceCategory.IOT,
+        stencil_name="Azure IoT Edge",
+        stencil_file="AzureIoT.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Reliability": "Deploy modules to edge devices for offline capability.",
+            "Performance Efficiency": "Process data at the edge to reduce cloud bandwidth.",
+        },
+    ),
+    "digital_twins": AzureShapeInfo(
+        key="digital_twins",
+        display_name="Azure Digital Twins",
+        category=AzureServiceCategory.IOT,
+        stencil_name="Digital Twins",
+        stencil_file="AzureIoT.vssx",
+        icon_color="#0078D4",
+    ),
+    "time_series_insights": AzureShapeInfo(
+        key="time_series_insights",
+        display_name="Time Series Insights",
+        category=AzureServiceCategory.IOT,
+        stencil_name="Time Series Insights",
+        stencil_file="AzureIoT.vssx",
+        icon_color="#0078D4",
+    ),
+    # ── Migration ─────────────────────────────────────────────────
+    "migrate": AzureShapeInfo(
+        key="migrate",
+        display_name="Azure Migrate",
+        category=AzureServiceCategory.MIGRATION,
+        stencil_name="Azure Migrate",
+        stencil_file="AzureMigrate.vssx",
+        icon_color="#0078D4",
+    ),
+    "database_migration_service": AzureShapeInfo(
+        key="database_migration_service",
+        display_name="Database Migration Service",
+        category=AzureServiceCategory.DATABASES,
+        stencil_name="Database Migration Service",
+        stencil_file="AzureDatabases.vssx",
+        icon_color="#0078D4",
+    ),
+    # ── Health / Specialized ──────────────────────────────────────
+    "api_for_fhir": AzureShapeInfo(
+        key="api_for_fhir",
+        display_name="Azure API for FHIR",
+        category=AzureServiceCategory.INTEGRATION,
+        stencil_name="Azure API for FHIR",
+        stencil_file="AzureIntegration.vssx",
+        icon_color="#0078D4",
+    ),
+    "chaos_studio": AzureShapeInfo(
+        key="chaos_studio",
+        display_name="Azure Chaos Studio",
+        category=AzureServiceCategory.MANAGEMENT,
+        stencil_name="Chaos Studio",
+        stencil_file="AzureGovernance.vssx",
+        icon_color="#0078D4",
+        waf_considerations={
+            "Reliability": "Run chaos experiments to validate fault tolerance before production.",
+        },
     ),
 }
 

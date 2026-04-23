@@ -136,6 +136,44 @@ DRAWIO_AZURE_STYLES: dict[str, str] = {
     "signalr": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/web/SignalR.svg;",
     "on_premises": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/On_Premises_Data_Gateways.svg;",
     "internet": "shape=mxgraph.azure.cloud;fillColor=#0078D4;fontColor=#FFFFFF;strokeColor=none;",
+    # ── New resource types (grounded from Azure GitHub org review) ──
+    # Networking – advanced
+    "route_table": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Route_Tables.svg;",
+    "private_link_service": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Private_Link_Service.svg;",
+    "ip_group": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/IP_Groups.svg;",
+    "public_ip": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Public_IP_Addresses.svg;",
+    "service_endpoint": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Service_Endpoint_Policies.svg;",
+    "firewall_policy": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Firewalls.svg;",
+    "application_security_group": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Application_Security_Groups.svg;",
+    "application_gateway_waf_v2": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/networking/Application_Gateways.svg;",
+    # Containers – advanced
+    "container_app_environment": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/compute/Container_Instances.svg;",
+    # Data / Governance
+    "purview": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Azure_Purview_Accounts.svg;",
+    "data_catalog": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/analytics/Data_Catalog.svg;",
+    "data_share": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/analytics/Data_Shares.svg;",
+    # Integration – advanced
+    "event_grid_domain": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/integration/Event_Grid_Domains.svg;",
+    "event_grid_system_topic": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/integration/Event_Grid_Topics.svg;",
+    # Management – advanced
+    "blueprint": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Blueprints.svg;",
+    "managed_grafana": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Azure_Managed_Grafana.svg;",
+    "action_group": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Action_Groups.svg;",
+    "alert_rule": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Alerts.svg;",
+    "diagnostic_setting": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Monitor.svg;",
+    # DevOps – advanced
+    "github_actions": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/devops/Azure_DevOps.svg;",
+    "load_testing": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/devops/Azure_DevOps.svg;",
+    # IoT – advanced
+    "iot_edge": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/iot/IoT_Edge.svg;",
+    "digital_twins": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/iot/Digital_Twins.svg;",
+    "time_series_insights": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/iot/Time_Series_Insights_Environments.svg;",
+    # Migration
+    "migrate": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/migrate/Azure_Migrate.svg;",
+    "database_migration_service": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/databases/Azure_Database_Migration_Services.svg;",
+    # Health / Specialized
+    "api_for_fhir": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/integration/API_Management_Services.svg;",
+    "chaos_studio": "aspect=fixed;html=1;perimeter=none;image;image=img/lib/azure2/management_governance/Automation_Accounts.svg;",
 }
 
 # Fallback style for unknown resource types

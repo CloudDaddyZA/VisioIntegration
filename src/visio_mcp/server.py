@@ -2212,7 +2212,7 @@ def getting_started() -> str:
 
 2. **Add resources** — use `add_azure_resource` with a shape key from the catalog:
    `add_azure_resource(resource_type="app_service", display_name="Web App")`
-   Use `list_azure_shapes()` to see all 123 available Azure resource types.
+   Use `list_azure_shapes()` to see all 151 available Azure resource types.
 
 3. **Save** — call `save_diagram` with a path and format:
    `save_diagram(output_path="diagram.vsdx", format="vsdx")`
@@ -2253,11 +2253,11 @@ search_arch_catalog(query="kubernetes")
 ```
 
 ## Available Resources (read with resources/read)
-- `azure://shape-catalog` — All 123 Azure shapes with icons & WAF tips
+- `azure://shape-catalog` — All 151 Azure shapes with icons & WAF tips
 - `azure://reference-architectures` — 5 buildable architecture templates
 - `azure://architecture-catalog` — 206 Architecture Center entries
 - `azure://architecture-styles` — 6 architecture styles (microservices, event-driven, etc.)
-- `azure://design-patterns` — 36 cloud design patterns
+- `azure://design-patterns` — 40 cloud design patterns
 - `azure://connector-styles` — Connection line types and styles
 - `azure://boundary-styles` — Boundary grouping types (VNet, subnet, etc.)
 - `azure://diagram-standards` — Microsoft visual standards and color palette
@@ -2266,7 +2266,7 @@ search_arch_catalog(query="kubernetes")
 | Tool | Purpose |
 |------|---------|
 | create_diagram | Create new empty diagram |
-| list_azure_shapes | Browse 123 Azure resource types |
+| list_azure_shapes | Browse 151 Azure resource types |
 | add_azure_resource | Place a resource on the diagram |
 | add_boundary | Add a grouping boundary (VNet, subnet, RG, etc.) |
 | connect_resources | Connect two resources with a line/arrow |
@@ -2278,7 +2278,7 @@ search_arch_catalog(query="kubernetes")
 | validate_waf / validate_caf | Architecture validation |
 | get_waf_tips | WAF tips for a specific resource type |
 | suggest_architecture_improvements | AI-powered improvement suggestions |
-| list_reference_archs | List 5 reference architecture templates |
+| list_reference_archs | List 12 reference architecture templates |
 | apply_reference_architecture | Build a full diagram from a template |
 | suggest_architecture_style | Recommend a style for your workload |
 | suggest_design_patterns | Recommend design patterns |

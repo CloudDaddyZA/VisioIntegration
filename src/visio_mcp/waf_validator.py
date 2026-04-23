@@ -542,6 +542,103 @@ class WafValidator:
                 affected_resources=[],
             ))
 
+        # ── Zero Trust checks (grounded from Azure GitHub org review) ──
+
+        # Check: Public IPs on workload resources (zero-trust anti-pattern)
+        public_ip_resources = [
+            r for r in state.resources.values()
+            if r.resource_type == "public_ip"
+            or r.properties.get("public_ip")
+            or r.properties.get("public_ip_address")
+        ]
+        workload_with_public = [
+            r for r in state.resources.values()
+            if r.resource_type in {"virtual_machine", "vm_scale_set", "kubernetes_service"}
+            and (r.properties.get("public_ip") or r.properties.get("public_ip_address"))
+        ]
+        if workload_with_public:
+            findings.append(ValidationFinding(
+                severity="critical",
+                pillar=WafPillar.SECURITY,
+                message="Workload resources have public IPs assigned (violates Zero Trust).",
+                recommendation=(
+                    "Remove public IPs from VMs, VMSS, and AKS nodes. Use Azure Bastion for admin access "
+                    "and private endpoints + internal load balancers for service communication."
+                ),
+                affected_resources=[r.id for r in workload_with_public],
+            ))
+
+        # Check: PaaS services without private endpoints (strict zero-trust)
+        all_paas_types = {
+            "sql_database", "sql_managed_instance", "cosmos_db", "storage_account",
+            "key_vault", "redis_cache", "service_bus", "event_hub", "container_registry",
+            "openai_service", "ai_search", "cognitive_services", "data_factory",
+            "synapse_analytics", "databricks", "event_grid", "function_app",
+            "app_service", "machine_learning",
+        }
+        paas_without_pe = resource_types & all_paas_types
+        pe_count = sum(1 for r in state.resources.values() if r.resource_type == "private_endpoint")
+        if paas_without_pe and pe_count < len(paas_without_pe):
+            findings.append(ValidationFinding(
+                severity="warning",
+                pillar=WafPillar.SECURITY,
+                message=f"{len(paas_without_pe)} PaaS services but only {pe_count} private endpoints. Zero Trust requires PE for every PaaS service.",
+                recommendation=(
+                    "Per Zero Trust networking, every PaaS service should have a private endpoint "
+                    "and public network access disabled. Add dedicated private endpoints in a PE subnet."
+                ),
+                affected_resources=list(paas_without_pe),
+            ))
+
+        # Check: Route table / UDR for egress control
+        has_route_table = "route_table" in resource_types
+        has_udr_mentioned = any(
+            "udr" in str(r.properties).lower() or "route" in str(r.properties).lower()
+            for r in state.resources.values()
+        )
+        if has_compute and has_firewall and not has_route_table and not has_udr_mentioned:
+            findings.append(ValidationFinding(
+                severity="info",
+                pillar=WafPillar.SECURITY,
+                message="Azure Firewall present but no Route Table (UDR) to force traffic through it.",
+                recommendation=(
+                    "Add a route table with 0.0.0.0/0 → Azure Firewall to ensure all egress "
+                    "traffic is inspected. Associate the UDR with workload subnets."
+                ),
+                affected_resources=[],
+            ))
+
+        # Check: Encryption at rest (storage accounts with access tier but no encryption mention)
+        for r in state.resources.values():
+            if r.resource_type in {"storage_account", "data_lake_storage"} and r.properties:
+                encryption = r.properties.get("encryption") or r.properties.get("cmk")
+                if encryption and str(encryption).lower() == "false":
+                    findings.append(ValidationFinding(
+                        severity="critical",
+                        pillar=WafPillar.SECURITY,
+                        message=f"Storage '{r.display_name}' has encryption explicitly disabled.",
+                        recommendation="All Azure storage must use encryption at rest. Use Microsoft-managed or customer-managed keys (CMK).",
+                        affected_resources=[r.id],
+                    ))
+
+        # Check: SKU enforcement – Basic/Free SKUs for production
+        for r in state.resources.values():
+            sku = str(r.properties.get("sku", "")).lower()
+            tier = str(r.properties.get("tier", "")).lower()
+            env_hint = str(r.properties.get("environment", "")).lower()
+            is_prod = "prod" in env_hint or not env_hint  # assume prod if not specified
+            if is_prod and (sku in {"basic", "free", "f1", "b1"} or tier in {"basic", "free"}):
+                findings.append(ValidationFinding(
+                    severity="warning",
+                    pillar=WafPillar.RELIABILITY,
+                    message=f"'{r.display_name}' uses {sku or tier} SKU which lacks SLA guarantees for production.",
+                    recommendation=(
+                        "Use Standard or Premium SKUs for production workloads to get SLA coverage, "
+                        "Availability Zone support, and enterprise features."
+                    ),
+                    affected_resources=[r.id],
+                ))
+
         return findings
 
     # ── Page annotation ───────────────────────────────────────────

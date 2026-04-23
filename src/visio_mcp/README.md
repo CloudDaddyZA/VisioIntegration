@@ -12,13 +12,13 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 | **Tools** | 28 | Diagram CRUD, layout, validation, reference architectures, rendering, import |
 | **Resources** | 8 | Diagram state, catalog browsing, shape listings |
 | **Prompts** | 7 | Architecture creation, validation, import, style guidance, business requirements, getting started |
-| **Azure Shapes** | 123 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
+| **Azure Shapes** | 151 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
 | **SVG Icons** | 97+ | Azure Public Service, Entra (7), and Fabric (28) icon sets |
 | **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
 | **Architecture Catalog** | 206 | Reference architectures from Azure Architecture Center |
-| **Design Patterns** | 36 | Cloud design patterns with diagram implications |
+| **Design Patterns** | 40 | Cloud design patterns with diagram implications |
 | **Architecture Styles** | 6 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute |
-| **Reference Architectures** | 5 | Hand-tuned templates with position hints and workflow steps |
+| **Reference Architectures** | 12 | Hand-tuned templates with position hints and workflow steps |
 | **Output Formats** | 2 | Visio `.vsdx` (COM / python-vsdx) and draw.io `.drawio` (mxGraph XML) |
 
 ---
@@ -66,7 +66,7 @@ Comprehensive Azure resource catalog:
 - **`FABRIC_ICON_MAP`** (28 entries) — Microsoft Fabric icon paths (item + color variants)
 - **`ALL_ICON_MAPS`** — Merged lookup with cross-root path resolution
 - **`RESOURCE_ALIASES`** (40+ entries) — Common abbreviations resolved by `resolve_alias()`
-- **`AZURE_SHAPE_CATALOG`** (123 entries) — Full shape metadata (`AzureShapeInfo`) with stencil names, SVG paths, icon colors, WAF considerations
+- **`AZURE_SHAPE_CATALOG`** (151 entries) — Full shape metadata (`AzureShapeInfo`) with stencil names, SVG paths, icon colors, WAF considerations
 - **`BOUNDARY_STYLES`** / **`CONNECTOR_STYLES`** — Visual style definitions
 - **`resolve_svg_path()`** — Resolves resource type → SVG file path (checks filesystem existence)
 - **`get_icons_root()`** — Returns the path to the Azure Public Service Icons directory
@@ -141,7 +141,7 @@ Built-in reference architecture definitions:
 - Microsoft Architecture Center visual standards (`MICROSOFT_STANDARDS` dataclass)
 - `AZURE_DIAGRAM_COLORS` — Color palette constants per published Architecture Center SVGs
 - 206-entry architecture catalog from Azure Architecture Center browse page
-- 36 cloud design patterns and 6 architecture styles with metadata
+- 40 cloud design patterns and 6 architecture styles with metadata
 
 ---
 
