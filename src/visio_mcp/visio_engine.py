@@ -258,10 +258,16 @@ class VisioEngine:
         """Draw a single resource shape using COM with named cells.
 
         Strategy priority:
+          0. Preserved original style (from image import)
           1. Visio stencil master (.vssx)
           2. SVG icon import + label below
           3. Colored rectangle fallback
         """
+        # Strategy 0: Preserved original style from image import
+        if resource.properties.get("preserve_style"):
+            self._draw_preserved_resource_com(resource)
+            return
+
         shape_info = AZURE_SHAPE_CATALOG.get(resource.resource_type)
         shape = None
         svg_used = False
@@ -344,6 +350,82 @@ class VisioEngine:
                 shape.Cells("Char.Font").FormulaU = "\"Segoe UI\""
             except Exception:
                 pass
+
+        self._shapes[resource.id] = shape
+
+    def _draw_preserved_resource_com(self, resource) -> None:
+        """Draw a resource with its original preserved visual style (COM)."""
+        props = resource.properties
+        shape_type = props.get("original_shape", "rectangle")
+        fill = props.get("fill_color", "#FFFFFF")
+        border = props.get("border_color", "#000000")
+        text_color = props.get("text_color", "#000000")
+        vx = resource.position.x
+        vy = self._flip_y(resource.position.y)
+        w = resource.size.width
+        h = resource.size.height
+
+        if shape_type == "diamond":
+            # Draw a diamond by rotating a square 45 degrees
+            shape = self._page.DrawRectangle(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+            try:
+                shape.Cells("Angle").FormulaU = "45 deg"
+            except Exception:
+                pass
+        elif shape_type == "circle":
+            shape = self._page.DrawOval(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+        elif shape_type in ("cylinder",):
+            # Approximate cylinder with an oval on top of a rectangle
+            shape = self._page.DrawRectangle(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+            try:
+                shape.Cells("Rounding").FormulaU = "0.15 in"
+            except Exception:
+                pass
+        elif shape_type == "hexagon":
+            shape = self._page.DrawRectangle(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+            try:
+                shape.Cells("Rounding").FormulaU = "0.1 in"
+            except Exception:
+                pass
+        elif shape_type == "rounded_rectangle":
+            shape = self._page.DrawRectangle(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+            try:
+                shape.Cells("Rounding").FormulaU = "0.1 in"
+            except Exception:
+                pass
+        else:
+            # Default: rectangle
+            shape = self._page.DrawRectangle(
+                vx - w / 2, vy - h / 2, vx + w / 2, vy + h / 2
+            )
+
+        # Apply colors
+        try:
+            shape.Cells("FillPattern").FormulaU = "1"
+            shape.Cells("FillForegnd").FormulaU = f"RGB({_hex_to_rgb(fill)})"
+            shape.Cells("LineColor").FormulaU = f"RGB({_hex_to_rgb(border)})"
+            shape.Cells("LineWeight").FormulaU = "1 pt"
+        except Exception:
+            pass
+
+        # Label
+        shape.Text = resource.display_name
+        try:
+            shape.Cells("Char.Size").FormulaU = "10 pt"
+            shape.Cells("Char.Color").FormulaU = f"RGB({_hex_to_rgb(text_color)})"
+            shape.Cells("Char.Font").FormulaU = '"Segoe UI"'
+        except Exception:
+            pass
 
         self._shapes[resource.id] = shape
 
@@ -693,10 +775,16 @@ class VisioEngine:
 
             # Draw resources as shapes
             for resource in state.resources.values():
-                shape_info = AZURE_SHAPE_CATALOG.get(resource.resource_type)
-                label = resource.display_name
-                if shape_info:
-                    label = f"{shape_info.display_name}\n{resource.display_name}"
+                preserved = resource.properties.get("preserve_style")
+                if preserved:
+                    fill = resource.properties.get("fill_color", "#FFFFFF")
+                    border = resource.properties.get("border_color", "#000000")
+                    label = resource.display_name
+                else:
+                    shape_info = AZURE_SHAPE_CATALOG.get(resource.resource_type)
+                    label = resource.display_name
+                    if shape_info:
+                        label = f"{shape_info.display_name}\n{resource.display_name}"
 
                 shape = page.add_shape(
                     x=resource.position.x,
@@ -707,7 +795,13 @@ class VisioEngine:
                 )
                 if shape is not None:
                     shape_map[resource.id] = shape
-                    if shape_info:
+                    if preserved:
+                        try:
+                            shape.set_cell_value("FillForegnd", fill)
+                            shape.set_cell_value("LineColor", border)
+                        except Exception:
+                            pass
+                    elif shape_info:
                         try:
                             shape.set_cell_value("FillForegnd", shape_info.icon_color)
                         except Exception:
