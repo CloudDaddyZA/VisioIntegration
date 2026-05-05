@@ -68,6 +68,7 @@ class VisioEngine:
     def render(self, state: DiagramState, output_path: str) -> str:
         """Render the diagram state to a .vsdx file. Returns the output path."""
         output_path = os.path.abspath(output_path)
+        self._source_image = state.properties.get("source_image_path")
 
         if VISIO_AVAILABLE:
             return self._render_com(state, output_path)
@@ -428,6 +429,42 @@ class VisioEngine:
             pass
 
         self._shapes[resource.id] = shape
+
+    def _embed_background_image_com(self, page_w: float, page_h: float) -> None:
+        """Embed the source image as a background trace on the page (COM)."""
+        img_path = self._source_image
+        if not img_path or not os.path.isfile(img_path):
+            return
+
+        # Import image as a shape centered on the page
+        shape = self._page.Import(img_path)
+        if shape is None:
+            return
+
+        # Position and size the image to fill the page (with margin)
+        margin = 1.0
+        img_w = page_w - margin * 2
+        img_h = page_h - margin * 2
+
+        try:
+            shape.Cells("PinX").FormulaU = f"{page_w / 2} in"
+            shape.Cells("PinY").FormulaU = f"{page_h / 2} in"
+            shape.Cells("Width").FormulaU = f"{img_w} in"
+            shape.Cells("Height").FormulaU = f"{img_h} in"
+            # Lock the image so it doesn't get accidentally moved
+            shape.Cells("LockSelect").FormulaU = "1"
+            shape.Cells("LockPosition").FormulaU = "1"
+            shape.Cells("LockSize").FormulaU = "1"
+            # Make transparent so editable shapes stand out on top
+            shape.Cells("FillForegndTrans").FormulaU = "70%"
+        except Exception as e:
+            logger.warning("Could not configure background image: %s", e)
+
+        # Send to back so it's behind all other shapes
+        try:
+            shape.SendToBack()
+        except Exception:
+            pass
 
     def _import_svg_as_shape(
         self, svg_path: str, x: float, y: float, width: float, height: float

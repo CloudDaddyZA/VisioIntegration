@@ -632,7 +632,7 @@ def save_diagram(
     out.parent.mkdir(parents=True, exist_ok=True)
     output_path = str(out)
 
-    if auto_layout_before_save:
+    if auto_layout_before_save and not _diagram.state.properties.get("preserve_original_style"):
         # Use stored layout hints if available (from reference architectures)
         layout_hints = getattr(_diagram.state, '_layout_hints', None) or None
         boundary_hints = getattr(_diagram.state, '_boundary_hints', None) or None
@@ -2307,6 +2307,10 @@ Rules:
             _layout.auto_layout(_diagram.state, strategy="tiered")
         except Exception:
             pass
+    else:
+        # Store source image path for background trace embedding during export
+        _diagram.state.properties["source_image_path"] = str(Path(file_path).resolve())
+        _diagram.state.properties["preserve_original_style"] = True
 
     return {
         "status": "imported",

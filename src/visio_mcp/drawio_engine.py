@@ -10,6 +10,7 @@ where available, falling back to labeled rounded rectangles.
 
 from __future__ import annotations
 
+import base64
 import logging
 import os
 import xml.etree.ElementTree as ET
@@ -503,6 +504,56 @@ class DrawioEngine:
                              source=source_cell, target=target_cell,
                              parent="1")
         ET.SubElement(cell, "mxGeometry", relative="1", **{"as": "geometry"})
+
+    def _embed_background_image(
+        self, root: ET.Element, image_path: str, state: DiagramState,
+    ) -> None:
+        """Embed the source image as a locked background image cell."""
+        try:
+            with open(image_path, "rb") as f:
+                img_bytes = f.read()
+
+            # Determine MIME type from extension
+            ext = Path(image_path).suffix.lower()
+            mime_map = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".svg": "image/svg+xml",
+                ".webp": "image/webp",
+            }
+            mime = mime_map.get(ext, "image/png")
+            b64 = base64.b64encode(img_bytes).decode("ascii")
+            data_uri = f"data:{mime};base64,{b64}"
+
+            # Calculate image dimensions to fill the page
+            page_w_px = _in2px(state.page_width)
+            page_h_px = _in2px(state.page_height)
+            margin_px = _in2px(1.0)
+
+            img_w = page_w_px - margin_px * 2
+            img_h = page_h_px - margin_px * 2
+
+            cell_id = self._next_id()
+            style = (
+                f"shape=image;imageAspect=0;aspect=fixed;"
+                f"image={data_uri};"
+                f"movable=0;resizable=0;rotatable=0;deletable=1;editable=0;"
+                f"locked=1;connectable=0;opacity=30;"
+            )
+            cell = ET.SubElement(
+                root, "mxCell", id=cell_id, value="",
+                style=style, vertex="1", parent="1",
+            )
+            ET.SubElement(
+                cell, "mxGeometry",
+                x=str(round(margin_px)), y=str(round(margin_px)),
+                width=str(round(img_w)), height=str(round(img_h)),
+                **{"as": "geometry"},
+            )
+        except Exception as e:
+            logger.warning("Could not embed background image: %s", e)
 
     def _add_title(self, root: ET.Element, title: str, cell_id: str) -> None:
         """Add a title label at the top of the diagram."""

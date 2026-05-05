@@ -192,6 +192,8 @@ class DiagramManager:
             "connection_count": len(self._state.connections),
             "boundary_count": len(self._state.boundaries),
             "pages": self._state.properties.get("pages", []),
+            "source_image_path": self._state.properties.get("source_image_path", ""),
+            "preserve_original_style": self._state.properties.get("preserve_original_style", False),
             "resources": {
                 r.id: {
                     "id": r.id,
