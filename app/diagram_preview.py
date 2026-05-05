@@ -242,35 +242,40 @@ def render_diagram_svg(state: dict[str, Any], width: int = 1100, height: int = 7
         rtype = _get_field(r, "resource_type", "type", default="")
         rname = _get_field(r, "display_name", "name", default=rid)
         cat = _get_field(r, "category", default="General")
+        props = _get_field(r, "properties", default={})
 
         rx = tx(_to_float(pos, "x", 4.0))
         ry = ty(_to_float(pos, "y", 4.0))
 
-        # Resource box
-        box_w, box_h = 44, 44
-        color = _resource_color(rtype, cat)
+        # Check if this resource has preserved original style
+        if isinstance(props, dict) and props.get("preserve_style"):
+            _render_preserved_resource(parts, rx, ry, rname, props)
+        else:
+            # Resource box
+            box_w, box_h = 44, 44
+            color = _resource_color(rtype, cat)
 
-        parts.append(
-            f'<rect x="{rx - box_w / 2:.1f}" y="{ry - box_h / 2:.1f}" '
-            f'width="{box_w}" height="{box_h}" rx="6" '
-            f'fill="white" stroke="{color}" stroke-width="1.5" filter="url(#shadow)"/>'
-        )
+            parts.append(
+                f'<rect x="{rx - box_w / 2:.1f}" y="{ry - box_h / 2:.1f}" '
+                f'width="{box_w}" height="{box_h}" rx="6" '
+                f'fill="white" stroke="{color}" stroke-width="1.5" filter="url(#shadow)"/>'
+            )
 
-        # Icon placeholder (colored circle with initials)
-        initials = _initials(rtype)
-        parts.append(
-            f'<circle cx="{rx:.1f}" cy="{ry - 4:.1f}" r="12" fill="{color}" opacity="0.15"/>'
-        )
-        parts.append(
-            f'<text x="{rx:.1f}" y="{ry:.1f}" text-anchor="middle" '
-            f'font-size="10" font-weight="700" fill="{color}">{initials}</text>'
-        )
+            # Icon placeholder (colored circle with initials)
+            initials = _initials(rtype)
+            parts.append(
+                f'<circle cx="{rx:.1f}" cy="{ry - 4:.1f}" r="12" fill="{color}" opacity="0.15"/>'
+            )
+            parts.append(
+                f'<text x="{rx:.1f}" y="{ry:.1f}" text-anchor="middle" '
+                f'font-size="10" font-weight="700" fill="{color}">{initials}</text>'
+            )
 
-        # Label below
-        parts.append(
-            f'<text x="{rx:.1f}" y="{ry + box_h / 2 + 12:.1f}" text-anchor="middle" '
-            f'font-size="9" fill="#333">{html.escape(_truncate(rname, 18))}</text>'
-        )
+            # Label below
+            parts.append(
+                f'<text x="{rx:.1f}" y="{ry + box_h / 2 + 12:.1f}" text-anchor="middle" '
+                f'font-size="9" fill="#333">{html.escape(_truncate(rname, 18))}</text>'
+            )
 
     # Resource count badge
     n_res = len(resources) if isinstance(resources, dict) else 0
@@ -397,6 +402,112 @@ def _resource_color(rtype: str, category: str = "General") -> str:
     if any(k in rtype_lower for k in ("monitor", "log_analytics", "insights")):
         return CATEGORY_COLORS["Management + Governance"]
     return CATEGORY_COLORS.get(category, "#515C6B")
+
+
+def _render_preserved_resource(parts: list[str], rx: float, ry: float, name: str, props: dict) -> None:
+    """Render a resource with its original preserved visual style."""
+    shape = props.get("original_shape", "rectangle")
+    fill = props.get("fill_color", "#FFFFFF")
+    border = props.get("border_color", "#000000")
+    text_color = props.get("text_color", "#000000")
+
+    # Calculate dimensions based on label length
+    label_len = len(name)
+    pad_w = max(80, label_len * 7 + 20)
+    pad_h = 36
+
+    if shape == "diamond":
+        # Render as rotated square (diamond)
+        size = max(60, label_len * 5 + 20)
+        half = size / 2
+        points = f"{rx},{ry - half} {rx + half},{ry} {rx},{ry + half} {rx - half},{ry}"
+        parts.append(
+            f'<polygon points="{points}" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5" filter="url(#shadow)"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 4:.1f}" text-anchor="middle" '
+            f'font-size="9" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 20))}</text>'
+        )
+    elif shape == "circle":
+        r = max(24, label_len * 3 + 8)
+        parts.append(
+            f'<circle cx="{rx:.1f}" cy="{ry:.1f}" r="{r}" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5" filter="url(#shadow)"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 4:.1f}" text-anchor="middle" '
+            f'font-size="9" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 16))}</text>'
+        )
+    elif shape == "rounded_rectangle":
+        parts.append(
+            f'<rect x="{rx - pad_w / 2:.1f}" y="{ry - pad_h / 2:.1f}" '
+            f'width="{pad_w}" height="{pad_h}" rx="10" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5" filter="url(#shadow)"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 4:.1f}" text-anchor="middle" '
+            f'font-size="10" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 22))}</text>'
+        )
+    elif shape == "person":
+        # Simple person/user icon
+        parts.append(
+            f'<circle cx="{rx:.1f}" cy="{ry - 12:.1f}" r="8" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5"/>'
+        )
+        parts.append(
+            f'<path d="M{rx - 14},{ry + 10} Q{rx - 14},{ry - 2} {rx},{ry - 2} Q{rx + 14},{ry - 2} {rx + 14},{ry + 10}" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 24:.1f}" text-anchor="middle" '
+            f'font-size="9" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 18))}</text>'
+        )
+    elif shape == "hexagon":
+        hw = pad_w / 2
+        hh = pad_h / 2
+        indent = 12
+        points = (
+            f"{rx - hw + indent},{ry - hh} {rx + hw - indent},{ry - hh} "
+            f"{rx + hw},{ry} {rx + hw - indent},{ry + hh} "
+            f"{rx - hw + indent},{ry + hh} {rx - hw},{ry}"
+        )
+        parts.append(
+            f'<polygon points="{points}" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5" filter="url(#shadow)"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 4:.1f}" text-anchor="middle" '
+            f'font-size="9" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 20))}</text>'
+        )
+    elif shape == "cylinder":
+        cw = max(60, label_len * 6 + 16)
+        ch = 44
+        cx_l = rx - cw / 2
+        cy_t = ry - ch / 2
+        parts.append(
+            f'<rect x="{cx_l:.1f}" y="{cy_t + 6:.1f}" width="{cw}" height="{ch - 6}" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5"/>'
+        )
+        parts.append(
+            f'<ellipse cx="{rx:.1f}" cy="{cy_t + 6:.1f}" rx="{cw / 2}" ry="6" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 8:.1f}" text-anchor="middle" '
+            f'font-size="9" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 18))}</text>'
+        )
+    else:
+        # Default: plain rectangle
+        parts.append(
+            f'<rect x="{rx - pad_w / 2:.1f}" y="{ry - pad_h / 2:.1f}" '
+            f'width="{pad_w}" height="{pad_h}" rx="3" '
+            f'fill="{fill}" stroke="{border}" stroke-width="1.5" filter="url(#shadow)"/>'
+        )
+        parts.append(
+            f'<text x="{rx:.1f}" y="{ry + 4:.1f}" text-anchor="middle" '
+            f'font-size="10" font-weight="600" fill="{text_color}">{html.escape(_truncate(name, 22))}</text>'
+        )
 
 
 def _initials(rtype: str) -> str:

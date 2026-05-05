@@ -2287,14 +2287,15 @@ Rules:
         if ctype not in CONNECTOR_STYLES:
             ctype = "data_flow"
         try:
-            conn_metadata = {}
+            line_style = "solid"
             if preserve_original_style:
-                conn_metadata["line_style"] = c.get("line_style", "solid")
+                line_style = c.get("line_style", "solid")
             _diagram.add_connection(
                 source_id=c["source_id"],
                 target_id=c["target_id"],
                 label=c.get("label", ""),
                 connection_type=ctype,
+                style=line_style,
             )
             connection_count += 1
         except (ValueError, KeyError):

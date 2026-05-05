@@ -203,6 +203,7 @@ class DiagramManager:
                     "category": r.properties.get("category", ""),
                     "page": r.properties.get("page"),
                     "page_name": r.properties.get("page_name", ""),
+                    "properties": r.properties,
                 }
                 for r in self._state.resources.values()
             },
