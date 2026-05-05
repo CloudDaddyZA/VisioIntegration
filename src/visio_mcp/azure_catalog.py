@@ -159,6 +159,67 @@ SVG_ICON_MAP: dict[str, str] = {
 }
 
 # ── Additional icon packs (relative to stencils/ root) ───────────
+
+# Microsoft 365 icons
+_M365_TEAMS = "M365_Icons/Teams Purple/48x48 Dark Purple Icon"
+_M365_BLUE = "M365_Icons/Microsoft Blue/48x48 Dark Blue Icon"
+_M365_PLANNER = "M365_Icons/Planner Green/48x48 SVG Icons"
+_M365_PROJECT = "M365_Icons/Project Green/48x48 SVG Icons"
+_M365_SHAREPOINT = "M365_Icons/SharePoint Teal/48x48 SVG Icon"
+M365_ICON_MAP: dict[str, str] = {
+    # Microsoft Teams
+    "m365_teams": f"{_M365_TEAMS}/People Team.svg",
+    "m365_teams_chat": f"{_M365_TEAMS}/Chat.svg",
+    "m365_teams_call": f"{_M365_TEAMS}/Call.svg",
+    "m365_teams_video": f"{_M365_TEAMS}/Video.svg",
+    "m365_teams_bot": f"{_M365_TEAMS}/Bot.svg",
+    "m365_teams_calendar": f"{_M365_TEAMS}/Calendar Month.svg",
+    "m365_teams_apps": f"{_M365_TEAMS}/Apps.svg",
+    "m365_teams_channels": f"{_M365_TEAMS}/Chat Multiple.svg",
+    # SharePoint
+    "m365_sharepoint": f"{_M365_SHAREPOINT}/Organization_Dark.svg",
+    # Exchange / Outlook
+    "m365_exchange": f"{_M365_BLUE}/Mail.svg",
+    "m365_outlook": f"{_M365_BLUE}/Mail.svg",
+    # OneDrive
+    "m365_onedrive": f"{_M365_BLUE}/Cloud.svg",
+    # Microsoft 365 generic
+    "m365": f"{_M365_BLUE}/Globe.svg",
+    "m365_admin": f"{_M365_BLUE}/Settings Cog Multiple.svg",
+    "m365_copilot": f"{_M365_BLUE}/Lightbulb Checkmark.svg",
+    # Word / Excel / PowerPoint / OneNote
+    "m365_word": f"{_M365_BLUE}/Document.svg",
+    "m365_excel": f"{_M365_BLUE}/Data Bar Vertical.svg",
+    "m365_powerpoint": f"{_M365_BLUE}/Slide Layout.svg",
+    "m365_onenote": f"{_M365_BLUE}/Notebook.svg",
+    # Planner
+    "m365_planner": f"{_M365_PLANNER}/Clipboard_Task_List_Dark.svg",
+    # Project
+    "m365_project": f"{_M365_PROJECT}/Text_Bullet_List_Dark.svg",
+    # Stream
+    "m365_stream": f"{_M365_BLUE}/Filmstrip Play.svg",
+    # Viva
+    "m365_viva": f"{_M365_BLUE}/People Community.svg",
+    "m365_viva_learning": f"{_M365_BLUE}/Hat Graduation.svg",
+    "m365_viva_engage": f"{_M365_BLUE}/People Community.svg",
+    # Defender for M365
+    "m365_defender": f"{_M365_BLUE}/Shield Error.svg",
+    "m365_security": f"{_M365_BLUE}/Lock Shield.svg",
+    # Intune
+    "m365_intune": f"{_M365_BLUE}/Phone Laptop.svg",
+    # Bookings
+    "m365_bookings": f"{_M365_BLUE}/Calendar Month.svg",
+    # Forms
+    "m365_forms": f"{_M365_BLUE}/Checkmark Circle.svg",
+    # Power Pages (M365 context)
+    "m365_power_pages": f"{_M365_BLUE}/Globe.svg",
+    # Generic building/cloud
+    "m365_building": f"{_M365_BLUE}/Building.svg",
+    "m365_cloud": f"{_M365_BLUE}/Building Cloud.svg",
+    # Support / service desk
+    "m365_support": f"{_M365_BLUE}/Headset.svg",
+}
+
 # Microsoft Entra icons
 _ENTRA_ROOT = "Entra_Icons/Microsoft Entra architecture icons - Oct 2023/Microsoft Entra color icons SVG"
 ENTRA_ICON_MAP: dict[str, str] = {
@@ -211,7 +272,7 @@ ALL_ICON_MAPS: dict[str, str] = {**SVG_ICON_MAP}
 # Entra and Fabric icons use paths relative to stencils/ (not Icons/)
 # so we prefix with "../" to resolve from the Icons/ root
 _STENCILS_ROOT = Path(__file__).parent / "stencils"
-for _map in (ENTRA_ICON_MAP, FABRIC_ICON_MAP):
+for _map in (M365_ICON_MAP, ENTRA_ICON_MAP, FABRIC_ICON_MAP):
     for _key, _relpath in _map.items():
         ALL_ICON_MAPS[_key] = f"../../{_relpath}"  # relative from Icons/ to stencils/
 
