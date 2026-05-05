@@ -124,14 +124,14 @@ SVG_ICON_MAP: dict[str, str] = {
     # Containers – advanced
     "container_app_environment": "other/02989-icon-service-Container-Apps-Environments.svg",
     # Data – advanced
-    "purview": "management + governance/02305-icon-service-Azure-Purview-Accounts.svg",
+    "purview": "management + governance/00011-icon-service-Compliance.svg",
     "data_catalog": "analytics/10155-icon-service-Data-Catalog.svg",
     "data_share": "analytics/02807-icon-service-Data-Shares.svg",
     # Integration – advanced
     "event_grid_domain": "integration/10206-icon-service-Event-Grid-Topics.svg",
     "event_grid_system_topic": "integration/10206-icon-service-Event-Grid-Topics.svg",
     # Management – advanced
-    "blueprint": "management + governance/10319-icon-service-Blueprints.svg",
+    "blueprint": "management + governance/00006-icon-service-Blueprints.svg",
     "managed_grafana": "monitor/03422-icon-service-Azure-Managed-Grafana.svg",
     "action_group": "monitor/10005-icon-service-Action-Groups.svg",
     "alert_rule": "monitor/10013-icon-service-Alerts.svg",
@@ -152,6 +152,10 @@ SVG_ICON_MAP: dict[str, str] = {
     # Health / Specialized
     "api_for_fhir": "integration/10042-icon-service-API-Management-Services.svg",
     "chaos_studio": "management + governance/00022-icon-service-Automation-Accounts.svg",
+    # Storage – queue
+    "queue_storage": "general/10840-icon-service-Storage-Queue.svg",
+    # Virtual Desktop
+    "virtual_desktop": "other/00327-icon-service-Azure-Virtual-Desktop.svg",
 }
 
 # ── Additional icon packs (relative to stencils/ root) ───────────
