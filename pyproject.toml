@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "visio-azure-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server for drawing Azure architecture diagrams in Visio with WAF/CAF alignment"
 requires-python = ">=3.11"
 dependencies = [

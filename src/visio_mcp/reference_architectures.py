@@ -420,6 +420,392 @@ ARCHITECTURE_STYLES: dict[str, ArchitectureStyle] = {
             "For hybrid: show on-premises head node with ExpressRoute/VPN to Azure VMs",
         ],
     ),
+    "dataflow": ArchitectureStyle(
+        key="dataflow",
+        name="Dataflow / Data Pipeline",
+        description=(
+            "Architecture for moving, transforming, and routing data through a "
+            "series of processing stages. Data flows from sources through ingestion, "
+            "transformation (ETL/ELT), enrichment, and delivery to sinks. Supports "
+            "batch, micro-batch, and streaming modes with orchestration and monitoring."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/",
+        when_to_use=[
+            "Moving data between operational and analytical systems",
+            "ETL/ELT pipelines for data warehousing",
+            "Data integration across multiple sources and formats",
+            "Data cleansing, enrichment, and quality enforcement",
+            "Replicating data across regions or environments",
+        ],
+        typical_components=[
+            "Data sources (databases, APIs, files, streams)",
+            "Ingestion layer (connectors, CDC, bulk import)",
+            "Staging / landing zone (raw data lake)",
+            "Transformation engine (ELT/ETL, Spark, SQL)",
+            "Data quality & validation checks",
+            "Enrichment services (lookup, AI inference)",
+            "Curated / serving layer (warehouse, lakehouse)",
+            "Orchestrator (Data Factory, Fabric pipelines)",
+            "Monitoring & lineage tracking",
+            "Data sinks (BI tools, APIs, downstream apps)",
+        ],
+        azure_services=[
+            "data_factory", "databricks", "synapse_analytics",
+            "data_lake_storage", "storage_account", "sql_database",
+            "event_hub", "stream_analytics", "cosmos_db",
+            "machine_learning", "monitor", "log_analytics",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Left-to-right flow: Sources → Ingest → Transform → Serve → Consume",
+            "Use numbered workflow steps on arrows",
+            "Group sources in a 'Data Sources' boundary on the left",
+            "Show staging/landing zone between ingest and transform",
+            "Place orchestrator spanning the full pipeline at the top or bottom",
+            "Use solid arrows for data flow, dashed for control/orchestration",
+            "Include data quality checkpoints between stages",
+            "Show monitoring/lineage as a cross-cutting concern",
+        ],
+    ),
+    "big_data_analytics": ArchitectureStyle(
+        key="big_data_analytics",
+        name="Big Data Analytics Pipeline",
+        description=(
+            "End-to-end analytics architecture implementing the Medallion pattern "
+            "(Bronze → Silver → Gold) or Lambda/Kappa architectures for processing "
+            "massive datasets. Combines batch and real-time processing with a unified "
+            "serving layer for BI, reporting, and machine learning."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/solution-ideas/articles/big-data-analytics-enterprise",
+        when_to_use=[
+            "Enterprise-scale analytics with petabytes of data",
+            "Combining batch historical analysis with real-time streaming",
+            "Building data lakehouses with governed data layers",
+            "Multi-source data integration for enterprise BI",
+            "ML feature engineering from large datasets",
+        ],
+        typical_components=[
+            "Data sources (operational DBs, IoT, logs, SaaS)",
+            "Ingestion — batch (Data Factory) and streaming (Event Hubs)",
+            "Bronze layer (raw, immutable data lake)",
+            "Silver layer (cleansed, conformed, deduplicated)",
+            "Gold layer (business-level aggregates, star schemas)",
+            "Processing engine (Databricks / Synapse Spark)",
+            "Serving layer (SQL pools, Power BI datasets)",
+            "BI & reporting (Power BI, dashboards)",
+            "ML & AI layer (feature store, model training)",
+            "Data governance (Purview, lineage, access control)",
+        ],
+        azure_services=[
+            "data_lake_storage", "data_factory", "databricks",
+            "synapse_analytics", "event_hub", "stream_analytics",
+            "sql_database", "cosmos_db", "machine_learning",
+            "monitor", "log_analytics", "storage_account",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Show Medallion layers left-to-right: Bronze → Silver → Gold → Serving",
+            "Data sources feed into Bronze via ingestion layer",
+            "Parallel batch and stream paths into Bronze",
+            "Place processing engine (Databricks/Spark) between layers",
+            "Gold layer feeds BI/reporting at the far right",
+            "Data governance spans all layers at the bottom",
+            "Use numbered steps showing data progression",
+            "Label transformation rules between layers",
+        ],
+    ),
+    "database_flow": ArchitectureStyle(
+        key="database_flow",
+        name="Database Architecture / Data Tier",
+        description=(
+            "Architecture focusing on database topology including replication, "
+            "sharding, read replicas, failover groups, polyglot persistence, "
+            "and data access patterns. Shows how application tiers interact with "
+            "one or more database engines for OLTP, OLAP, caching, and search."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/",
+        when_to_use=[
+            "Designing data tier for high-availability and disaster recovery",
+            "Polyglot persistence (multiple DB engines for different access patterns)",
+            "Read/write splitting with read replicas",
+            "Geo-distributed databases with active replication",
+            "CQRS with separate read and write stores",
+        ],
+        typical_components=[
+            "Primary database (OLTP — SQL, Cosmos DB)",
+            "Read replicas (same-region and cross-region)",
+            "Failover group / auto-failover",
+            "Cache layer (Redis for hot data)",
+            "Search index (AI Search for full-text/vector)",
+            "Analytical store (Synapse, dedicated SQL pool)",
+            "CDC / change feed for replication",
+            "Connection pooling / data access layer",
+            "Backup and point-in-time restore",
+            "Data encryption (TDE, Always Encrypted, CMK)",
+        ],
+        azure_services=[
+            "sql_database", "cosmos_db", "redis_cache",
+            "ai_search", "synapse_analytics", "postgresql_database",
+            "mysql_database", "sql_managed_instance", "storage_account",
+            "key_vault", "monitor", "data_factory",
+        ],
+        flow_direction="TB",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Application tier at the top, databases below",
+            "Show primary DB with arrow to read replicas",
+            "Failover group boundary around primary + secondary",
+            "Cache layer between app tier and primary DB",
+            "Use dashed arrows for replication/sync flows",
+            "Solid arrows for read/write from application",
+            "Show geo-replication with region boundaries",
+            "Place backup/DR components at the bottom",
+        ],
+    ),
+    "ai_ml_pipeline": ArchitectureStyle(
+        key="ai_ml_pipeline",
+        name="AI / ML Pipeline",
+        description=(
+            "End-to-end machine learning architecture covering data preparation, "
+            "feature engineering, model training, evaluation, deployment, and "
+            "monitoring. Supports MLOps with CI/CD for models, experiment tracking, "
+            "model registry, and responsible AI governance."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/",
+        when_to_use=[
+            "Building and deploying ML models at scale",
+            "MLOps — automated training, deployment, and monitoring",
+            "Real-time and batch inference endpoints",
+            "LLM/GenAI applications with RAG patterns",
+            "Feature engineering pipelines for ML",
+        ],
+        typical_components=[
+            "Data sources (data lake, operational DBs, APIs)",
+            "Feature engineering / data preparation",
+            "Feature store (offline and online)",
+            "Experiment tracking (MLflow, AML experiments)",
+            "Training compute (GPU clusters, Spark)",
+            "Model registry (versioned models)",
+            "Model evaluation & responsible AI checks",
+            "Deployment — real-time endpoint (AKS, Container Apps)",
+            "Deployment — batch endpoint (Batch, Spark)",
+            "Monitoring (data drift, model performance, latency)",
+            "CI/CD pipeline for model retraining",
+        ],
+        azure_services=[
+            "machine_learning", "databricks", "kubernetes_service",
+            "container_apps", "openai_service", "ai_search",
+            "data_lake_storage", "data_factory", "container_registry",
+            "monitor", "application_insights", "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Left-to-right: Data → Features → Train → Register → Deploy → Monitor",
+            "Show experiment tracking connected to training stage",
+            "Model registry as central artifact store",
+            "Separate real-time and batch inference paths after deployment",
+            "CI/CD pipeline spanning train → deploy stages at the top",
+            "Monitoring feeds back to retraining trigger (loop arrow)",
+            "Place responsible AI checks between evaluation and registry",
+            "Use numbered steps for the ML lifecycle",
+        ],
+    ),
+    "rag_ai_app": ArchitectureStyle(
+        key="rag_ai_app",
+        name="RAG / Generative AI Application",
+        description=(
+            "Architecture for Retrieval-Augmented Generation (RAG) applications "
+            "that combine large language models with enterprise knowledge bases. "
+            "Documents are chunked, embedded, and indexed for semantic search; "
+            "user queries retrieve relevant context which is injected into LLM "
+            "prompts for grounded, factual responses."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/rag-on-azure",
+        when_to_use=[
+            "Enterprise chatbots grounded in company knowledge",
+            "Document Q&A over large document collections",
+            "Code assistants with codebase awareness",
+            "Customer support with product documentation",
+            "Research assistants over scientific literature",
+        ],
+        typical_components=[
+            "Document sources (Blob, SharePoint, databases)",
+            "Document processing (chunking, parsing, OCR)",
+            "Embedding model (text-embedding-ada-002 / multilingual)",
+            "Vector store / search index (AI Search with vector)",
+            "Orchestrator (Semantic Kernel, LangChain, Promptflow)",
+            "LLM (Azure OpenAI GPT-4o, GPT-4.1)",
+            "Prompt engineering / system prompts",
+            "Response generation with citations",
+            "Content safety / guardrails",
+            "Evaluation framework (groundedness, relevance)",
+            "User interface (web app, Teams bot, API)",
+        ],
+        azure_services=[
+            "openai_service", "ai_search", "cosmos_db",
+            "storage_account", "app_service", "container_apps",
+            "function_app", "cognitive_services", "key_vault",
+            "monitor", "application_insights", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Two flows: ingestion (top) and query (bottom)",
+            "Ingestion: Documents → Chunk → Embed → Index",
+            "Query: User → Orchestrator → Search → LLM → Response",
+            "Show vector store as central knowledge base",
+            "Place LLM/OpenAI prominently in query path",
+            "Content safety between LLM and user response",
+            "Use numbered steps for both flows",
+            "Show evaluation/monitoring as feedback loop",
+        ],
+    ),
+    "streaming_analytics": ArchitectureStyle(
+        key="streaming_analytics",
+        name="Real-Time Streaming & Analytics",
+        description=(
+            "Architecture for processing continuous data streams with sub-second "
+            "latency. Events flow from producers through ingestion, stream processing "
+            "(windowed aggregations, pattern detection, joins), and into real-time "
+            "dashboards, alerts, or downstream actions."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/solution-ideas/articles/real-time-analytics",
+        when_to_use=[
+            "Real-time dashboards and operational intelligence",
+            "Fraud detection and anomaly detection",
+            "IoT telemetry processing and alerting",
+            "Live recommendation engines",
+            "Real-time inventory and supply chain tracking",
+        ],
+        typical_components=[
+            "Event producers (IoT devices, apps, clickstream)",
+            "Event ingestion (Event Hubs, IoT Hub, Kafka)",
+            "Stream processing (Stream Analytics, Spark Streaming, Flink)",
+            "In-memory cache / state store (Redis)",
+            "Real-time serving (Cosmos DB, Data Explorer)",
+            "Dashboards (Power BI real-time, Grafana)",
+            "Alerting / actions (Logic Apps, Functions)",
+            "Cold path archive (Data Lake for replay)",
+            "Schema registry (Avro, JSON Schema)",
+        ],
+        azure_services=[
+            "event_hub", "iot_hub", "stream_analytics",
+            "databricks", "cosmos_db", "data_explorer",
+            "redis_cache", "function_app", "logic_app",
+            "data_lake_storage", "monitor", "application_insights",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Left-to-right: Producers → Ingest → Process → Serve → Act",
+            "Show hot path (real-time) and cold path (archive) as parallel lanes",
+            "Event Hubs/IoT Hub as central ingestion broker",
+            "Stream processing with windowed operations notation",
+            "Real-time dashboard and alerting on the right",
+            "Cold path branches down to Data Lake for historical analysis",
+            "Use solid arrows for hot path, dashed for cold path",
+            "Include schema registry connected to ingestion",
+        ],
+    ),
+    "integration_workflow": ArchitectureStyle(
+        key="integration_workflow",
+        name="Integration & Workflow Orchestration",
+        description=(
+            "Architecture for connecting disparate systems, APIs, and SaaS applications "
+            "through message-based integration, API management, and workflow orchestration. "
+            "Implements enterprise integration patterns (EIP) like message routing, "
+            "transformation, publish-subscribe, and saga orchestration."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/enterprise-integration/",
+        when_to_use=[
+            "Connecting on-premises systems to cloud services",
+            "SaaS-to-SaaS integration and data sync",
+            "Long-running business workflows with human approval",
+            "B2B partner integration (EDI, AS2)",
+            "API-first architecture with versioning and governance",
+        ],
+        typical_components=[
+            "API Gateway (API Management — throttling, auth, versioning)",
+            "Message broker (Service Bus — queues, topics, sessions)",
+            "Workflow engine (Logic Apps — visual, low-code)",
+            "Event mesh (Event Grid — reactive event routing)",
+            "Transformation (Data Factory, Functions)",
+            "On-premises data gateway",
+            "SaaS connectors (Office 365, Salesforce, SAP)",
+            "Dead-letter handling and retry policies",
+            "Monitoring and distributed tracing",
+            "Schema validation and contract management",
+        ],
+        azure_services=[
+            "api_management", "logic_app", "service_bus",
+            "event_grid", "function_app", "data_factory",
+            "app_service", "key_vault", "monitor",
+            "application_insights", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "External systems/SaaS on the left, internal systems on the right",
+            "API Management as the external-facing gateway",
+            "Service Bus in the center for decoupled messaging",
+            "Logic Apps for workflow orchestration (show as process boxes)",
+            "Event Grid for reactive event routing between services",
+            "On-premises connector at the bottom with hybrid connection",
+            "Show message flow with numbered steps",
+            "Include dead-letter queue and error handling paths",
+        ],
+    ),
+    "iot_edge": ArchitectureStyle(
+        key="iot_edge",
+        name="IoT & Edge Computing",
+        description=(
+            "Architecture for connecting, monitoring, and managing IoT devices at "
+            "scale with edge computing for local processing. Devices connect through "
+            "gateways and IoT Hub, with edge modules handling low-latency inference "
+            "and command-and-control from the cloud."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/iot",
+        when_to_use=[
+            "Large-scale IoT device fleet management",
+            "Edge AI inference with low-latency requirements",
+            "Industrial IoT (IIoT) and manufacturing",
+            "Smart building and facilities management",
+            "Connected vehicles and transportation",
+        ],
+        typical_components=[
+            "IoT devices and sensors",
+            "Edge gateway (IoT Edge runtime)",
+            "Edge modules (AI inference, protocol translation)",
+            "Cloud gateway (IoT Hub / IoT Central)",
+            "Device provisioning service (DPS)",
+            "Hot path processing (Stream Analytics, Functions)",
+            "Warm/cold storage (Cosmos DB, Data Lake)",
+            "Digital twins (Azure Digital Twins)",
+            "Command and control (cloud-to-device messaging)",
+            "Device management and OTA updates",
+        ],
+        azure_services=[
+            "iot_hub", "iot_central", "stream_analytics",
+            "function_app", "cosmos_db", "data_lake_storage",
+            "machine_learning", "event_hub", "storage_account",
+            "monitor", "log_analytics", "kubernetes_service",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Devices on the far left, edge gateway next, cloud on the right",
+            "Edge boundary containing edge runtime and modules",
+            "Cloud boundary containing IoT Hub and processing",
+            "Bidirectional arrows for telemetry up and commands down",
+            "Hot/warm/cold paths branching after IoT Hub",
+            "Digital Twins for spatial intelligence in the cloud",
+            "Show device provisioning flow separately",
+            "Include OTA update path from cloud to edge",
+        ],
+    ),
 }
 
 
@@ -926,6 +1312,126 @@ DESIGN_PATTERNS: dict[str, DesignPattern] = {
         related_patterns=["event_sourcing", "cqrs", "materialized_view"],
         azure_services=["cosmos_db", "sql_database", "event_hub", "data_factory", "stream_analytics", "databricks"],
         diagram_implications=["Show change feed arrow from source DB to event stream", "Downstream consumers reading from event stream", "Separate read and write paths"],
+    ),
+    "data_lake_pattern": DesignPattern(
+        key="data_lake_pattern",
+        name="Data Lake / Lakehouse",
+        description="Centralize all organizational data in a scalable lake storage layer with schema-on-read, then layer structured access through a lakehouse engine. Enables both data science and BI from a single copy of data.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/scenarios/data-lake",
+        waf_pillars=["Cost Optimization", "Performance Efficiency"],
+        when_to_use=["Centralizing diverse data sources for analytics", "Need schema flexibility for evolving data", "Combining data warehouse and data lake workloads"],
+        when_not_to_use=["Small datasets that fit in a single database", "Strict real-time OLTP requirements"],
+        related_patterns=["medallion_architecture", "cqrs", "materialized_view"],
+        azure_services=["data_lake_storage", "databricks", "synapse_analytics", "data_factory", "storage_account"],
+        diagram_implications=["Show layered zones (raw/curated/consumption)", "Central lake with multiple consumers", "Ingestion arrows from diverse sources"],
+    ),
+    "etl_elt": DesignPattern(
+        key="etl_elt",
+        name="ETL / ELT Pipeline",
+        description="Extract data from sources, Transform it (cleanse, enrich, reshape), and Load into a target store. ELT variant loads raw data first, then transforms in-place using target compute. Standard pattern for data warehousing and analytics.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/etl",
+        waf_pillars=["Operational Excellence", "Performance Efficiency"],
+        when_to_use=["Populating data warehouses from operational systems", "Data migration between platforms", "Regular batch data processing on schedules"],
+        when_not_to_use=["Real-time streaming requirements (use stream processing)", "Simple API-to-API data sync"],
+        related_patterns=["pipes_and_filters", "change_data_capture", "medallion_architecture"],
+        azure_services=["data_factory", "databricks", "synapse_analytics", "sql_database", "data_lake_storage"],
+        diagram_implications=["Show three-stage pipeline: Extract → Transform → Load", "Source systems on left, target on right", "Orchestrator spanning the pipeline"],
+    ),
+    "lambda_architecture": DesignPattern(
+        key="lambda_architecture",
+        name="Lambda Architecture",
+        description="Process big data using parallel batch and speed (real-time) layers that merge results in a serving layer. Batch provides comprehensive accuracy; speed provides low-latency approximations. Serving layer indexes results for ad-hoc queries.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/big-data/",
+        waf_pillars=["Performance Efficiency", "Reliability"],
+        when_to_use=["Need both real-time and historical analytics", "Batch accuracy with real-time speed", "Fault-tolerant processing with replay capability"],
+        when_not_to_use=["Streaming-only workloads (use Kappa)", "Small data volumes that fit in a single query engine"],
+        related_patterns=["event_sourcing", "materialized_view", "change_data_capture"],
+        azure_services=["event_hub", "stream_analytics", "databricks", "data_lake_storage", "synapse_analytics", "cosmos_db"],
+        diagram_implications=["Show two parallel paths: batch (top) and speed (bottom)", "Both paths feed into a serving layer on the right", "Data source on the left splits to both paths"],
+    ),
+    "kappa_architecture": DesignPattern(
+        key="kappa_architecture",
+        name="Kappa Architecture",
+        description="Simplification of Lambda that uses a single stream-processing layer for both real-time and historical reprocessing. All data flows through a durable event log (Kafka/Event Hubs) and a single processing engine replays history when logic changes.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/big-data/",
+        waf_pillars=["Operational Excellence", "Performance Efficiency"],
+        when_to_use=["Event-driven systems where all data is naturally a stream", "Simplified operations (single codebase for batch and stream)", "Logic changes requiring full historical reprocessing"],
+        when_not_to_use=["Complex batch-only transformations that don't map to streaming", "Workloads requiring long-term batch windows with complex joins"],
+        related_patterns=["event_sourcing", "change_data_capture"],
+        azure_services=["event_hub", "databricks", "stream_analytics", "cosmos_db", "data_lake_storage"],
+        diagram_implications=["Single processing path from event log to serving", "Show event log as durable replay source", "No separate batch layer"],
+    ),
+    "feature_store": DesignPattern(
+        key="feature_store",
+        name="Feature Store",
+        description="Centralized repository for ML features with dual-serving: offline (batch for training) and online (low-latency for inference). Ensures consistency between training and serving, enables feature reuse across teams.",
+        source_url="https://learn.microsoft.com/en-us/azure/machine-learning/concept-what-is-managed-feature-store",
+        waf_pillars=["Operational Excellence", "Reliability"],
+        when_to_use=["Multiple ML models sharing common features", "Need consistency between training and inference features", "Feature engineering pipelines that serve both batch and real-time"],
+        when_not_to_use=["Single model with simple features", "Prototype/experimental phase without production serving"],
+        related_patterns=["materialized_view", "cache_aside", "cqrs"],
+        azure_services=["machine_learning", "redis_cache", "cosmos_db", "data_lake_storage", "databricks"],
+        diagram_implications=["Show offline store (batch) and online store (real-time) from same source", "Feature pipelines feed both stores", "Training reads offline, inference reads online"],
+    ),
+    "mlops_ci_cd": DesignPattern(
+        key="mlops_ci_cd",
+        name="MLOps / ML CI-CD",
+        description="Apply DevOps practices to machine learning: automated training pipelines, model versioning, automated testing, canary deployments, and drift monitoring. Ensures reproducibility and governance of ML models in production.",
+        source_url="https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-management-and-deployment",
+        waf_pillars=["Operational Excellence", "Reliability"],
+        when_to_use=["Production ML models requiring governance", "Automated retraining on new data", "Multiple models needing consistent deployment practices"],
+        when_not_to_use=["One-off analysis or experimentation", "Models that never change once deployed"],
+        related_patterns=["deployment_stamps", "health_endpoint_monitoring"],
+        azure_services=["machine_learning", "container_registry", "kubernetes_service", "container_apps", "monitor", "devops"],
+        diagram_implications=["Show CI/CD pipeline with train → test → register → deploy stages", "Monitoring feeds back to trigger retraining", "Model registry as central artifact store"],
+    ),
+    "rag_pattern": DesignPattern(
+        key="rag_pattern",
+        name="Retrieval-Augmented Generation (RAG)",
+        description="Augment LLM responses with relevant context retrieved from a vector/hybrid search index. Documents are chunked, embedded, and indexed; at query time, relevant chunks are retrieved and injected into the LLM prompt for grounded responses.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/rag-on-azure",
+        waf_pillars=["Performance Efficiency", "Reliability"],
+        when_to_use=["Grounding LLM answers in enterprise knowledge", "Reducing hallucination in generative AI", "Document Q&A, chatbots, copilots"],
+        when_not_to_use=["Simple classification or entity extraction (no generation needed)", "All knowledge fits in a single prompt context window"],
+        related_patterns=["cache_aside", "gateway_routing"],
+        azure_services=["openai_service", "ai_search", "cosmos_db", "storage_account", "app_service", "container_apps"],
+        diagram_implications=["Show ingestion path (chunk → embed → index) and query path (search → augment → generate)", "Vector store as central knowledge base", "LLM receives search results as context"],
+    ),
+    "data_mesh": DesignPattern(
+        key="data_mesh",
+        name="Data Mesh",
+        description="Decentralized data architecture where domain teams own their data products end-to-end. A federated governance layer ensures interoperability while self-serve platform infrastructure enables teams to publish and consume data products independently.",
+        source_url="https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/cloud-scale-analytics/architectures/what-is-data-mesh",
+        waf_pillars=["Operational Excellence", "Performance Efficiency"],
+        when_to_use=["Large organizations with many data domains", "Decentralized data ownership across teams", "Current centralized lake/warehouse becoming a bottleneck"],
+        when_not_to_use=["Small teams or single-domain data", "Early-stage data strategy without clear domain boundaries"],
+        related_patterns=["data_lake_pattern", "medallion_architecture", "federated_identity"],
+        azure_services=["databricks", "synapse_analytics", "data_factory", "data_lake_storage", "api_management", "entra_id"],
+        diagram_implications=["Show multiple domain boundaries, each with its own data product", "Central platform/governance layer connecting domains", "Self-serve infrastructure as shared services at bottom"],
+    ),
+    "stream_processing": DesignPattern(
+        key="stream_processing",
+        name="Stream Processing",
+        description="Continuous processing of unbounded data streams using windowed operations (tumbling, sliding, session windows), aggregations, joins, and pattern detection. Events are processed in-order with at-least-once or exactly-once semantics.",
+        source_url="https://learn.microsoft.com/en-us/azure/stream-analytics/stream-analytics-introduction",
+        waf_pillars=["Performance Efficiency", "Reliability"],
+        when_to_use=["Real-time aggregations and windowed computations", "Complex event processing (CEP) with pattern matching", "Joining multiple streams with temporal correlation"],
+        when_not_to_use=["Simple event routing without transformation", "Batch-only workloads with no latency requirements"],
+        related_patterns=["event_sourcing", "competing_consumers", "publisher_subscriber"],
+        azure_services=["stream_analytics", "event_hub", "databricks", "function_app", "cosmos_db", "data_explorer"],
+        diagram_implications=["Show input streams merging into processing engine", "Output branches to multiple sinks", "Window operations annotated on processing step"],
+    ),
+    "polyglot_persistence": DesignPattern(
+        key="polyglot_persistence",
+        name="Polyglot Persistence",
+        description="Use multiple database technologies in a single application, each chosen for the access pattern it handles best. Relational for transactions, document for flexible schema, graph for relationships, time-series for telemetry, key-value for sessions.",
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/use-best-data-store",
+        waf_pillars=["Performance Efficiency", "Cost Optimization"],
+        when_to_use=["Application has diverse data access patterns", "Different data types require specialized engines", "Optimize cost and performance per workload"],
+        when_not_to_use=["Simple application with uniform data access", "Team cannot manage multiple database technologies"],
+        related_patterns=["cqrs", "sharding", "materialized_view"],
+        azure_services=["sql_database", "cosmos_db", "redis_cache", "data_explorer", "postgresql_database", "ai_search"],
+        diagram_implications=["Show multiple DB engines below application tier", "Each DB labeled with its purpose (transactions, search, cache, etc.)", "Application routes requests to appropriate store"],
     ),
 }
 
@@ -4616,6 +5122,418 @@ IOT_REFERENCE = ReferenceArchitecture(
 )
 
 
+# ── Enterprise Data Pipeline (Dataflow) ──────────────────────────
+ENTERPRISE_DATA_PIPELINE = ReferenceArchitecture(
+    name="Enterprise Data Pipeline – Dataflow Architecture",
+    description=(
+        "End-to-end data pipeline architecture showing data flowing from diverse "
+        "sources through ingestion, staging, transformation, and serving layers. "
+        "Orchestrated by Data Factory with quality gates and lineage tracking."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/data-guide/",
+    category="Analytics",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-data", "subscription", "Data Platform Subscription"),
+        BoundaryTemplate("rg-sources", "resource_group", "rg-data-sources-prod", "sub-data"),
+        BoundaryTemplate("rg-ingest", "resource_group", "rg-data-ingest-prod", "sub-data"),
+        BoundaryTemplate("rg-transform", "resource_group", "rg-data-transform-prod", "sub-data"),
+        BoundaryTemplate("rg-serve", "resource_group", "rg-data-serve-prod", "sub-data"),
+        BoundaryTemplate("rg-govern", "resource_group", "rg-data-govern-prod", "sub-data"),
+    ],
+
+    resources=[
+        # Sources
+        ResourceTemplate("sql_database", "src-sql", "Source SQL DB (OLTP)", "rg-sources"),
+        ResourceTemplate("on_premises", "src-onprem", "On-premises ERP", "rg-sources"),
+        ResourceTemplate("storage_account", "src-files", "File Drop (CSV/JSON)", "rg-sources"),
+        ResourceTemplate("event_hub", "src-stream", "Event Hub (real-time)", "rg-sources"),
+        # Ingestion
+        ResourceTemplate("data_factory", "adf1", "Azure Data Factory", "rg-ingest"),
+        ResourceTemplate("data_lake_storage", "landing", "ADLS Landing Zone (raw)", "rg-ingest",
+                         {"hierarchical_namespace": True}),
+        # Transformation
+        ResourceTemplate("databricks", "dbw1", "Databricks (Spark)", "rg-transform"),
+        ResourceTemplate("data_lake_storage", "curated", "ADLS Curated Zone", "rg-transform",
+                         {"hierarchical_namespace": True}),
+        ResourceTemplate("function_app", "dq-func", "Data Quality Checks", "rg-transform"),
+        # Serving
+        ResourceTemplate("synapse_analytics", "syn1", "Synapse SQL Pool", "rg-serve"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (API serving)", "rg-serve"),
+        ResourceTemplate("redis_cache", "redis1", "Redis (hot cache)", "rg-serve"),
+        ResourceTemplate("user", "consumer1", "BI Analysts / Apps", ""),
+        # Governance
+        ResourceTemplate("purview", "purview1", "Microsoft Purview", "rg-govern"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-govern"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-govern"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-govern"),
+    ],
+
+    connections=[
+        ConnectionTemplate("src-sql", "adf1", "CDC extraction", "data_flow", workflow_step=1),
+        ConnectionTemplate("src-onprem", "adf1", "Batch extraction", "data_flow", workflow_step=1),
+        ConnectionTemplate("src-files", "adf1", "File ingestion", "data_flow", workflow_step=1),
+        ConnectionTemplate("src-stream", "landing", "Stream capture", "data_flow", workflow_step=1),
+        ConnectionTemplate("adf1", "landing", "Raw data load", "data_flow", workflow_step=2),
+        ConnectionTemplate("dbw1", "landing", "Read raw data", "data_flow", workflow_step=3),
+        ConnectionTemplate("dq-func", "landing", "Validate quality", "dependency"),
+        ConnectionTemplate("dbw1", "curated", "Write transformed data", "data_flow", workflow_step=4),
+        ConnectionTemplate("syn1", "curated", "Load warehouse", "data_flow", workflow_step=5),
+        ConnectionTemplate("cosmos1", "curated", "Materialize API views", "data_flow", workflow_step=5),
+        ConnectionTemplate("redis1", "cosmos1", "Cache hot data", "data_flow"),
+        ConnectionTemplate("consumer1", "syn1", "BI queries", "data_flow", workflow_step=6),
+        ConnectionTemplate("consumer1", "redis1", "API reads", "data_flow", workflow_step=6),
+        ConnectionTemplate("purview1", "landing", "Scan & lineage", "dependency"),
+        ConnectionTemplate("purview1", "curated", "Scan & lineage", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Data extracted from sources (SQL CDC, ERP batch, files, streams)", "src-sql", "adf1"),
+        WorkflowStep(2, "Raw data lands in ADLS Landing Zone", "adf1", "landing"),
+        WorkflowStep(3, "Data quality checks validate incoming data", "dq-func", "landing"),
+        WorkflowStep(4, "Databricks cleanses, enriches, and writes to Curated Zone", "dbw1", "curated"),
+        WorkflowStep(5, "Serving layer loaded (Synapse warehouse + Cosmos API views)", "syn1", "curated"),
+        WorkflowStep(6, "Consumers query via BI tools or cached API", "consumer1", "syn1"),
+    ],
+
+    waf_notes={
+        "Reliability": "ZRS storage; ADF retry policies; DQ checks prevent bad data propagation",
+        "Security": "Private endpoints; managed identity for all data access; Purview sensitivity labels",
+        "Cost Optimization": "Serverless Synapse SQL; Databricks autoscale; lifecycle policies on landing zone",
+        "Operational Excellence": "Purview lineage; ADF monitoring; centralized Log Analytics",
+        "Performance Efficiency": "Delta/Parquet formats; partition pruning; Redis caching for hot paths",
+    },
+
+    caf_notes={
+        "Naming": "adf-<pipeline>-<env>, adls-<zone>-<env>, dbw-<workload>-<env>",
+        "Network": "Private endpoints for all data stores; VNet-integrated Databricks",
+    },
+
+    layout_hints={
+        "src-sql": (1, 3), "src-onprem": (1, 5), "src-files": (1, 7), "src-stream": (1, 9),
+        "adf1": (5, 5), "landing": (9, 5),
+        "dq-func": (9, 2), "dbw1": (12, 5), "curated": (16, 5),
+        "syn1": (20, 3.5), "cosmos1": (20, 6.5), "redis1": (23, 6.5),
+        "consumer1": (26, 5),
+        "purview1": (12, 10), "kv1": (6, 10), "log1": (9, 10), "mid1": (15, 10),
+    },
+    boundary_hints={
+        "sub-data": (0, 0.5, 27, 11.5),
+        "rg-sources": (0.5, 1, 3, 9.5),
+        "rg-ingest": (4, 1, 6.5, 7),
+        "rg-transform": (10.5, 1, 7, 7),
+        "rg-serve": (18.5, 1, 6.5, 7),
+        "rg-govern": (5, 9, 12, 3),
+    },
+)
+
+
+# ── AI/ML Pipeline Reference Architecture ──────────────────────
+AI_ML_PIPELINE_REF = ReferenceArchitecture(
+    name="AI/ML Pipeline – MLOps Architecture",
+    description=(
+        "End-to-end MLOps architecture covering data preparation, feature engineering, "
+        "model training, evaluation, deployment (real-time & batch), and monitoring. "
+        "Implements CI/CD for ML with experiment tracking and model registry."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/mlops-technical-paper",
+    category="AI + Machine Learning",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-ml", "subscription", "ML Platform Subscription"),
+        BoundaryTemplate("rg-data", "resource_group", "rg-ml-data-prod", "sub-ml"),
+        BoundaryTemplate("rg-train", "resource_group", "rg-ml-train-prod", "sub-ml"),
+        BoundaryTemplate("rg-deploy", "resource_group", "rg-ml-deploy-prod", "sub-ml"),
+        BoundaryTemplate("rg-monitor", "resource_group", "rg-ml-monitor-prod", "sub-ml"),
+    ],
+
+    resources=[
+        # Data
+        ResourceTemplate("data_lake_storage", "feature-store", "Feature Store (ADLS)", "rg-data"),
+        ResourceTemplate("data_factory", "adf1", "Data Factory (feature pipelines)", "rg-data"),
+        ResourceTemplate("sql_database", "source-db", "Source Database", "rg-data"),
+        # Training
+        ResourceTemplate("machine_learning", "aml1", "Azure ML Workspace", "rg-train"),
+        ResourceTemplate("databricks", "dbw1", "Databricks (Spark training)", "rg-train"),
+        ResourceTemplate("container_registry", "acr1", "Container Registry", "rg-train"),
+        ResourceTemplate("storage_account", "exp-store", "Experiment Artifacts", "rg-train"),
+        # Deployment
+        ResourceTemplate("kubernetes_service", "aks1", "AKS (real-time inference)", "rg-deploy"),
+        ResourceTemplate("container_apps", "aca1", "Container Apps (batch scoring)", "rg-deploy"),
+        ResourceTemplate("api_management", "apim1", "API Management", "rg-deploy"),
+        # Monitoring
+        ResourceTemplate("application_insights", "ai1", "App Insights (model perf)", "rg-monitor"),
+        ResourceTemplate("monitor", "mon1", "Azure Monitor", "rg-monitor"),
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-monitor"),
+        # External
+        ResourceTemplate("user", "data-scientist", "Data Scientists", ""),
+        ResourceTemplate("user", "app-consumer", "Applications / Users", ""),
+        # Shared
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-train"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-train"),
+    ],
+
+    connections=[
+        ConnectionTemplate("source-db", "adf1", "Extract training data", "data_flow", workflow_step=1),
+        ConnectionTemplate("adf1", "feature-store", "Engineer features", "data_flow", workflow_step=2),
+        ConnectionTemplate("data-scientist", "aml1", "Submit experiments", "data_flow", workflow_step=3),
+        ConnectionTemplate("aml1", "feature-store", "Read features", "data_flow", workflow_step=3),
+        ConnectionTemplate("aml1", "dbw1", "Distributed training", "data_flow", workflow_step=4),
+        ConnectionTemplate("aml1", "exp-store", "Log metrics & artifacts", "data_flow"),
+        ConnectionTemplate("aml1", "acr1", "Register model container", "data_flow", workflow_step=5),
+        ConnectionTemplate("acr1", "aks1", "Deploy model image", "data_flow", workflow_step=6),
+        ConnectionTemplate("acr1", "aca1", "Deploy batch scorer", "data_flow", workflow_step=6),
+        ConnectionTemplate("apim1", "aks1", "Route inference requests", "data_flow", workflow_step=7),
+        ConnectionTemplate("app-consumer", "apim1", "Inference API calls", "data_flow", workflow_step=7),
+        ConnectionTemplate("aks1", "ai1", "Model telemetry", "dependency"),
+        ConnectionTemplate("ai1", "log1", "Performance metrics", "dependency"),
+        ConnectionTemplate("mon1", "aml1", "Drift alert → retrain", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Extract training data from source databases", "source-db", "adf1"),
+        WorkflowStep(2, "Feature engineering pipeline writes to Feature Store", "adf1", "feature-store"),
+        WorkflowStep(3, "Data scientists submit training experiments via AML", "data-scientist", "aml1"),
+        WorkflowStep(4, "Model training on Databricks compute clusters", "aml1", "dbw1"),
+        WorkflowStep(5, "Trained model containerized and registered in ACR", "aml1", "acr1"),
+        WorkflowStep(6, "Model deployed to AKS (real-time) or Container Apps (batch)", "acr1", "aks1"),
+        WorkflowStep(7, "Applications consume model via API Management endpoint", "app-consumer", "apim1"),
+    ],
+
+    waf_notes={
+        "Reliability": "AKS multi-replica inference; batch retry on Container Apps; model versioning for rollback",
+        "Security": "Private endpoints; managed identity; Key Vault for secrets; RBAC on ML workspace",
+        "Cost Optimization": "Spot instances for training; autoscale AKS inference; serverless batch scoring",
+        "Operational Excellence": "MLflow experiment tracking; CI/CD for models; automated retraining on drift",
+        "Performance Efficiency": "GPU clusters for training; Redis-cached predictions; async batch inference",
+    },
+
+    caf_notes={
+        "Naming": "aml-<workload>-<env>, aks-<purpose>-<env>, acr-<team>-<env>",
+        "Network": "Private endpoints for ML workspace, ACR, AKS; VNet injection for training compute",
+    },
+
+    layout_hints={
+        "source-db": (1, 5), "adf1": (4, 5), "feature-store": (7, 5),
+        "data-scientist": (1, 2),
+        "aml1": (10, 5), "dbw1": (10, 2), "exp-store": (13, 2),
+        "acr1": (14, 5), "kv1": (10, 9), "mid1": (13, 9),
+        "aks1": (18, 3.5), "aca1": (18, 6.5), "apim1": (22, 5),
+        "app-consumer": (26, 5),
+        "ai1": (18, 10), "mon1": (22, 10), "log1": (25, 10),
+    },
+    boundary_hints={
+        "sub-ml": (0, 0.5, 27, 11.5),
+        "rg-data": (0.5, 1, 8, 7),
+        "rg-train": (9, 1, 6.5, 7),
+        "rg-deploy": (16.5, 1, 8, 7),
+        "rg-monitor": (16.5, 9, 10, 3),
+    },
+)
+
+
+# ── RAG / GenAI Application Reference Architecture ──────────────
+RAG_GENAI_APP = ReferenceArchitecture(
+    name="RAG / Generative AI Application",
+    description=(
+        "Retrieval-Augmented Generation architecture with document ingestion pipeline "
+        "(chunk → embed → index) and real-time query flow (search → augment → generate). "
+        "Uses Azure OpenAI and AI Search for grounded, enterprise-grade AI applications."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/rag-on-azure",
+    category="AI + Machine Learning",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-ai", "subscription", "AI Application Subscription"),
+        BoundaryTemplate("rg-ingest", "resource_group", "rg-rag-ingest-prod", "sub-ai"),
+        BoundaryTemplate("rg-search", "resource_group", "rg-rag-search-prod", "sub-ai"),
+        BoundaryTemplate("rg-app", "resource_group", "rg-rag-app-prod", "sub-ai"),
+        BoundaryTemplate("rg-shared", "resource_group", "rg-rag-shared-prod", "sub-ai"),
+    ],
+
+    resources=[
+        # Document ingestion
+        ResourceTemplate("storage_account", "docs-store", "Document Store (Blob)", "rg-ingest"),
+        ResourceTemplate("function_app", "chunker", "Chunking Function", "rg-ingest"),
+        ResourceTemplate("openai_service", "embed-model", "Embedding Model (text-embedding)", "rg-ingest"),
+        # Search / Vector store
+        ResourceTemplate("ai_search", "search1", "AI Search (vector + hybrid)", "rg-search"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (chat history)", "rg-search"),
+        # Application
+        ResourceTemplate("openai_service", "llm1", "Azure OpenAI (GPT-4o)", "rg-app"),
+        ResourceTemplate("container_apps", "orca1", "Orchestrator (Container App)", "rg-app"),
+        ResourceTemplate("app_service", "web1", "Web Frontend", "rg-app"),
+        ResourceTemplate("cognitive_services", "safety1", "Content Safety", "rg-app"),
+        # Shared
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-shared"),
+        ResourceTemplate("application_insights", "ai1", "App Insights", "rg-shared"),
+        ResourceTemplate("entra_id", "aad1", "Entra ID (auth)", "rg-shared"),
+        ResourceTemplate("managed_identity", "mid1", "Managed Identity", "rg-shared"),
+        # External
+        ResourceTemplate("user", "user1", "End Users", ""),
+    ],
+
+    connections=[
+        # Ingestion flow
+        ConnectionTemplate("docs-store", "chunker", "New documents trigger", "data_flow", workflow_step=1),
+        ConnectionTemplate("chunker", "embed-model", "Chunks for embedding", "data_flow", workflow_step=2),
+        ConnectionTemplate("embed-model", "search1", "Store vectors", "data_flow", workflow_step=3),
+        # Query flow
+        ConnectionTemplate("user1", "web1", "User query", "data_flow", workflow_step=4),
+        ConnectionTemplate("web1", "orca1", "Forward to orchestrator", "data_flow", workflow_step=4),
+        ConnectionTemplate("orca1", "search1", "Retrieve relevant chunks", "data_flow", workflow_step=5),
+        ConnectionTemplate("orca1", "llm1", "Generate response with context", "data_flow", workflow_step=6),
+        ConnectionTemplate("llm1", "safety1", "Content filtering", "data_flow", workflow_step=7),
+        ConnectionTemplate("orca1", "cosmos1", "Store conversation", "data_flow"),
+        ConnectionTemplate("web1", "user1", "Grounded response", "data_flow", workflow_step=8),
+        # Auth & monitoring
+        ConnectionTemplate("web1", "aad1", "Authenticate", "dependency"),
+        ConnectionTemplate("orca1", "ai1", "Telemetry", "dependency"),
+        ConnectionTemplate("orca1", "kv1", "Secrets", "dependency"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Documents uploaded to Blob Storage trigger processing", "docs-store", "chunker"),
+        WorkflowStep(2, "Function chunks documents into passages", "chunker", "embed-model"),
+        WorkflowStep(3, "Embedding model vectorizes chunks → stored in AI Search", "embed-model", "search1"),
+        WorkflowStep(4, "User submits query via web frontend", "user1", "web1"),
+        WorkflowStep(5, "Orchestrator retrieves relevant chunks from AI Search", "orca1", "search1"),
+        WorkflowStep(6, "LLM generates grounded response with retrieved context", "orca1", "llm1"),
+        WorkflowStep(7, "Content safety filters response", "llm1", "safety1"),
+        WorkflowStep(8, "Grounded response returned to user with citations", "web1", "user1"),
+    ],
+
+    waf_notes={
+        "Reliability": "Multi-replica AI Search; zone-redundant Container Apps; retry with exponential backoff",
+        "Security": "Private endpoints; Entra ID auth; content safety; managed identity for all service access",
+        "Cost Optimization": "Consumption-tier Container Apps; reserved capacity for OpenAI; batch embedding",
+        "Operational Excellence": "App Insights for latency/token tracking; evaluation framework for quality",
+        "Performance Efficiency": "Hybrid search (vector + keyword); semantic ranking; cached embeddings",
+    },
+
+    caf_notes={
+        "Naming": "oai-<model>-<env>, srch-<app>-<env>, ca-<service>-<env>",
+        "Network": "Private endpoints for OpenAI, AI Search, Cosmos DB; VNet-integrated Container Apps",
+    },
+
+    layout_hints={
+        "docs-store": (1, 3), "chunker": (5, 3), "embed-model": (9, 3),
+        "search1": (13, 5),
+        "cosmos1": (13, 8),
+        "user1": (1, 8), "web1": (5, 8), "orca1": (9, 8),
+        "llm1": (17, 5), "safety1": (17, 8),
+        "kv1": (5, 12), "ai1": (9, 12), "aad1": (13, 12), "mid1": (17, 12),
+    },
+    boundary_hints={
+        "sub-ai": (0, 0.5, 20, 13),
+        "rg-ingest": (0.5, 1, 11, 4),
+        "rg-search": (12, 1, 4, 9),
+        "rg-app": (4, 6, 15, 4.5),
+        "rg-shared": (4, 11, 15, 2.5),
+    },
+)
+
+
+# ── Real-Time Streaming Analytics ────────────────────────────────
+STREAMING_ANALYTICS_REF = ReferenceArchitecture(
+    name="Real-Time Streaming Analytics",
+    description=(
+        "End-to-end streaming architecture with hot and cold paths. Events flow from "
+        "producers through Event Hubs, processed by Stream Analytics and Databricks "
+        "for real-time dashboards and archived to Data Lake for historical analysis."
+    ),
+    source_url="https://learn.microsoft.com/en-us/azure/architecture/solution-ideas/articles/real-time-analytics",
+    category="Analytics",
+    flow_direction="LR",
+    layout_strategy="tiered",
+
+    boundaries=[
+        BoundaryTemplate("sub-stream", "subscription", "Streaming Analytics Subscription"),
+        BoundaryTemplate("rg-ingest", "resource_group", "rg-stream-ingest-prod", "sub-stream"),
+        BoundaryTemplate("rg-process", "resource_group", "rg-stream-process-prod", "sub-stream"),
+        BoundaryTemplate("rg-serve", "resource_group", "rg-stream-serve-prod", "sub-stream"),
+    ],
+
+    resources=[
+        # Producers
+        ResourceTemplate("iot_hub", "iot1", "IoT Hub (device telemetry)", "rg-ingest"),
+        ResourceTemplate("event_hub", "eh1", "Event Hub (app events)", "rg-ingest"),
+        ResourceTemplate("function_app", "producer1", "Event Producer (Functions)", "rg-ingest"),
+        # Processing
+        ResourceTemplate("stream_analytics", "asa1", "Stream Analytics (hot path)", "rg-process"),
+        ResourceTemplate("databricks", "dbw1", "Databricks Streaming (complex)", "rg-process"),
+        ResourceTemplate("data_lake_storage", "cold-lake", "Data Lake (cold archive)", "rg-process"),
+        ResourceTemplate("function_app", "alert-func", "Alerting Function", "rg-process"),
+        # Serving
+        ResourceTemplate("data_explorer", "adx1", "Azure Data Explorer", "rg-serve"),
+        ResourceTemplate("cosmos_db", "cosmos1", "Cosmos DB (real-time views)", "rg-serve"),
+        ResourceTemplate("redis_cache", "redis1", "Redis (dashboard cache)", "rg-serve"),
+        # Consumers
+        ResourceTemplate("user", "dashboard1", "Real-time Dashboards", ""),
+        ResourceTemplate("user", "analyst1", "Data Analysts", ""),
+        # Shared
+        ResourceTemplate("log_analytics", "log1", "Log Analytics", "rg-serve"),
+        ResourceTemplate("key_vault", "kv1", "Key Vault", "rg-ingest"),
+    ],
+
+    connections=[
+        ConnectionTemplate("iot1", "eh1", "Route telemetry", "data_flow", workflow_step=1),
+        ConnectionTemplate("producer1", "eh1", "Publish events", "data_flow", workflow_step=1),
+        ConnectionTemplate("eh1", "asa1", "Hot path processing", "data_flow", workflow_step=2),
+        ConnectionTemplate("eh1", "dbw1", "Complex stream processing", "data_flow", workflow_step=2),
+        ConnectionTemplate("eh1", "cold-lake", "Archive (cold path)", "data_flow", workflow_step=2),
+        ConnectionTemplate("asa1", "cosmos1", "Real-time aggregates", "data_flow", workflow_step=3),
+        ConnectionTemplate("asa1", "alert-func", "Threshold alerts", "data_flow", workflow_step=3),
+        ConnectionTemplate("dbw1", "adx1", "Enriched stream data", "data_flow", workflow_step=3),
+        ConnectionTemplate("cosmos1", "redis1", "Cache hot data", "data_flow", workflow_step=4),
+        ConnectionTemplate("dashboard1", "redis1", "Live dashboards", "data_flow", workflow_step=5),
+        ConnectionTemplate("analyst1", "adx1", "Ad-hoc queries", "data_flow", workflow_step=5),
+        ConnectionTemplate("analyst1", "cold-lake", "Historical analysis", "data_flow"),
+    ],
+
+    workflow_steps=[
+        WorkflowStep(1, "Events produced from IoT devices and applications into Event Hub", "iot1", "eh1"),
+        WorkflowStep(2, "Event Hub fans out to hot path (ASA), complex processing (Databricks), and cold archive", "eh1", "asa1"),
+        WorkflowStep(3, "Stream Analytics writes real-time aggregates; Databricks enriches for ADX", "asa1", "cosmos1"),
+        WorkflowStep(4, "Hot data cached in Redis for low-latency dashboard reads", "cosmos1", "redis1"),
+        WorkflowStep(5, "Dashboards consume real-time views; analysts query ADX and cold lake", "dashboard1", "redis1"),
+    ],
+
+    waf_notes={
+        "Reliability": "Event Hub partitioning for throughput; ASA exactly-once; Cosmos DB multi-region",
+        "Security": "Private endpoints; managed identity; Key Vault for connection strings",
+        "Cost Optimization": "ASA streaming units autoscale; archive tier for cold lake; reserved Cosmos RU",
+        "Operational Excellence": "Log Analytics for pipeline monitoring; alerting on processing lag",
+        "Performance Efficiency": "Event Hub capture for zero-loss archive; ADX for fast ad-hoc queries",
+    },
+
+    caf_notes={
+        "Naming": "evh-<source>-<env>, asa-<purpose>-<env>, adx-<workload>-<env>",
+        "Network": "Private endpoints for Event Hub, Cosmos DB, ADX; VNet-integrated Functions",
+    },
+
+    layout_hints={
+        "iot1": (1, 3), "producer1": (1, 7), "eh1": (5, 5),
+        "asa1": (9, 3), "dbw1": (9, 7), "cold-lake": (12, 10),
+        "alert-func": (12, 1), "adx1": (16, 7), "cosmos1": (14, 3),
+        "redis1": (18, 3), "dashboard1": (22, 3), "analyst1": (22, 7),
+        "log1": (18, 10), "kv1": (3, 10),
+    },
+    boundary_hints={
+        "sub-stream": (0, 0.5, 23, 11.5),
+        "rg-ingest": (0.5, 1, 6, 8),
+        "rg-process": (7.5, 1, 7, 8),
+        "rg-serve": (15, 1, 6, 8),
+    },
+)
+
+
 # ═════════════════════════════════════════════════════════════════
 # REGISTRY: All reference architectures
 # ═════════════════════════════════════════════════════════════════
@@ -4634,6 +5552,11 @@ REFERENCE_ARCHITECTURES: dict[str, ReferenceArchitecture] = {
     "data_analytics_medallion": DATA_ANALYTICS_MEDALLION,
     "serverless_event_driven": SERVERLESS_EVENT_DRIVEN,
     "iot_reference": IOT_REFERENCE,
+    # ── Flow & pipeline architectures ──
+    "enterprise_data_pipeline": ENTERPRISE_DATA_PIPELINE,
+    "ai_ml_pipeline": AI_ML_PIPELINE_REF,
+    "rag_genai_app": RAG_GENAI_APP,
+    "streaming_analytics": STREAMING_ANALYTICS_REF,
 }
 
 

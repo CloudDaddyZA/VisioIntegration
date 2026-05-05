@@ -888,9 +888,10 @@ def architecture_styles_resource() -> str:
 def suggest_architecture_style(description: str) -> dict[str, Any]:
     """Suggest the best-fit Azure architecture style for a workload description.
 
-    Analyzes the description against the six standard architecture styles from
-    the Azure Architecture Center: N-Tier, Web-Queue-Worker, Microservices,
-    Event-Driven, Big Data, and Big Compute (HPC).
+    Analyzes the description against 14 architecture styles from
+    the Azure Architecture Center including N-Tier, Web-Queue-Worker, Microservices,
+    Event-Driven, Big Data, Big Compute (HPC), Dataflow, Big Data Analytics,
+    Database Flow, AI/ML Pipeline, RAG AI App, Streaming Analytics, and more.
 
     Returns ranked suggestions with typical components, recommended Azure
     services, and diagram layout conventions for each style.
@@ -923,8 +924,9 @@ def get_architecture_style_detail(style_key: str) -> dict[str, Any]:
     recommended Azure services, and diagram layout conventions.
 
     Args:
-        style_key: Architecture style key — one of: n_tier, web_queue_worker,
-                   microservices, event_driven, big_data, big_compute.
+        style_key: Architecture style key — e.g., n_tier, web_queue_worker,
+                   microservices, event_driven, big_data, big_compute,
+                   dataflow, big_data_analytics, database_flow, ai_ml_pipeline.
 
     Returns:
         Complete architecture style details or error if not found.
@@ -967,9 +969,10 @@ def design_patterns_resource() -> str:
 def suggest_design_patterns(description: str) -> dict[str, Any]:
     """Suggest cloud design patterns for a workload challenge or scenario.
 
-    Analyzes the description against 35+ cloud design patterns from the
+    Analyzes the description against 50 cloud design patterns from the
     Azure Architecture Center (e.g., CQRS, Event Sourcing, Saga, Circuit
-    Breaker, Cache-Aside, Publisher-Subscriber, Strangler Fig, etc.).
+    Breaker, Cache-Aside, Publisher-Subscriber, Strangler Fig, Data Lake,
+    ETL/ELT, Lambda Architecture, MLOps CI/CD, RAG, etc.).
 
     Returns ranked suggestions with WAF pillar alignment, Azure services,
     related patterns, and diagram layout implications.
@@ -2278,7 +2281,7 @@ search_arch_catalog(query="kubernetes")
 | validate_waf / validate_caf | Architecture validation |
 | get_waf_tips | WAF tips for a specific resource type |
 | suggest_architecture_improvements | AI-powered improvement suggestions |
-| list_reference_archs | List 12 reference architecture templates |
+| list_reference_archs | List 16 reference architecture templates |
 | apply_reference_architecture | Build a full diagram from a template |
 | suggest_architecture_style | Recommend a style for your workload |
 | suggest_design_patterns | Recommend design patterns |

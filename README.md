@@ -6,6 +6,22 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 ---
 
+## What's New — v0.2.0
+
+**Flow & Pipeline Architectures** — Full support for all cloud-related architecture flows:
+
+- **8 new architecture styles**: Dataflow, Big Data Analytics, Database Flow, AI/ML Pipeline, RAG AI App, Streaming Analytics, Integration Workflow, IoT Edge  
+- **10 new design patterns**: Data Lake, ETL/ELT, Lambda Architecture, Kappa Architecture, Feature Store, MLOps CI/CD, RAG Pattern, Data Mesh, Stream Processing, Polyglot Persistence  
+- **4 new reference architecture templates** with hand-tuned layouts:
+  - `enterprise_data_pipeline` — End-to-end dataflow (sources → ingestion → transform → serve)
+  - `ai_ml_pipeline` — MLOps lifecycle (feature engineering → train → deploy → monitor)
+  - `rag_genai_app` — RAG/GenAI app (ingest → embed → retrieve → generate)
+  - `streaming_analytics` — Real-time streaming (hot/cold path, Event Hub → ASA/ADX)
+
+**Totals**: 14 architecture styles · 50 design patterns · 16 reference architectures · 151 resource types · 124 SVG icons
+
+---
+
 ## Features
 
 ### MCP Server (28 tools · 8 resources · 7 prompts)
@@ -14,9 +30,9 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 |----------|-------|-------------|
 | **Diagram CRUD** | `create_diagram`, `add_azure_resource`, `add_boundary`, `connect_resources`, `assign_resource_to_boundary`, `remove_resource`, `remove_boundary` | Build diagrams programmatically with 151 Azure resource types |
 | **Layout** | `auto_layout` | Automatic tiered/grid/grouped layout following Architecture Center conventions |
-| **Reference Architectures** | `apply_reference_architecture`, `list_reference_archs`, `get_reference_arch_details` | 12 built-in templates from Azure Architecture Center with hand-tuned position hints |
+| **Reference Architectures** | `apply_reference_architecture`, `list_reference_archs`, `get_reference_arch_details` | 16 built-in templates from Azure Architecture Center with hand-tuned position hints |
 | **Architecture Catalog** | `browse_architecture_catalog`, `search_arch_catalog`, `get_arch_catalog_entry` | Browse/search 206 real architectures from Azure Architecture Center |
-| **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 40 cloud design patterns + 6 architecture styles with guidance |
+| **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 50 cloud design patterns + 14 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
 | **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
 | **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files (multi-page support) or convert screenshots/whiteboard photos/SVGs to diagrams |
@@ -195,7 +211,7 @@ visio-app
 
 ## Reference Architectures
 
-Five production-ready templates from Azure Architecture Center, each with hand-tuned position hints:
+16 production-ready templates from Azure Architecture Center, each with hand-tuned position hints:
 
 | Key | Architecture | Resources | Source |
 |-----|-------------|-----------|--------|
@@ -204,6 +220,10 @@ Five production-ready templates from Azure Architecture Center, each with hand-t
 | `baseline_web_app` | Baseline Zone-Redundant Web App | 16 resources, 9 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/web-apps/app-service/architectures/baseline-zone-redundant) |
 | `ai_landing_zone` | AI Workload in Azure Landing Zone | 30 resources, 18 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/ai/) |
 | `microservices_aks` | Microservices on AKS | 23 resources, 8 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/microservices/aks) |
+| `enterprise_data_pipeline` | Enterprise Data Pipeline – Dataflow | 17 resources, 6 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/data-guide/) |
+| `ai_ml_pipeline` | AI/ML Pipeline – MLOps | 17 resources, 5 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/mlops-technical-paper) |
+| `rag_genai_app` | RAG / Generative AI Application | 14 resources, 5 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/rag-on-azure) |
+| `streaming_analytics` | Real-Time Streaming Analytics | 14 resources, 4 boundaries | [Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/solution-ideas/articles/real-time-analytics) |
 
 ---
 
@@ -314,7 +334,7 @@ VisioIntegration/
 │   ├── visio_engine.py                # Visio COM rendering engine (SVG import, connectors)
 │   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, Azure icons)
 │   ├── layout_engine.py               # Auto-layout (tiered, grid, grouped strategies)
-│   ├── reference_architectures.py     # 5 templates + 206 catalog + 36 patterns + 6 styles
+│   ├── reference_architectures.py     # 16 templates + 206 catalog + 50 patterns + 14 styles
 │   ├── waf_validator.py               # WAF 6-pillar validation engine (smart multi-region detection)
 │   ├── caf_validator.py               # CAF 7-principle validation engine
 │   └── stencils/                      # Azure icon SVGs (not in git — download separately)
@@ -342,7 +362,7 @@ VisioIntegration/
 │   └── esbuild.js                     # Build config
 │
 ├── tests/                             # Integration test suite
-│   ├── test_reference_arch.py         # Tests all 12 reference architecture templates
+│   ├── test_reference_arch.py         # Tests all 16 reference architecture templates
 │   └── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
 │
 ├── scripts/                           # Build/maintenance scripts (git-ignored)
