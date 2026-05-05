@@ -1839,7 +1839,7 @@ def import_vsdx(
     }
 
 
-def _import_svg_as_text(file_path: str) -> dict[str, Any]:
+def _import_svg_as_text(file_path: str, preserve_original_style: bool = False) -> dict[str, Any]:
     """Analyze an SVG file as structured XML text and convert to an Azure diagram.
 
     SVGs contain readable text labels and structure that an LLM can parse
@@ -1859,7 +1859,44 @@ def _import_svg_as_text(file_path: str) -> dict[str, Any]:
 
     catalog_keys = sorted(AZURE_SHAPE_CATALOG.keys())
 
-    text_prompt = f"""Analyze this SVG architecture diagram. The SVG source contains text labels, \
+    if preserve_original_style:
+        text_prompt = f"""Analyze this SVG diagram. The SVG source contains text labels, \
+group structures, and shapes. Identify all components and connections.
+
+Preserve the EXACT labels, colors, and visual style from the SVG. Do NOT map to Azure services.
+
+For each component, extract its visual appearance from the SVG:
+- shape: rectangle, rounded_rectangle, diamond, circle, hexagon, parallelogram, cylinder, cloud, person, gear, document, arrow_box
+- fill_color: hex color from the SVG fill attribute
+- border_color: hex color from the SVG stroke attribute
+- text_color: hex color of the text element
+
+Return a JSON object with this exact structure (no markdown fencing):
+{{
+  "diagram_name": "descriptive name for this diagram",
+  "resources": [
+    {{"id": "unique-id", "display_name": "Exact Label from SVG", "shape": "rectangle", "fill_color": "#FFFFFF", "border_color": "#000000", "text_color": "#000000", "x": 5.0, "y": 3.0}}
+  ],
+  "boundaries": [
+    {{"id": "unique-id", "boundary_type": "resource_group", "display_name": "Group Label", "fill_color": "#F5F5F5", "border_color": "#9E9E9E", "x": 1.0, "y": 1.0, "width": 8.0, "height": 6.0}}
+  ],
+  "connections": [
+    {{"source_id": "resource-id-1", "target_id": "resource-id-2", "label": "connection label", "line_style": "solid|dashed|dotted", "connection_type": "data_flow|dependency|network"}}
+  ]
+}}
+
+Rules:
+- x/y coordinates should approximate the spatial layout (in inches, 0-20 range)
+- Preserve ALL text labels EXACTLY as they appear in the SVG
+- Extract colors directly from SVG fill/stroke attributes
+- Identify grouping rectangles as boundaries
+- Identify lines/paths between components as connections
+{"- NOTE: SVG was truncated due to size; analyze what is available." if truncated else ""}
+
+SVG source:
+{svg_text}"""
+    else:
+        text_prompt = f"""Analyze this SVG architecture diagram. The SVG source contains text labels, \
 group structures, and shapes that represent an architecture. Identify all components and connections.
 
 For each component, determine the closest Azure resource type from this catalog:
@@ -1954,15 +1991,34 @@ SVG source:
 
     resource_count = 0
     for r in parsed.get("resources", []):
-        rtype = r.get("resource_type", "app_service")
-        if rtype not in AZURE_SHAPE_CATALOG:
-            rtype = "app_service"
-        _diagram.add_resource(
-            resource_type=rtype,
-            display_name=r.get("display_name", f"Resource {resource_count}"),
-            resource_id=r.get("id", f"svg-resource-{resource_count}"),
-            x=r.get("x", 5.0), y=r.get("y", 5.0),
-        )
+        if preserve_original_style:
+            rtype = "general"
+            if rtype not in AZURE_SHAPE_CATALOG:
+                rtype = "app_service"
+            metadata = {
+                "original_shape": r.get("shape", "rectangle"),
+                "fill_color": r.get("fill_color", "#FFFFFF"),
+                "border_color": r.get("border_color", "#000000"),
+                "text_color": r.get("text_color", "#000000"),
+                "preserve_style": True,
+            }
+            _diagram.add_resource(
+                resource_type=rtype,
+                display_name=r.get("display_name", f"Resource {resource_count}"),
+                resource_id=r.get("id", f"svg-resource-{resource_count}"),
+                x=r.get("x", 5.0), y=r.get("y", 5.0),
+                properties=metadata,
+            )
+        else:
+            rtype = r.get("resource_type", "app_service")
+            if rtype not in AZURE_SHAPE_CATALOG:
+                rtype = "app_service"
+            _diagram.add_resource(
+                resource_type=rtype,
+                display_name=r.get("display_name", f"Resource {resource_count}"),
+                resource_id=r.get("id", f"svg-resource-{resource_count}"),
+                x=r.get("x", 5.0), y=r.get("y", 5.0),
+            )
         resource_count += 1
 
     connection_count = 0
@@ -1981,10 +2037,11 @@ SVG source:
         except (ValueError, KeyError):
             pass
 
-    try:
-        _layout.auto_layout(_diagram.state, strategy="tiered")
-    except Exception:
-        pass
+    if not preserve_original_style:
+        try:
+            _layout.auto_layout(_diagram.state, strategy="tiered")
+        except Exception:
+            pass
 
     return {
         "status": "imported",
@@ -2002,6 +2059,7 @@ SVG source:
 @mcp.tool()
 def import_image(
     file_path: str,
+    preserve_original_style: bool = False,
 ) -> dict[str, Any]:
     """Import an image (screenshot, whiteboard photo, block diagram) and convert it
     to an Azure architecture diagram by identifying blocks/labels in the image.
@@ -2017,6 +2075,9 @@ def import_image(
 
     Args:
         file_path: Absolute or relative path to the image file.
+        preserve_original_style: When True, keeps the original formatting, shapes,
+            colors, and labels from the image instead of converting to Azure stencil
+            icons. Useful for flowcharts, process diagrams, and custom visuals.
 
     Returns:
         Summary of identified components and the created diagram.
@@ -2034,7 +2095,7 @@ def import_image(
 
     # SVG files are XML text — analyze as text instead of vision
     if ext == ".svg":
-        return _import_svg_as_text(file_path)
+        return _import_svg_as_text(file_path, preserve_original_style=preserve_original_style)
 
     # Read and encode raster image
     with open(file_path, "rb") as f:
@@ -2050,7 +2111,42 @@ def import_image(
     # Build the catalog reference for the prompt
     catalog_keys = sorted(AZURE_SHAPE_CATALOG.keys())
 
-    vision_prompt = f"""Analyze this architecture diagram image. Identify all components (boxes, icons, labels) and their connections.
+    if preserve_original_style:
+        vision_prompt = """Analyze this architecture/flow diagram image. Identify all components (boxes, shapes, icons, labels) and their connections.
+
+Preserve the EXACT labels, colors, and visual style from the image. Do NOT map to Azure services.
+
+For each component, describe its visual appearance:
+- shape: rectangle, rounded_rectangle, diamond, circle, hexagon, parallelogram, cylinder, cloud, person, gear, document, arrow_box
+- fill_color: hex color of the shape fill (e.g., "#4CAF50", "#2196F3")
+- border_color: hex color of the shape border
+- text_color: hex color of the text label
+
+Return a JSON object with this exact structure (no markdown fencing):
+{{
+  "diagram_name": "descriptive name for this diagram",
+  "resources": [
+    {{"id": "unique-id", "display_name": "Exact Label from image", "shape": "rectangle", "fill_color": "#FFFFFF", "border_color": "#000000", "text_color": "#000000", "x": 5.0, "y": 3.0}}
+  ],
+  "boundaries": [
+    {{"id": "unique-id", "boundary_type": "resource_group", "display_name": "Group Label", "fill_color": "#F5F5F5", "border_color": "#9E9E9E", "x": 1.0, "y": 1.0, "width": 8.0, "height": 6.0}}
+  ],
+  "connections": [
+    {{"source_id": "resource-id-1", "target_id": "resource-id-2", "label": "connection label", "line_style": "solid|dashed|dotted", "connection_type": "data_flow|dependency|network"}}
+  ]
+}}
+
+Rules:
+- x/y coordinates should approximate the spatial layout in the image (in inches, 0-20 range)
+- Preserve ALL text labels EXACTLY as they appear in the image
+- Identify grouping/container boxes as boundaries
+- Identify arrows/lines as connections (note if dashed, dotted, or solid)
+- Capture the fill color of each shape as accurately as possible
+- For decision diamonds, use shape "diamond"
+- For people/user icons, use shape "person"
+- For process/gear icons, use shape "gear" """
+    else:
+        vision_prompt = f"""Analyze this architecture diagram image. Identify all components (boxes, icons, labels) and their connections.
 
 For each component, determine the closest Azure resource type from this catalog:
 {', '.join(catalog_keys)}
@@ -2154,15 +2250,35 @@ Rules:
 
     resource_count = 0
     for r in parsed.get("resources", []):
-        rtype = r.get("resource_type", "app_service")
-        if rtype not in AZURE_SHAPE_CATALOG:
-            rtype = "app_service"
-        _diagram.add_resource(
-            resource_type=rtype,
-            display_name=r.get("display_name", f"Resource {resource_count}"),
-            resource_id=r.get("id", f"img-resource-{resource_count}"),
-            x=r.get("x", 5.0), y=r.get("y", 5.0),
-        )
+        if preserve_original_style:
+            # Use a generic resource type but store original style in metadata
+            rtype = "general"
+            if rtype not in AZURE_SHAPE_CATALOG:
+                rtype = "app_service"
+            metadata = {
+                "original_shape": r.get("shape", "rectangle"),
+                "fill_color": r.get("fill_color", "#FFFFFF"),
+                "border_color": r.get("border_color", "#000000"),
+                "text_color": r.get("text_color", "#000000"),
+                "preserve_style": True,
+            }
+            _diagram.add_resource(
+                resource_type=rtype,
+                display_name=r.get("display_name", f"Resource {resource_count}"),
+                resource_id=r.get("id", f"img-resource-{resource_count}"),
+                x=r.get("x", 5.0), y=r.get("y", 5.0),
+                properties=metadata,
+            )
+        else:
+            rtype = r.get("resource_type", "app_service")
+            if rtype not in AZURE_SHAPE_CATALOG:
+                rtype = "app_service"
+            _diagram.add_resource(
+                resource_type=rtype,
+                display_name=r.get("display_name", f"Resource {resource_count}"),
+                resource_id=r.get("id", f"img-resource-{resource_count}"),
+                x=r.get("x", 5.0), y=r.get("y", 5.0),
+            )
         resource_count += 1
 
     connection_count = 0
@@ -2171,6 +2287,9 @@ Rules:
         if ctype not in CONNECTOR_STYLES:
             ctype = "data_flow"
         try:
+            conn_metadata = {}
+            if preserve_original_style:
+                conn_metadata["line_style"] = c.get("line_style", "solid")
             _diagram.add_connection(
                 source_id=c["source_id"],
                 target_id=c["target_id"],
@@ -2181,11 +2300,12 @@ Rules:
         except (ValueError, KeyError):
             pass
 
-    # Auto-layout
-    try:
-        _layout.auto_layout(_diagram.state, strategy="tiered")
-    except Exception:
-        pass
+    # Auto-layout only when converting to Azure stencils (preserve positions otherwise)
+    if not preserve_original_style:
+        try:
+            _layout.auto_layout(_diagram.state, strategy="tiered")
+        except Exception:
+            pass
 
     return {
         "status": "imported",
@@ -2194,7 +2314,9 @@ Rules:
         "resources_created": resource_count,
         "boundaries_created": boundary_count,
         "connections_created": connection_count,
+        "analysis_method": "vision",
         "vision_model": model,
+        "preserve_original_style": preserve_original_style,
         "components_identified": parsed,
     }
 

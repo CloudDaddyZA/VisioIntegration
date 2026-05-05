@@ -656,6 +656,14 @@ with st.sidebar:
             else:
                 st.image(uploaded_img, caption="Preview", use_container_width=True)
 
+            # Style preservation option
+            preserve_style = st.checkbox(
+                "Keep original formatting",
+                value=False,
+                key="img_preserve_style",
+                help="Preserve the original shapes, colors, and labels from the image instead of converting to Azure stencil icons.",
+            )
+
         if uploaded_img and st.button("Convert to Diagram", use_container_width=True, key="btn_import_img"):
             if ensure_connection():
                 import tempfile
@@ -669,13 +677,14 @@ with st.sidebar:
                 with st.spinner(spinner_text):
                     result = st.session_state.mcp_client.call_tool(
                         "import_image",
-                        {"file_path": str(tmp_path)},
+                        {"file_path": str(tmp_path), "preserve_original_style": preserve_style},
                         timeout=120,
                     )
 
                 if result.get("status") == "imported":
+                    style_note = " (original formatting preserved)" if result.get("preserve_original_style") else " (Azure stencils)"
                     msg_parts = [
-                        f"**Converted** `{uploaded_img.name}` → **{result.get('name', 'Diagram')}**",
+                        f"**Converted** `{uploaded_img.name}` → **{result.get('name', 'Diagram')}**{style_note}",
                         f"- {result.get('resources_created', 0)} resources identified",
                         f"- {result.get('boundaries_created', 0)} boundaries identified",
                         f"- {result.get('connections_created', 0)} connections identified",

@@ -334,9 +334,6 @@ class DrawioEngine:
         cell_id: str, label_id: str, id_map: dict[str, str],
     ) -> None:
         """Add a resource as an Azure icon shape plus a text label below."""
-        style = DRAWIO_AZURE_STYLES.get(resource.resource_type, _FALLBACK_STYLE)
-        is_icon = resource.resource_type in DRAWIO_AZURE_STYLES
-
         # Parent cell: if resource belongs to a boundary group
         parent = id_map.get(resource.group_id, "1") if resource.group_id else "1"
 
@@ -344,6 +341,17 @@ class DrawioEngine:
         off_x, off_y = self._get_parent_offset(resource.group_id)
         rel_x = resource.position.x - off_x
         rel_y = resource.position.y - off_y
+
+        # Check if resource has preserved original style from image import
+        meta = resource.properties or {}
+        if meta.get("preserve_style"):
+            self._add_preserved_style_resource(
+                root, resource, cell_id, label_id, parent, rel_x, rel_y, meta
+            )
+            return
+
+        style = DRAWIO_AZURE_STYLES.get(resource.resource_type, _FALLBACK_STYLE)
+        is_icon = resource.resource_type in DRAWIO_AZURE_STYLES
 
         icon_w = _in2px(0.6)
         icon_h = _in2px(0.6)
@@ -386,6 +394,63 @@ class DrawioEngine:
                           width=str(_in2px(resource.size.width)),
                           height=str(_in2px(resource.size.height)),
                           **{"as": "geometry"})
+
+    def _add_preserved_style_resource(
+        self, root: ET.Element, resource: DiagramResource,
+        cell_id: str, label_id: str, parent: str,
+        rel_x: float, rel_y: float, meta: dict,
+    ) -> None:
+        """Render a resource with its original visual style (from image import)."""
+        shape = meta.get("original_shape", "rectangle")
+        fill = meta.get("fill_color", "#FFFFFF")
+        border = meta.get("border_color", "#000000")
+        text_color = meta.get("text_color", "#000000")
+
+        # Map shape types to draw.io style strings
+        shape_styles = {
+            "rectangle": "rounded=0;whiteSpace=wrap;html=1;",
+            "rounded_rectangle": "rounded=1;whiteSpace=wrap;html=1;arcSize=12;",
+            "diamond": "rhombus;whiteSpace=wrap;html=1;",
+            "circle": "ellipse;whiteSpace=wrap;html=1;aspect=fixed;",
+            "hexagon": "shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;",
+            "parallelogram": "shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;",
+            "cylinder": "shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=12;",
+            "cloud": "ellipse;shape=cloud;whiteSpace=wrap;html=1;",
+            "person": "shape=mxgraph.basic.person;whiteSpace=wrap;html=1;",
+            "gear": "shape=mxgraph.signs.tech.gear;whiteSpace=wrap;html=1;",
+            "document": "shape=document;whiteSpace=wrap;html=1;boundedLbl=1;size=0.15;",
+            "arrow_box": "shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;size=0.2;",
+        }
+        base_style = shape_styles.get(shape, shape_styles["rectangle"])
+        style = (
+            f"{base_style}"
+            f"fillColor={fill};strokeColor={border};fontColor={text_color};"
+            f"fontSize=11;fontFamily=Segoe UI;"
+        )
+
+        # Size based on shape type and label length
+        label_len = len(resource.display_name)
+        if shape == "diamond":
+            w = max(_in2px(1.2), label_len * 7)
+            h = w  # diamonds are square
+        elif shape == "circle":
+            w = max(_in2px(0.8), label_len * 5.5)
+            h = w
+        elif shape == "person":
+            w = _in2px(0.5)
+            h = _in2px(0.7)
+        else:
+            w = max(_in2px(1.4), label_len * 7)
+            h = _in2px(0.5)
+
+        cell = ET.SubElement(root, "mxCell", id=cell_id,
+                             value=resource.display_name,
+                             style=style, vertex="1", parent=parent)
+        ET.SubElement(cell, "mxGeometry",
+                      x=str(round(_in2px(rel_x), 1)),
+                      y=str(round(_in2px(rel_y), 1)),
+                      width=str(round(w, 1)), height=str(round(h, 1)),
+                      **{"as": "geometry"})
 
     def _add_connection(
         self, root: ET.Element, connection: Connection,
