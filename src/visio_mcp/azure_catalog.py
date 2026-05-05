@@ -220,6 +220,46 @@ M365_ICON_MAP: dict[str, str] = {
     "m365_support": f"{_M365_BLUE}/Headset.svg",
 }
 
+# Microsoft Dynamics 365 icons
+_D365_APPS = "Dynamics 365 App Icons"
+_D365_FAMILY = "Dynamics 365 Product Family Icons"
+DYNAMICS365_ICON_MAP: dict[str, str] = {
+    # Product family
+    "d365": f"{_D365_FAMILY}/Dynamics365_scalable.svg",
+    "d365_family": f"{_D365_FAMILY}/Dynamics365_scalable.svg",
+    # App icons
+    "d365_business_central": f"{_D365_APPS}/BusinessCentral_scalable.svg",
+    "d365_commerce": f"{_D365_APPS}/Commerce_scalable.svg",
+    "d365_contact_center": f"{_D365_APPS}/ContactCenter_scalable.svg",
+    "d365_customer_insights": f"{_D365_APPS}/CustomerInsights_scalable.svg",
+    "d365_customer_service": f"{_D365_APPS}/CustomerServices_scalable.svg",
+    "d365_customer_voice": f"{_D365_APPS}/CustomerVoice_scalable.svg",
+    "d365_field_service": f"{_D365_APPS}/FieldService_scalable.svg",
+    "d365_finance": f"{_D365_APPS}/Finance_scalable.svg",
+    "d365_finance_operations": f"{_D365_APPS}/FinanceOperations_scalable.svg",
+    "d365_human_resources": f"{_D365_APPS}/HumanResources_scalable.svg",
+    "d365_intelligent_order_management": f"{_D365_APPS}/IntelligentOrderManagement_scalable.svg",
+    "d365_project_operations": f"{_D365_APPS}/ProjectOperations_scalable.svg",
+    "d365_sales": f"{_D365_APPS}/Sales_scalable.svg",
+    "d365_sales_insights": f"{_D365_APPS}/SalesInsights_scalable.svg",
+    "d365_supply_chain": f"{_D365_APPS}/SupplyChainManagement_scalable.svg",
+}
+
+# Microsoft Power Platform icons
+_PP_ROOT = "Power Platform"
+POWER_PLATFORM_ICON_MAP: dict[str, str] = {
+    "power_platform": f"{_PP_ROOT}/PowerPlatform_scalable.svg",
+    "power_apps": f"{_PP_ROOT}/PowerApps_scalable.svg",
+    "power_automate": f"{_PP_ROOT}/PowerAutomate_scalable.svg",
+    "power_pages": f"{_PP_ROOT}/PowerPages_scalable.svg",
+    "power_bi": "Fabric_Icons/v6.1.0/package/dist/svg/power_bi_48_color.svg",
+    "dataverse": f"{_PP_ROOT}/Dataverse_scalable.svg",
+    "ai_builder": f"{_PP_ROOT}/AIBuilder_scalable.svg",
+    # Standalone icons at stencils root
+    "copilot_studio": "CopilotStudio_scalable.svg",
+    "agent_365": "Agent365_scalable.svg",
+}
+
 # Microsoft Entra icons
 _ENTRA_ROOT = "Entra_Icons/Microsoft Entra architecture icons - Oct 2023/Microsoft Entra color icons SVG"
 ENTRA_ICON_MAP: dict[str, str] = {
@@ -272,7 +312,7 @@ ALL_ICON_MAPS: dict[str, str] = {**SVG_ICON_MAP}
 # Entra and Fabric icons use paths relative to stencils/ (not Icons/)
 # so we prefix with "../" to resolve from the Icons/ root
 _STENCILS_ROOT = Path(__file__).parent / "stencils"
-for _map in (M365_ICON_MAP, ENTRA_ICON_MAP, FABRIC_ICON_MAP):
+for _map in (M365_ICON_MAP, DYNAMICS365_ICON_MAP, POWER_PLATFORM_ICON_MAP, ENTRA_ICON_MAP, FABRIC_ICON_MAP):
     for _key, _relpath in _map.items():
         ALL_ICON_MAPS[_key] = f"../../{_relpath}"  # relative from Icons/ to stencils/
 
