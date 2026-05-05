@@ -806,6 +806,1227 @@ ARCHITECTURE_STYLES: dict[str, ArchitectureStyle] = {
             "Include OTA update path from cloud to edge",
         ],
     ),
+
+    # ── AI Agent Orchestration Patterns ───────────────────────────
+    # Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns
+    #
+    # These patterns describe how to coordinate multiple AI agents
+    # to solve complex problems. Each pattern is optimized for
+    # different types of coordination requirements.
+
+    "ai_agent_sequential": ArchitectureStyle(
+        key="ai_agent_sequential",
+        name="AI Agent Sequential Orchestration",
+        description=(
+            "Chains AI agents in a predefined, linear order. Each agent processes "
+            "the output from the previous agent in the sequence, creating a pipeline "
+            "of specialized transformations. Resembles the Pipes and Filters cloud "
+            "design pattern but uses AI agents instead of custom-coded components. "
+            "The choice of which agent gets invoked next is deterministically defined."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#sequential-orchestration",
+        when_to_use=[
+            "Multistage processes with clear linear dependencies",
+            "Data transformation pipelines where each stage adds value",
+            "Workflow stages that cannot be parallelized",
+            "Progressive refinement (draft, review, polish workflows)",
+            "Predictable workflow progression with known agent performance",
+        ],
+        typical_components=[
+            "Input/request handler",
+            "Agent 1 — first processing stage (Model + knowledge + tools)",
+            "Agent 2 — second processing stage (Model + knowledge + tools)",
+            "Agent n — final processing stage (Model + knowledge + tools)",
+            "Common state shared across all agents in the pipeline",
+            "Result/output handler",
+        ],
+        azure_services=[
+            "openai_service", "container_apps", "function_app",
+            "cosmos_db", "service_bus", "ai_search",
+            "key_vault", "monitor", "application_insights",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Input on the left, result on the right",
+            "Agents arranged left-to-right in sequential order",
+            "Each agent shows its Model, knowledge, and tools as a connected sub-block",
+            "Arrows flow from one agent to the next (no branching)",
+            "Common state boundary spans all agents at the bottom",
+            "Use numbered workflow steps on arrows between agents",
+            "Label each agent with its specialization/role",
+            "Also known as: pipeline, prompt chaining, linear delegation",
+        ],
+    ),
+    "ai_agent_concurrent": ArchitectureStyle(
+        key="ai_agent_concurrent",
+        name="AI Agent Concurrent Orchestration",
+        description=(
+            "Runs multiple AI agents simultaneously on the same task. Each agent "
+            "provides independent analysis or processing from its unique perspective "
+            "or specialization. Results are aggregated by an initiator/collector agent. "
+            "Supports both deterministic (all registered agents) and dynamic selection."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#concurrent-orchestration",
+        when_to_use=[
+            "Tasks that can run in parallel with fixed or dynamic agent sets",
+            "Multiple independent perspectives needed (technical, business, creative)",
+            "Multi-agent decision-making: brainstorming, ensemble reasoning, voting",
+            "Time-sensitive scenarios where parallel processing reduces latency",
+            "Independent analysis from multiple perspectives",
+        ],
+        typical_components=[
+            "Input/request handler",
+            "Initiator and collector agent (orchestrates fan-out/fan-in)",
+            "Agent 1 with optional sub-agents (Model + knowledge + tools)",
+            "Agent 2 (Model + knowledge + tools)",
+            "Agent n (Model + knowledge + tools)",
+            "Intermediate results from each agent",
+            "Aggregated results (combined, compared, selected)",
+        ],
+        azure_services=[
+            "openai_service", "container_apps", "function_app",
+            "cosmos_db", "service_bus", "event_hub",
+            "ai_search", "key_vault", "monitor", "application_insights",
+        ],
+        flow_direction="TB",
+        layout_strategy="grouped",
+        diagram_conventions=[
+            "Initiator/collector agent at top, parallel agents below",
+            "Fan-out arrows from initiator to each parallel agent",
+            "Fan-in arrows from intermediate results back to collector",
+            "Each agent shows its Model, knowledge, and tools",
+            "Sub-agents shown nested within parent agents where applicable",
+            "Aggregated result at the bottom or right",
+            "Use different colors/labels for each agent's specialization",
+            "Also known as: parallel, fan-out/fan-in, scatter-gather, map-reduce",
+        ],
+    ),
+    "ai_agent_group_chat": ArchitectureStyle(
+        key="ai_agent_group_chat",
+        name="AI Agent Group Chat Orchestration",
+        description=(
+            "Multiple agents solve problems, make decisions, or validate work by "
+            "participating in a shared conversation thread. A chat manager coordinates "
+            "flow by determining which agents can respond next. Supports collaborative "
+            "brainstorming, structured quality gates, and maker-checker loops where "
+            "one agent creates and another evaluates against defined criteria."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#group-chat-orchestration",
+        when_to_use=[
+            "Creative brainstorming with different perspectives",
+            "Decision-making requiring debate and consensus-building",
+            "Iterative refinement through discussion",
+            "Multidisciplinary problems requiring cross-functional dialogue",
+            "Quality assurance with structured review processes",
+            "Maker-checker validation loops",
+            "Compliance/regulatory validation requiring expert perspectives",
+        ],
+        typical_components=[
+            "Input/request handler",
+            "Group chat manager (Model — controls turn order)",
+            "Agent 1 (Model + knowledge)",
+            "Agent 2 (Model + knowledge)",
+            "Agent n (Model + knowledge)",
+            "Accumulating chat thread (shared conversation)",
+            "Human chat participant or observer (optional)",
+            "Result/consensus output",
+            "New group instructions based on accumulated context",
+        ],
+        azure_services=[
+            "openai_service", "container_apps", "cosmos_db",
+            "ai_search", "key_vault", "monitor",
+            "application_insights", "entra_id",
+        ],
+        flow_direction="TB",
+        layout_strategy="grouped",
+        diagram_conventions=[
+            "Chat manager at the top, agents arranged below",
+            "Accumulating chat thread shown as central shared element",
+            "Bidirectional arrows between agents (they build on each other)",
+            "Arrow from chat manager to agents showing turn control",
+            "Chat output arrows flowing into accumulating thread",
+            "Human participant connected to the thread (optional)",
+            "Result derived from accumulated conversation",
+            "For maker-checker: show formal turn-based sequence with approval/rejection",
+            "Also known as: roundtable, collaborative, multi-agent debate, council",
+        ],
+    ),
+    "ai_agent_handoff": ArchitectureStyle(
+        key="ai_agent_handoff",
+        name="AI Agent Handoff Orchestration",
+        description=(
+            "Enables dynamic delegation of tasks between specialized agents. Each "
+            "agent assesses the task at hand and decides whether to handle it directly "
+            "or transfer it to a more appropriate agent. Only one agent is active at "
+            "a time; full control transfers from one agent to another. The optimal "
+            "agent for a task isn't known upfront — it emerges during processing."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#handoff-orchestration",
+        when_to_use=[
+            "Tasks requiring specialized knowledge discovered during processing",
+            "Expertise requirements that emerge during processing",
+            "Multiple-domain problems requiring different specialists one at a time",
+            "Dynamic task routing based on content analysis",
+            "Logical signals indicating when one agent reaches its limits",
+        ],
+        typical_components=[
+            "Triage/initial agent (Model + general knowledge) — entry point",
+            "Specialist Agent 2 (Model + domain knowledge + tools)",
+            "Specialist Agent 3 (Model + domain knowledge + tools)",
+            "Specialist Agent n (Model + domain knowledge)",
+            "Human support fallback (escalation target)",
+            "Input and per-agent results",
+        ],
+        azure_services=[
+            "openai_service", "container_apps", "function_app",
+            "cosmos_db", "ai_search", "key_vault",
+            "monitor", "application_insights", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="grouped",
+        diagram_conventions=[
+            "Triage agent on the left as entry point with input",
+            "Specialist agents arranged around or to the right",
+            "Curved arrows flowing between agents showing handoff paths",
+            "Each agent shows its own Model, knowledge, and tools",
+            "Each agent has its own potential result/output",
+            "Human support agent as final escalation target",
+            "Highlight one example handoff chain with numbered steps",
+            "Show that only one agent is active at a time",
+            "Also known as: routing, triage, transfer, dispatch, delegation",
+        ],
+    ),
+    "ai_agent_magentic": ArchitectureStyle(
+        key="ai_agent_magentic",
+        name="AI Agent Magentic Orchestration",
+        description=(
+            "Designed for open-ended and complex problems without a predetermined "
+            "plan. A manager agent builds and refines a task ledger through "
+            "collaboration with specialized agents. The focus is on building and "
+            "documenting the approach to solve the problem as much as implementing "
+            "that approach. Agents typically have tools that allow direct changes "
+            "in external systems."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#magentic-orchestration",
+        when_to_use=[
+            "Complex or open-ended use cases with no predetermined solution path",
+            "Requires input from multiple specialized agents for a valid solution",
+            "AI system must generate a fully developed plan for human review",
+            "Agents with tools that interact with external systems",
+            "Need for a documented plan showing agent sequencing",
+        ],
+        typical_components=[
+            "Manager agent (Model — builds and adapts task ledger)",
+            "Task and progress ledger (resolution plan, task statuses, goal check)",
+            "Agent 1 — knowledge agent (Model + knowledge)",
+            "Agent 2 — action agent (Model + knowledge + tools)",
+            "Agent n — action agent (Model + tools)",
+            "External systems (accessed by action agents)",
+            "Human participant (reviews plan, provides input)",
+            "Evaluate goal loop (task complete? yes/no)",
+            "Input and final result",
+        ],
+        azure_services=[
+            "openai_service", "container_apps", "kubernetes_service",
+            "cosmos_db", "ai_search", "key_vault",
+            "monitor", "application_insights", "entra_id",
+            "storage_account",
+        ],
+        flow_direction="TB",
+        layout_strategy="grouped",
+        diagram_conventions=[
+            "Manager agent at the top with input",
+            "Task and progress ledger prominently shown (plan + statuses)",
+            "Specialized agents below, connected to manager via invoke arrows",
+            "Action agents connect to external systems via their tools",
+            "Evaluate goal loop arrow from manager to 'Task complete?' decision",
+            "Yes leads to Result, No loops back to manager",
+            "Human participant connected to task ledger for review",
+            "Show iterative refinement with loop arrows",
+            "Also known as: dynamic orchestration, task-ledger-based, adaptive planning",
+        ],
+    ),
+
+    # ── AI/ML Architecture Patterns ──────────────────────────────
+    # Source: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/
+    #
+    # End-to-end AI architecture patterns from the Azure Architecture Center
+    # covering foundry chat, agent-based systems, and GenAI applications.
+
+    "foundry_chat_baseline": ArchitectureStyle(
+        key="foundry_chat_baseline",
+        name="Baseline Foundry Chat Architecture",
+        description=(
+            "Enterprise chat application using Microsoft Foundry and Azure OpenAI. "
+            "A prompt-based agent persisted in Foundry Agent Service receives user "
+            "messages and queries data stores to retrieve grounding information for "
+            "the language model. The chat UI follows baseline App Service patterns "
+            "with zone-redundant, highly available web application on App Service "
+            "communicating with the agent over private endpoints."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/baseline-microsoft-foundry-chat",
+        when_to_use=[
+            "Enterprise chat applications grounded in company knowledge",
+            "Single-agent chat with RAG over enterprise data",
+            "Secure, zone-redundant AI application deployments",
+            "Foundry Agent Service with standard agent setup",
+            "Applications requiring network isolation and private endpoints",
+        ],
+        typical_components=[
+            "Chat UI (App Service — zone-redundant web application)",
+            "Application Gateway with Web Application Firewall (WAF)",
+            "Foundry Agent Service (prompt-based agent runtime)",
+            "Azure OpenAI model (GPT-4.1 or similar)",
+            "AI Search (grounding knowledge + file search tool)",
+            "Azure Cosmos DB (conversation state — enterprise_memory)",
+            "Azure Storage (file uploads during chat sessions)",
+            "Virtual Network with subnet segmentation",
+            "Private endpoints for all PaaS services",
+            "Azure Firewall (egress control)",
+            "Azure DNS (private zones for service resolution)",
+            "Microsoft Entra ID (authentication)",
+            "Application Insights + Azure Monitor (observability)",
+            "Azure Key Vault (TLS certificates)",
+            "Azure DDoS Protection",
+            "Azure Bastion + jump box (portal access)",
+        ],
+        azure_services=[
+            "app_service", "application_gateway", "openai_service",
+            "ai_search", "cosmos_db", "storage_account",
+            "virtual_network", "private_endpoint", "firewall",
+            "bastion", "key_vault", "entra_id",
+            "monitor", "application_insights",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "User on far left connecting through Application Gateway + WAF",
+            "Virtual network boundary containing all subnets",
+            "App Service in its own integration subnet",
+            "Private endpoint subnet connecting to all PaaS services",
+            "Foundry Agent Service integration subnet (delegated)",
+            "Azure Firewall subnet for egress control",
+            "Foundry account and project shown on the far right",
+            "Numbered workflow steps (green circles) showing request flow",
+            "Managed identities connecting services (not keys)",
+            "Private DNS zones linked to the virtual network",
+            "Separate Cosmos DB, Storage, AI Search for agent state (not shared)",
+        ],
+    ),
+    "ai_agent_single_with_tools": ArchitectureStyle(
+        key="ai_agent_single_with_tools",
+        name="Single AI Agent with Tools",
+        description=(
+            "One agent that reasons and acts by selecting from available tools, "
+            "knowledge sources, and APIs. The agent can loop through multiple model "
+            "calls and tool invocations to refine results. Often the right default "
+            "for enterprise use cases — simpler to debug and test than multi-agent "
+            "setups. Protocols like MCP standardize how agents discover and invoke tools."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns#start-with-the-right-level-of-complexity",
+        when_to_use=[
+            "Varied queries within a single domain requiring dynamic tool use",
+            "Enterprise scenarios that don't require multi-agent complexity",
+            "Applications needing dynamic tool selection (lookup, query, calculate)",
+            "MCP-connected tool ecosystems",
+            "Single-domain problems with multiple knowledge sources",
+        ],
+        typical_components=[
+            "Single AI agent (Model + instructions/system prompt)",
+            "Tool registry (MCP servers, OpenAPI tools, custom APIs)",
+            "Knowledge sources (AI Search, databases, documents)",
+            "Iteration/loop controller (max iteration limits)",
+            "Content safety / guardrails",
+            "Conversation state / memory",
+            "User interface (chat, API)",
+        ],
+        azure_services=[
+            "openai_service", "ai_search", "cosmos_db",
+            "container_apps", "app_service", "function_app",
+            "key_vault", "monitor", "application_insights",
+            "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "User/input on the left, agent in the center",
+            "Tools and knowledge sources arranged around the agent",
+            "Loop arrows showing iterative reasoning (think → tool → refine)",
+            "Guard against infinite loops — show iteration limit",
+            "Content safety between agent and user response",
+            "MCP/tool connections shown as standardized interfaces",
+            "Single agent boundary — no multi-agent coordination overhead",
+        ],
+    ),
+    "ai_mlops_pipeline": ArchitectureStyle(
+        key="ai_mlops_pipeline",
+        name="MLOps / AI Model Lifecycle",
+        description=(
+            "End-to-end machine learning operations architecture covering data "
+            "preparation, feature engineering, model training, evaluation, deployment, "
+            "monitoring, and automated retraining. Implements CI/CD for models with "
+            "experiment tracking, model registry, responsible AI governance, and "
+            "drift detection triggering retraining pipelines."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/",
+        when_to_use=[
+            "Production ML model lifecycle management",
+            "Automated model training and deployment (MLOps)",
+            "Model drift detection and automated retraining",
+            "Responsible AI governance with bias detection",
+            "Multi-environment promotion (dev → staging → production)",
+        ],
+        typical_components=[
+            "Data sources (data lake, operational DBs, streaming)",
+            "Feature engineering / feature store (offline + online)",
+            "Experiment tracking (MLflow / AML experiments)",
+            "Training compute (GPU clusters, Spark, AutoML)",
+            "Model evaluation + responsible AI checks",
+            "Model registry (versioned, signed models)",
+            "CI/CD pipeline for model promotion",
+            "Deployment — real-time endpoint (Container Apps, AKS)",
+            "Deployment — batch endpoint (Batch, Spark)",
+            "Monitoring (data drift, model performance, latency)",
+            "Retraining trigger (drift threshold, schedule, manual)",
+        ],
+        azure_services=[
+            "machine_learning", "databricks", "kubernetes_service",
+            "container_apps", "container_registry", "data_lake_storage",
+            "data_factory", "monitor", "application_insights",
+            "key_vault", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Left-to-right lifecycle: Data → Feature → Train → Evaluate → Register → Deploy → Monitor",
+            "CI/CD pipeline spanning train-through-deploy at the top",
+            "Experiment tracking connected to training stage",
+            "Model registry as central versioned artifact store",
+            "Separate real-time and batch inference paths after deployment",
+            "Monitoring feeds back to retraining trigger (loop arrow)",
+            "Responsible AI gate between evaluation and registry",
+            "Show multi-environment promotion (dev → staging → prod)",
+            "Use numbered steps for the ML lifecycle",
+        ],
+    ),
+    "ai_document_processing": ArchitectureStyle(
+        key="ai_document_processing",
+        name="AI Document Processing & Understanding",
+        description=(
+            "Architecture for processing, understanding, and extracting structured "
+            "data from documents, images, audio, and video using Azure AI services. "
+            "Combines Document Intelligence, Content Understanding, custom models, "
+            "and generative AI for OCR, entity extraction, classification, and "
+            "intelligent data ingestion into downstream systems."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/",
+        when_to_use=[
+            "Automated document processing and data extraction",
+            "Invoice, receipt, and form processing at scale",
+            "Multi-format content understanding (PDF, images, audio, video)",
+            "Document classification before extraction",
+            "Intelligent data ingestion from unstructured sources",
+        ],
+        typical_components=[
+            "Document sources (Blob storage, SharePoint, email)",
+            "Document Intelligence (prebuilt + custom models)",
+            "Content Understanding (custom analyzers)",
+            "Classification model (document type identification)",
+            "Extraction model (field-level data extraction)",
+            "Generative AI enrichment (summarization, Q&A)",
+            "Validation and human review loop",
+            "Structured output store (SQL, Cosmos DB)",
+            "Downstream integration (ERP, CRM, data warehouse)",
+        ],
+        azure_services=[
+            "cognitive_services", "openai_service", "storage_account",
+            "cosmos_db", "sql_database", "function_app",
+            "logic_app", "data_factory", "ai_search",
+            "monitor", "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Document sources on the left, structured output on the right",
+            "Classification stage before extraction (identify doc type first)",
+            "Show prebuilt vs custom model paths",
+            "Validation/human review as optional quality gate",
+            "Generative AI enrichment as parallel or post-extraction step",
+            "Use numbered workflow steps",
+            "Show composed models combining multiple extractors",
+        ],
+    ),
+    "ai_speech_multimodal": ArchitectureStyle(
+        key="ai_speech_multimodal",
+        name="AI Speech & Multimodal Application",
+        description=(
+            "Architecture for applications that process and generate speech, "
+            "translate languages, and handle multimodal inputs (text, audio, image, "
+            "video). Combines Azure Speech services, custom speech models, "
+            "translation, and language models for conversational AI, transcription, "
+            "and real-time communication scenarios."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/",
+        when_to_use=[
+            "Voice-enabled AI assistants and chatbots",
+            "Real-time transcription and translation",
+            "Call center analytics and agent assistance",
+            "Multimodal AI applications (speech + text + vision)",
+            "Accessibility solutions (text-to-speech, speech-to-text)",
+        ],
+        typical_components=[
+            "Audio/video input sources",
+            "Azure Speech (speech-to-text, text-to-speech)",
+            "Custom speech models (domain-specific vocabulary)",
+            "Azure Translator (real-time translation)",
+            "Language model (reasoning over transcribed content)",
+            "Content safety and moderation",
+            "Output rendering (audio, text, subtitles)",
+            "Real-time streaming infrastructure",
+            "Conversation history / state management",
+        ],
+        azure_services=[
+            "cognitive_services", "openai_service", "container_apps",
+            "app_service", "function_app", "cosmos_db",
+            "storage_account", "event_hub", "monitor",
+            "application_insights", "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Input modalities on the left (microphone, camera, text)",
+            "Speech/translation processing in the center",
+            "Language model reasoning stage",
+            "Output modalities on the right (speaker, screen, text)",
+            "Show real-time streaming path for low-latency",
+            "Custom model training as separate offline flow",
+            "Content safety between model output and user",
+            "Bidirectional arrows for conversational scenarios",
+        ],
+    ),
+
+    # ── Additional AI/ML Reference Architectures ─────────────────
+    # Source: azure-architecture-ai-ml.pdf (Azure Architecture Center AI/ML hub)
+    #
+    # End-to-end reference architectures for specific AI/ML scenarios
+    # with detailed component selection and workflow patterns.
+
+    "conversation_knowledge_mining": ArchitectureStyle(
+        key="conversation_knowledge_mining",
+        name="Conversation Knowledge Mining",
+        description=(
+            "Extracts actionable insights from large volumes of conversational data "
+            "such as call center recordings. Uses Azure Content Understanding in "
+            "Foundry Tools, Foundry IQ, and Microsoft Foundry to analyze unstructured "
+            "dialogue and transform it into meaningful, structured insights through "
+            "NLP, topic modeling, and vector-based search capabilities."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/conversation-knowledge-mining",
+        when_to_use=[
+            "Call center analytics and conversation intelligence",
+            "Audio and text transcript analysis at scale",
+            "Topic modeling and key phrase extraction from dialogue",
+            "Entity extraction from customer conversations",
+            "Interactive exploration of insights via natural language chat",
+        ],
+        typical_components=[
+            "Call audio files and transcripts (source systems)",
+            "Azure Storage account (ingestion point)",
+            "Content Understanding (entity extraction, topic modeling)",
+            "Azure SQL Database (structured entities and metadata)",
+            "Foundry IQ (vectorized call transcripts for semantic search)",
+            "Microsoft Agent Framework (orchestrates topic modeling pipeline)",
+            "Azure OpenAI (conversational chat interface)",
+            "Azure Cosmos DB (chat history and session state)",
+            "Container Apps or App Service (web front-end + APIs)",
+            "Azure Container Registry (container images)",
+            "Scheduled batch processing pipeline (daily ingestion)",
+        ],
+        azure_services=[
+            "storage_account", "cognitive_services", "sql_database",
+            "ai_search", "openai_service", "cosmos_db",
+            "container_apps", "app_service", "container_registry",
+            "monitor", "key_vault", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Audio/transcript sources on the left",
+            "Content Understanding processing in the center",
+            "Dual output paths: SQL Database (structured) and Foundry IQ (vectors)",
+            "Chat interface on the right for interactive exploration",
+            "Batch processing pipeline shown as scheduled data flow",
+            "Topic modeling as distinct processing stage",
+            "Numbered workflow steps matching the data flow",
+            "Show daily batch trigger and event-driven paths separately",
+        ],
+    ),
+    "multi_agent_workflow": ArchitectureStyle(
+        key="multi_agent_workflow",
+        name="Multi-Agent Workflow Automation",
+        description=(
+            "Multiple specialized AI agents collaborate through a central API "
+            "orchestrator to build scalable automation pipelines. Custom software "
+            "using Microsoft Agent Framework defines agent and orchestration behavior, "
+            "deployed in Azure Container Apps where agents use Foundry Tools. Covers "
+            "CI/CD, data persistence, agent communication, and DevOps for multi-agent "
+            "systems."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/multiple-agent-workflow-automation",
+        when_to_use=[
+            "Complex organizational task automation requiring multiple specializations",
+            "Code modernization and legacy system migration",
+            "Document processing requiring planning, execution, and validation agents",
+            "Workflows needing CI/CD for agent code and infrastructure",
+            "Scenarios requiring persistent agent state and collaboration history",
+        ],
+        typical_components=[
+            "Web front-end (App Service — user task submission)",
+            "Container Apps API (central orchestrator)",
+            "Microsoft Foundry-hosted GPT-4o model",
+            "Multiple specialized AI agents (plan, execute, validate)",
+            "Azure Cosmos DB (task state and agent collaboration history)",
+            "Azure Storage (intermediate artifacts and outputs)",
+            "GitHub Actions (CI/CD for agent containers)",
+            "Azure Container Registry (agent container images)",
+            "Application Insights (agent monitoring and tracing)",
+            "Azure Key Vault (secrets for agent tools)",
+        ],
+        azure_services=[
+            "app_service", "container_apps", "openai_service",
+            "cosmos_db", "storage_account", "container_registry",
+            "key_vault", "monitor", "application_insights", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "User/front-end on the left, orchestrator API in the center",
+            "Specialized agents below or right of orchestrator",
+            "Arrows from orchestrator to each agent showing task delegation",
+            "Foundry model connection from orchestrator",
+            "Cosmos DB for persistent state linked to orchestrator",
+            "CI/CD pipeline (GitHub → Container Registry → Container Apps) at top",
+            "Numbered workflow steps for the task lifecycle",
+            "Show agent collaboration via shared state, not direct communication",
+        ],
+    ),
+    "multitenant_rag": ArchitectureStyle(
+        key="multitenant_rag",
+        name="Secure Multitenant RAG Inferencing",
+        description=(
+            "RAG architecture with tenant isolation for multitenant SaaS applications. "
+            "An orchestrator fetches tenant-authorized grounding data using document-level "
+            "security trimming or tenant-specific data stores. Supports three variants: "
+            "orchestrator-based, Azure OpenAI On Your Data direct access, and hybrid "
+            "approaches with per-tenant index filtering."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/secure-multitenant-rag",
+        when_to_use=[
+            "SaaS applications serving multiple tenants with shared AI infrastructure",
+            "RAG solutions requiring strict tenant data isolation",
+            "Applications needing document-level security trimming",
+            "Shared AI Search index with per-tenant filtering",
+            "Compliance scenarios requiring audit of tenant data access",
+        ],
+        typical_components=[
+            "Intelligent web application (per-tenant UI)",
+            "Identity provider (Microsoft Entra ID — tenant auth)",
+            "Orchestrator API (tenant-aware query routing)",
+            "Azure AI Search (shared index with security filters)",
+            "Tenant-specific data stores (isolated per tenant)",
+            "Azure OpenAI (shared foundation model)",
+            "Document-level access control (security trimming metadata)",
+            "Tenant isolation boundary (logical or physical)",
+            "Audit logging (per-tenant access tracking)",
+        ],
+        azure_services=[
+            "openai_service", "ai_search", "cosmos_db",
+            "app_service", "container_apps", "entra_id",
+            "key_vault", "monitor", "application_insights",
+            "storage_account",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Multiple tenant users on the left with distinct colors",
+            "Identity provider authenticating each tenant",
+            "Orchestrator in the center enforcing tenant boundaries",
+            "Data stores showing tenant isolation (partitioned or separate)",
+            "Security trimming filter between orchestrator and search index",
+            "Shared Azure OpenAI on the right (no tenant data in model)",
+            "Dashed boundaries showing tenant isolation zones",
+            "Show both shared and tenant-specific resource paths",
+        ],
+    ),
+    "genaiops": ArchitectureStyle(
+        key="genaiops",
+        name="Generative AI Operations (GenAIOps)",
+        description=(
+            "Extends existing MLOps investments to include generative AI patterns. "
+            "Covers fine-tuning, prompt engineering, RAG data pipelines, orchestrator "
+            "deployment, and evaluation workflows. Combines DataOps for grounding data, "
+            "experimentation with prompt variants, and monitoring for token usage, "
+            "latency, and content safety in production."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/genaiops-for-mlops",
+        when_to_use=[
+            "Organizations extending MLOps to generative AI workloads",
+            "Production LLM/GenAI applications needing CI/CD and monitoring",
+            "RAG solutions requiring index rebuild and data pipeline management",
+            "Prompt engineering experimentation and evaluation workflows",
+            "Multi-environment promotion of AI orchestrators and agents",
+        ],
+        typical_components=[
+            "Inner loop: experimentation (fine-tuning, prompting, RAG indexing)",
+            "DataOps pipeline (data cleaning, chunking, index building)",
+            "Evaluation framework (groundedness, relevancy, completeness metrics)",
+            "Prompt registry / version control",
+            "Orchestrator deployment (Agent Framework SDK or Agent Service)",
+            "Outer loop: CI/CD pipeline (build, test, deploy)",
+            "Monitoring (token usage, latency, content safety, drift)",
+            "Model registry (fine-tuned model versions)",
+            "Search index management (rebuild, incremental updates)",
+            "Human-in-the-loop evaluation gates",
+        ],
+        azure_services=[
+            "openai_service", "machine_learning", "ai_search",
+            "container_apps", "devops", "monitor",
+            "application_insights", "key_vault", "storage_account",
+            "cosmos_db",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Inner loop (experimentation) on the left",
+            "Outer loop (CI/CD deployment) spanning top",
+            "DataOps pipeline for grounding data shown as parallel track",
+            "Evaluation gates between inner and outer loops",
+            "Monitoring feeding back to experimentation (loop arrow)",
+            "Show prompt versioning alongside model versioning",
+            "Separate tracks for fine-tuning vs prompting vs RAG",
+            "Production environment on the right with monitoring",
+        ],
+    ),
+    "azure_openai_gateway": ArchitectureStyle(
+        key="azure_openai_gateway",
+        name="Azure OpenAI API Gateway Pattern",
+        description=(
+            "Uses Azure API Management as a gateway in front of one or more Azure "
+            "OpenAI deployments or instances. Provides load balancing, failover, "
+            "usage tracking, chargeback, token rate limiting, content filtering, and "
+            "circuit breaking. Supports topologies from single-instance multi-model "
+            "to multi-region active-active configurations."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/azure-openai-gateway-multi-backend",
+        when_to_use=[
+            "Multiple clients sharing Azure OpenAI with usage tracking and chargeback",
+            "Load balancing across provisioned and standard (spillover) deployments",
+            "Failover between Azure OpenAI instances (availability or throttling)",
+            "Token rate limiting and quota management per client",
+            "Multi-region deployments for latency or compliance",
+            "Abstracting model version changes from client applications",
+        ],
+        typical_components=[
+            "Client applications (multiple consumers)",
+            "Azure API Management (gateway — routing, policies, analytics)",
+            "Azure OpenAI primary instance (provisioned throughput)",
+            "Azure OpenAI spillover instance (standard/pay-per-use)",
+            "Azure OpenAI secondary region (failover target)",
+            "API Management policies (retry, circuit-breaker, rate-limit)",
+            "Usage analytics and chargeback reporting",
+            "Private endpoints (network isolation)",
+            "Azure RBAC (per-client access control)",
+            "Managed identity (gateway → OpenAI authentication)",
+        ],
+        azure_services=[
+            "api_management", "openai_service", "virtual_network",
+            "private_endpoint", "monitor", "application_insights",
+            "key_vault", "entra_id", "log_analytics",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Clients on the left, gateway in the center, OpenAI instances on right",
+            "Multiple OpenAI backends shown with priority/weight labels",
+            "Circuit-breaker and retry logic shown as gateway policy annotations",
+            "Failover arrows (dashed) to secondary instances",
+            "Private endpoint connections shown between gateway and backends",
+            "Usage/analytics flow from gateway to monitoring",
+            "Show provisioned vs standard deployment types with labels",
+            "Multi-region variant: duplicate right-side per region",
+        ],
+    ),
+    "foundation_model_lifecycle": ArchitectureStyle(
+        key="foundation_model_lifecycle",
+        name="Foundation Model Lifecycle Management",
+        description=(
+            "Architecture for managing foundation model version transitions in "
+            "production AI workloads. Covers model retirement detection, evaluation "
+            "of new versions across prompts and safety, blue-green or canary deployment "
+            "strategies, and abstraction layers (routers/gateways) that enable seamless "
+            "model swaps without client changes."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/foundation-model-lifecycle",
+        when_to_use=[
+            "Managing model version upgrades (minor, major, variant updates)",
+            "Avoiding workload outages from model retirement policies",
+            "Blue-green or canary deployments for model transitions",
+            "Maintaining prompt compatibility across model versions",
+            "MaaS, MaaP, or self-hosted model deployment strategies",
+        ],
+        typical_components=[
+            "Client application (abstracted from model version)",
+            "Router or gateway (model version abstraction layer)",
+            "Current model deployment (production)",
+            "New model deployment (candidate — blue-green or canary)",
+            "Prompt configuration per model version",
+            "Evaluation pipeline (groundedness, safety, quality)",
+            "Monitoring (performance comparison old vs new)",
+            "Rollback mechanism (traffic switch back to old model)",
+            "Model deprecation alerts (retirement schedule tracking)",
+        ],
+        azure_services=[
+            "openai_service", "api_management", "container_apps",
+            "machine_learning", "monitor", "application_insights",
+            "key_vault", "cosmos_db",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Client on the left, router/gateway in the center",
+            "Two model deployments on the right (current + candidate)",
+            "Traffic split arrows showing canary percentages",
+            "Evaluation pipeline comparing both deployments",
+            "Prompt configurations linked to each model version",
+            "Monitoring dashboard showing side-by-side metrics",
+            "Rollback path shown as dashed arrow back to current",
+            "Timeline or version labels on each deployment",
+        ],
+    ),
+    "image_classification_pipeline": ArchitectureStyle(
+        key="image_classification_pipeline",
+        name="Event-Driven Image Classification",
+        description=(
+            "Serverless image classification pipeline using Azure Functions and "
+            "Azure Vision in Foundry Tools. New image uploads to Blob Storage trigger "
+            "Event Grid notifications that invoke Functions to call the Vision API. "
+            "Results are stored in Cosmos DB for querying by web or mobile apps."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/idea/intelligent-apps-image-processing",
+        when_to_use=[
+            "Automated image tagging and classification at upload time",
+            "Event-driven processing of image uploads",
+            "Product catalog visual classification",
+            "Content moderation for user-uploaded images",
+            "Telemetry data classification from screenshots",
+        ],
+        typical_components=[
+            "Web or mobile application (image upload)",
+            "Azure Blob Storage (image storage)",
+            "Azure Event Grid (upload event notification)",
+            "Azure Functions (orchestrates Vision API calls)",
+            "Azure Vision in Foundry Tools (image analysis)",
+            "Azure Cosmos DB (classification results and metadata)",
+            "Web/mobile app (query classified results)",
+        ],
+        azure_services=[
+            "storage_account", "event_grid", "function_app",
+            "cognitive_services", "cosmos_db", "app_service",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Upload source on the left (web/mobile app)",
+            "Blob Storage as the trigger point",
+            "Event Grid arrow from Blob to Functions",
+            "Functions calling Vision API (synchronous)",
+            "Results flowing to Cosmos DB",
+            "Query path from app to Cosmos DB on the right",
+            "Show event-driven flow with lightning bolt icons on triggers",
+            "Serverless components highlighted (no always-on compute)",
+        ],
+    ),
+    "ai_order_forecasting": ArchitectureStyle(
+        key="ai_order_forecasting",
+        name="AI Order Forecasting (Many-Models)",
+        description=(
+            "Predicts customer future order quantities using a many-models approach "
+            "where individual ML models are trained per customer-store-SKU combination. "
+            "Uses Azure Machine Learning parallel jobs for training at scale, with "
+            "managed online endpoints for real-time scoring and Fabric for batch "
+            "predictions via Power Apps interfaces."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/idea/next-order-forecasting",
+        when_to_use=[
+            "Merchandise distribution order quantity prediction",
+            "Per-customer/per-SKU model training at scale",
+            "Many-models scenarios requiring parallel training",
+            "Real-time scoring endpoints for order recommendations",
+            "Batch prediction with Power Apps or Fabric integration",
+        ],
+        typical_components=[
+            "Data sources (orders, merchandise, customer, external factors)",
+            "Azure Data Lake Storage (raw and curated data)",
+            "Azure Machine Learning (model training + ParallelRunStep)",
+            "Training compute clusters (parallel model training)",
+            "Model registry (thousands of per-SKU models)",
+            "Managed online endpoints (real-time scoring)",
+            "Microsoft Fabric OneLake (centralized data storage)",
+            "Fabric Data Science (alternative training path)",
+            "Power BI (reporting and predictions visualization)",
+            "Power Apps (user-facing order recommendations)",
+        ],
+        azure_services=[
+            "machine_learning", "data_lake_storage", "databricks",
+            "synapse_analytics", "app_service", "key_vault",
+            "monitor", "container_registry",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Data sources on the far left (orders, customers, external)",
+            "Data Lake as central storage layer",
+            "ML training with parallel jobs in the center",
+            "Model registry storing thousands of models",
+            "Dual deployment paths: online endpoints + batch scoring",
+            "Power BI/Power Apps as consumption layer on the right",
+            "Show parallel processing icon for many-models training",
+            "Label per-customer-store-SKU model granularity",
+        ],
+    ),
+    "content_extraction_mapping": ArchitectureStyle(
+        key="content_extraction_mapping",
+        name="Content Extraction and Schema Mapping",
+        description=(
+            "Processes claims, invoices, contracts, and other documents by extracting "
+            "information from unstructured multimodal content and mapping it to "
+            "structured formats. Uses confidence scoring and user validation loops. "
+            "Content Understanding analyzes media, GPT models perform schema-based "
+            "transformation, and results persist with audit trails."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/extract-map-information",
+        when_to_use=[
+            "Claims, invoices, and contract processing",
+            "Multimodal content extraction (documents, images, audio)",
+            "Schema-based data transformation with confidence scoring",
+            "Human-in-the-loop validation for low-confidence extractions",
+            "Audit trail requirements for extracted data",
+        ],
+        typical_components=[
+            "Web front-end (content upload interface)",
+            "Container Apps API (processing orchestration)",
+            "Content Understanding (multimodal analysis)",
+            "Azure OpenAI GPT-4o (schema-based transformation)",
+            "Confidence scoring engine",
+            "Azure Queue Storage (event-driven workflow)",
+            "Azure Cosmos DB (results, schemas, audit trails)",
+            "Azure Blob Storage (source docs + artifacts)",
+            "Human validation UI (low-confidence review)",
+        ],
+        azure_services=[
+            "container_apps", "cognitive_services", "openai_service",
+            "cosmos_db", "storage_account", "queue_storage",
+            "app_service", "monitor", "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Document upload on the left",
+            "Content Understanding analysis in the center",
+            "GPT model for schema mapping adjacent to Content Understanding",
+            "Confidence score decision gate (high → auto-approve, low → human review)",
+            "Human validation loop shown as feedback arrow",
+            "Cosmos DB for structured output and audit trail on the right",
+            "Queue Storage connecting pipeline stages",
+            "Show multimodal inputs (doc, image, audio icons)",
+        ],
+    ),
+    "ai_document_generation": ArchitectureStyle(
+        key="ai_document_generation",
+        name="AI-Powered Document Generation",
+        description=(
+            "Generates intelligent structured and unstructured documents grounded in "
+            "enterprise data. Uses Foundry IQ to identify relevant data, summarize "
+            "information, and generate contextual content through conversational "
+            "interactions. Users can generate documents via natural language and "
+            "receive outputs grounded in organizational knowledge."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/generate-documents-from-data",
+        when_to_use=[
+            "Automated report and proposal generation from enterprise data",
+            "Knowledge-grounded document synthesis",
+            "RFP response generation from historical submissions",
+            "Investment proposal or grant application creation",
+            "Contract and compliance document drafting",
+        ],
+        typical_components=[
+            "LOB applications (source enterprise documents)",
+            "Data sync process (periodic ingestion)",
+            "Azure Storage (enterprise documents + generated cache)",
+            "Foundry IQ (vectorized enterprise knowledge + semantic search)",
+            "Azure OpenAI (content generation model)",
+            "App Service (web front-end — NL document requests)",
+            "Azure Cosmos DB (conversation history and context)",
+            "Generated document output (cached for reuse)",
+        ],
+        azure_services=[
+            "app_service", "openai_service", "ai_search",
+            "cosmos_db", "storage_account", "data_factory",
+            "monitor", "key_vault", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Enterprise data sources on the far left",
+            "Sync/ingestion pipeline feeding Foundry IQ in center-left",
+            "User chat interface connecting to generation pipeline",
+            "Foundry IQ providing grounding data to OpenAI",
+            "Generated documents as output on the right",
+            "Cosmos DB storing conversation context below",
+            "Caching layer for previously generated documents",
+            "Show RAG pattern: retrieve → augment → generate",
+        ],
+    ),
+    "video_analysis_automation": ArchitectureStyle(
+        key="video_analysis_automation",
+        name="Automated Video Analysis Pipeline",
+        description=(
+            "Batch processing architecture that extracts insights from video footage "
+            "using frame decomposition, Azure Vision, and custom models. Videos are "
+            "uploaded to Blob Storage, frames extracted via FFmpeg in ML compute, then "
+            "analyzed by Vision APIs or custom models. Results stored in Fabric Data "
+            "Warehouse for Power BI visualization."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/automate-video-analysis",
+        when_to_use=[
+            "Automated quality inspection from video footage",
+            "Security camera footage analysis and object detection",
+            "Manufacturing defect detection from production line video",
+            "Sports or media content analysis",
+            "OCR extraction from video frames",
+        ],
+        typical_components=[
+            "MP4 video source (Blob Storage — raw container)",
+            "Machine Learning compute (FFmpeg frame extraction)",
+            "Extracted frames (Blob Storage — processed container)",
+            "Azure Logic App (orchestrates Vision API calls)",
+            "Azure Vision / Custom Vision model (object detection + OCR)",
+            "JSON results parsing",
+            "Fabric Data Warehouse (structured results storage)",
+            "Power BI (dashboards and reports)",
+        ],
+        azure_services=[
+            "storage_account", "machine_learning", "logic_app",
+            "cognitive_services", "synapse_analytics", "monitor",
+            "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Video source on the left (Blob Storage raw container)",
+            "Frame extraction stage (ML compute with FFmpeg)",
+            "Frames stored in processed container",
+            "Logic App orchestrating Vision API calls per frame",
+            "Vision model analysis producing JSON results",
+            "Data warehouse storing structured results",
+            "Power BI dashboards on the far right",
+            "Show batch processing nature with parallel frame processing",
+        ],
+    ),
+    "call_center_analytics": ArchitectureStyle(
+        key="call_center_analytics",
+        name="Call Center Post-Call Analytics",
+        description=(
+            "Batch processing architecture that extracts insights from customer "
+            "conversations after calls complete. Uses Azure Speech for batch "
+            "transcription, Language services for entity extraction and PII "
+            "redaction, and Azure OpenAI for summarization and sentiment analysis. "
+            "Supports timer-triggered or blob-triggered batch processing."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/call-center-analytics",
+        when_to_use=[
+            "Post-call transcript analysis for quality assurance",
+            "PII redaction from call recordings",
+            "Automated call summarization and categorization",
+            "Sentiment analysis and customer satisfaction tracking",
+            "Batch transcription of recorded calls",
+        ],
+        typical_components=[
+            "Call audio files (Blob Storage)",
+            "Azure Functions (timer or blob trigger)",
+            "Azure Speech batch transcription",
+            "Azure Language (entity extraction + PII redaction)",
+            "Azure OpenAI (summarization + sentiment + intent)",
+            "Azure Cosmos DB or SQL Database (structured insights)",
+            "Power BI (call analytics dashboards)",
+            "Language Studio (model customization)",
+        ],
+        azure_services=[
+            "storage_account", "function_app", "cognitive_services",
+            "openai_service", "cosmos_db", "sql_database",
+            "monitor", "key_vault",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Audio files in Blob Storage on the left",
+            "Function trigger (timer or blob event) initiating pipeline",
+            "Speech → Language → OpenAI as sequential processing stages",
+            "PII redaction shown as a filter/gate in the pipeline",
+            "Structured insights stored in database",
+            "Power BI dashboards on the far right",
+            "Show batch nature with multiple files processed together",
+            "Timer trigger icon for scheduled processing",
+        ],
+    ),
+    "secure_research_environment": ArchitectureStyle(
+        key="secure_research_environment",
+        name="Secure Research Environment for Regulated Data",
+        description=(
+            "Provides researchers with isolated access to sensitive data requiring "
+            "high-level control and protection. Data science VMs in a locked-down "
+            "virtual network process data, with Azure Virtual Desktop as the only "
+            "access path. Supports regulatory compliance through network isolation, "
+            "immutable datasets, and controlled data export via approval workflows."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/secure-research-environment",
+        when_to_use=[
+            "Clinical research with patient data (HIPAA compliance)",
+            "Financial research with proprietary trading data",
+            "Government research with classified or sensitive data",
+            "Academic collaboration requiring data isolation",
+            "Scenarios requiring immutable datasets and audit trails",
+        ],
+        typical_components=[
+            "Source data (external systems)",
+            "Azure Data Factory (data ingestion + copy deletion)",
+            "Secure Storage account (immutable research datasets)",
+            "Azure Virtual Desktop (privileged access — streaming apps)",
+            "Data Science VMs (secure compute for analysis)",
+            "Azure Machine Learning (model training in isolated network)",
+            "Microsoft Fabric (analytics on approved data)",
+            "Network Security Groups (restrict all external access)",
+            "Azure Policy (enforce security configuration)",
+            "Approval workflow for data export",
+            "Public storage account (approved exports only)",
+        ],
+        azure_services=[
+            "virtual_network", "data_factory", "storage_account",
+            "machine_learning", "virtual_desktop", "nsg",
+            "key_vault", "monitor", "entra_id",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Source data on far left with ingestion pipeline",
+            "Secure network boundary (VNet) enclosing all research resources",
+            "Virtual Desktop as the only entry point (no direct VM access)",
+            "Data Science VMs and ML compute inside isolated subnet",
+            "NSG rules shown as shield icons on subnet boundaries",
+            "Data export path with approval gate on the right",
+            "Show immutability: original deleted after copy",
+            "Azure Policy enforcement shown at resource group level",
+        ],
+    ),
+    "document_classification_pipeline": ArchitectureStyle(
+        key="document_classification_pipeline",
+        name="Durable Functions Document Classification",
+        description=(
+            "Processes mixed document files through an automated pipeline using Azure "
+            "Durable Functions for orchestration. Document Intelligence splits and "
+            "classifies documents, extracts named entities via NER, and uses RAG "
+            "patterns for intelligent categorization. Service Bus triggers "
+            "individual pipeline instances per document file."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/architecture/automate-document-classification",
+        when_to_use=[
+            "High-volume document classification and splitting",
+            "Mixed document files needing per-page classification",
+            "Named entity recognition (NER) from business documents",
+            "Government permit and record digitization",
+            "Automated report title generation and cataloging",
+        ],
+        typical_components=[
+            "Document file (Blob Storage)",
+            "Azure Service Bus (trigger message with metadata)",
+            "Azure Durable Functions orchestration",
+            "Document Intelligence Analyze API (split + classify)",
+            "Semantic Kernel (embedding generation for classification)",
+            "Azure AI Search (RAG index for NER and classification)",
+            "Azure OpenAI (natural language classification interface)",
+            "Web Apps (user-facing search and review)",
+            "Classified document output (structured results)",
+        ],
+        azure_services=[
+            "function_app", "service_bus", "cognitive_services",
+            "ai_search", "openai_service", "storage_account",
+            "app_service", "cosmos_db", "key_vault", "monitor",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Document source (Blob Storage) on the left",
+            "Service Bus trigger initiating Durable Functions",
+            "Durable Functions orchestrating sequential activities",
+            "Document Intelligence as first processing step (split + analyze)",
+            "Classification and NER as parallel extraction steps",
+            "AI Search index for RAG-based categorization",
+            "Web app for user review on the right",
+            "Show one-instance-per-document isolation",
+        ],
+    ),
+    "mlops_v2": ArchitectureStyle(
+        key="mlops_v2",
+        name="MLOps v2 Architecture (Classical/CV/NLP)",
+        description=(
+            "End-to-end CI/CD and retraining architecture for machine learning "
+            "covering classical ML, computer vision, and NLP workloads. Defines four "
+            "modular phases: data estate, administration/setup, model development "
+            "(inner loop), and model deployment (outer loop). Supports managed "
+            "endpoints, Kubernetes via Azure Arc, and automated retraining on drift."
+        ),
+        source_url="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/machine-learning-operations-v2",
+        when_to_use=[
+            "Production ML requiring full CI/CD with automated retraining",
+            "Classical ML, computer vision, or NLP model deployment",
+            "Organizations targeting MLOps maturity level 3-4",
+            "Multi-environment promotion with gated approvals",
+            "Automated drift detection triggering retraining pipelines",
+        ],
+        typical_components=[
+            "Data estate (Data Lake, SQL, Synapse — source data)",
+            "Administration and setup (IaC, RBAC, networking)",
+            "Inner loop — model development (experiment, train, evaluate)",
+            "Azure Machine Learning workspace (experiments + compute)",
+            "ML registries (promote models across workspaces)",
+            "Outer loop — model deployment (CI/CD pipeline)",
+            "Managed online endpoint (real-time inference)",
+            "Managed batch endpoint (batch scoring)",
+            "Kubernetes deployment via Azure Arc (hybrid)",
+            "Data and model monitoring (drift detection + alerts)",
+            "Retraining trigger (automated or human-gated)",
+        ],
+        azure_services=[
+            "machine_learning", "devops", "data_lake_storage",
+            "kubernetes_service", "container_registry", "monitor",
+            "application_insights", "key_vault", "entra_id",
+            "synapse_analytics",
+        ],
+        flow_direction="LR",
+        layout_strategy="tiered",
+        diagram_conventions=[
+            "Four phases left-to-right: Data → Admin → Dev (inner) → Deploy (outer)",
+            "Inner loop shown as iterative cycle (train → evaluate → register)",
+            "Outer loop as CI/CD pipeline (build → test → deploy)",
+            "ML registries connecting inner and outer loops",
+            "Multiple deployment targets (online, batch, Arc-Kubernetes)",
+            "Monitoring feeding back to retraining (loop arrow)",
+            "Human-in-the-loop gate for production promotion",
+            "Show data source connections to training compute",
+            "Variant labels for Classical ML vs CV vs NLP differences",
+        ],
+    ),
 }
 
 
