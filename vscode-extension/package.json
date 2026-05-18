@@ -141,7 +141,10 @@
         },
         "azureVisio.defaultFormat": {
           "type": "string",
-          "enum": ["vsdx", "drawio"],
+          "enum": [
+            "vsdx",
+            "drawio"
+          ],
           "default": "drawio",
           "description": "Default diagram output format."
         },
@@ -165,10 +168,10 @@
     "@types/vscode": "^1.95.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
-    "esbuild": "^0.24.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.28.0",
     "eslint": "^9.0.0",
-    "typescript": "^5.6.0",
-    "@vscode/vsce": "^3.0.0"
+    "typescript": "^5.6.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
