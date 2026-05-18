@@ -162,7 +162,22 @@ class LayoutEngine:
     }
 
     def _layout_tiered(self, state: DiagramState) -> None:
-        """Arrange resources in horizontal tiers from left to right."""
+        """Arrange resources in horizontal tiers from left to right.
+
+        If resources have boundary (group_id) assignments, uses a hybrid
+        approach: positions boundary groups left-to-right by their dominant
+        tier, then arranges resources within each group. This preserves
+        both the tiered architectural flow and boundary grouping.
+        """
+        # Check if resources have boundary assignments
+        grouped_rids = [rid for rid, res in state.resources.items() if res.group_id]
+
+        if grouped_rids and len(grouped_rids) > len(state.resources) * 0.5:
+            # Majority of resources have boundary assignments — use hybrid layout
+            self._layout_tiered_grouped(state)
+            return
+
+        # Pure tiered layout (no boundary assignments)
         tiers: dict[int, list[str]] = defaultdict(list)
 
         for rid, res in state.resources.items():
@@ -181,6 +196,88 @@ class LayoutEngine:
 
         # Resize boundaries to enclose their resources
         self._fit_boundaries(state)
+
+    def _layout_tiered_grouped(self, state: DiagramState) -> None:
+        """Hybrid layout: position boundary groups by their dominant tier,
+        then arrange resources within each group using sub-tier ordering.
+
+        Groups are positioned left-to-right based on the average tier of their
+        contained resources. Within each group, resources are arranged in a
+        grid with tier-based column ordering.
+        """
+        # Group resources by boundary
+        groups: dict[str | None, list[str]] = defaultdict(list)
+        for rid, res in state.resources.items():
+            groups[res.group_id].append(rid)
+
+        # Calculate dominant tier for each boundary group
+        group_tiers: dict[str | None, float] = {}
+        for group_id, rids in groups.items():
+            tiers = [
+                self._TIER_MAP.get(state.resources[rid].resource_type, 3)
+                for rid in rids
+            ]
+            group_tiers[group_id] = sum(tiers) / len(tiers) if tiers else 3.0
+
+        # Sort groups by dominant tier (ungrouped resources go last)
+        sorted_groups = sorted(
+            groups.keys(),
+            key=lambda g: (g is None, group_tiers.get(g, 99)),
+        )
+
+        # Layout parameters
+        start_x = 2.0
+        start_y = 2.0
+        max_cols = 3  # Max boundary columns before wrapping
+        group_h_gap = 1.5  # Gap between boundary groups horizontally
+        group_v_gap = 1.5  # Gap between boundary rows
+
+        col = 0
+        row = 0
+        row_max_height = 0.0
+        current_y = start_y
+
+        for group_id in sorted_groups:
+            rids = groups[group_id]
+            if not rids:
+                continue
+
+            # Position within this group: arrange in a grid (2 columns)
+            inner_cols = min(2, len(rids))
+            inner_rows_count = math.ceil(len(rids) / inner_cols)
+
+            # Group origin
+            group_x = start_x + col * (inner_cols * self.RESOURCE_H_GAP + 2 * self.BOUNDARY_PADDING + group_h_gap)
+            group_y = current_y
+
+            # Position resources within the group
+            for idx, rid in enumerate(rids):
+                icol = idx % inner_cols
+                irow = idx // inner_cols
+                state.resources[rid].position = Position(
+                    x=group_x + self.BOUNDARY_PADDING + icol * self.RESOURCE_H_GAP,
+                    y=group_y + self.BOUNDARY_HEADER + self.BOUNDARY_PADDING + irow * self.RESOURCE_V_GAP,
+                )
+
+            # Track group height for row wrapping
+            group_height = (
+                self.BOUNDARY_HEADER + 2 * self.BOUNDARY_PADDING
+                + inner_rows_count * self.RESOURCE_V_GAP
+            )
+            row_max_height = max(row_max_height, group_height)
+
+            col += 1
+            if col >= max_cols:
+                col = 0
+                row += 1
+                current_y += row_max_height + group_v_gap
+                row_max_height = 0.0
+
+        # Fit each boundary individually (without sibling alignment which
+        # would collapse the row structure)
+        for group_id in sorted_groups:
+            if group_id and group_id in state.boundaries:
+                self._fit_single_boundary(state, group_id)
 
     # ── Grid layout ───────────────────────────────────────────────
 
@@ -204,43 +301,76 @@ class LayoutEngine:
     # ── Grouped layout ────────────────────────────────────────────
 
     def _layout_grouped(self, state: DiagramState) -> None:
-        """Group resources by their boundary, then lay out each group."""
+        """Group resources by their boundary, then lay out each group.
+
+        Places boundary groups in a grid (max 3 columns), wrapping to new
+        rows as needed. Resources without a boundary are placed last.
+        """
         grouped: dict[str | None, list[str]] = defaultdict(list)
         for rid, res in state.resources.items():
             grouped[res.group_id].append(rid)
 
-        current_x = 2.0
+        # Order: boundary groups first (by boundary creation order), then ungrouped
+        ordered_groups: list[str | None] = [
+            bid for bid in state.boundaries.keys() if grouped.get(bid)
+        ]
+        if grouped.get(None):
+            ordered_groups.append(None)
 
-        # Layout each boundary group
-        for group_id in [None] + list(state.boundaries.keys()):
+        start_x = 2.0
+        start_y = 3.0
+        max_cols = 3
+        group_h_gap = 1.5
+        group_v_gap = 1.5
+
+        col = 0
+        current_y = start_y
+        row_max_height = 0.0
+        col_widths: list[float] = [0.0] * max_cols
+
+        for group_id in ordered_groups:
             rids = grouped.get(group_id, [])
             if not rids:
                 continue
 
             cols = max(1, math.ceil(math.sqrt(len(rids))))
-            group_start_x = current_x
-            group_start_y = 3.0
+            num_rows = math.ceil(len(rids) / cols)
 
+            # Calculate group dimensions
+            group_width = cols * self.RESOURCE_H_GAP + 2 * self.BOUNDARY_PADDING
+            group_height = (
+                self.BOUNDARY_HEADER + self.BOUNDARY_PADDING
+                + num_rows * self.RESOURCE_V_GAP
+            )
+
+            # Group origin
+            group_x = start_x + sum(col_widths[:col]) + col * group_h_gap
+            group_y = current_y
+
+            # Position resources
             for idx, rid in enumerate(rids):
-                col = idx % cols
-                row = idx // cols
+                icol = idx % cols
+                irow = idx // cols
                 state.resources[rid].position = Position(
-                    x=group_start_x + self.BOUNDARY_PADDING + col * self.RESOURCE_H_GAP,
-                    y=group_start_y + self.BOUNDARY_HEADER + row * self.RESOURCE_V_GAP,
+                    x=group_x + self.BOUNDARY_PADDING + icol * self.RESOURCE_H_GAP,
+                    y=group_y + self.BOUNDARY_HEADER + irow * self.RESOURCE_V_GAP,
                 )
 
             # Resize boundary to fit
             if group_id and group_id in state.boundaries:
-                max_col = min(len(rids), cols)
-                num_rows = math.ceil(len(rids) / cols)
                 bnd = state.boundaries[group_id]
-                bnd.position = Position(x=group_start_x, y=group_start_y - self.BOUNDARY_HEADER)
-                bnd.size = Size(
-                    width=max_col * self.RESOURCE_H_GAP + 2 * self.BOUNDARY_PADDING,
-                    height=num_rows * self.RESOURCE_V_GAP + self.BOUNDARY_HEADER + self.BOUNDARY_PADDING,
-                )
+                bnd.position = Position(x=group_x, y=group_y - self.BOUNDARY_HEADER)
+                bnd.size = Size(width=group_width, height=group_height)
 
-            current_x += (min(len(rids), cols if rids else 1)) * self.RESOURCE_H_GAP + 2 * self.BOUNDARY_PADDING + 1.0
+            col_widths[col] = max(col_widths[col], group_width)
+            row_max_height = max(row_max_height, group_height)
+
+            col += 1
+            if col >= max_cols:
+                col = 0
+                current_y += row_max_height + group_v_gap
+                row_max_height = 0.0
+                col_widths = [0.0] * max_cols
 
     # ── Helpers ───────────────────────────────────────────────────
 

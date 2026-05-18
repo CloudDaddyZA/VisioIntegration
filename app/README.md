@@ -63,28 +63,33 @@ Main application entry point. Manages:
   - Save with file browser dialog (PowerShell WinForms)
 - **Main area**: Two-column layout — chat history + tool-call log | HTML/SVG diagram preview with page tabs
 
-### `ai_agent.py` (~380 lines)
+### `ai_agent.py` (~400 lines)
 
 Orchestrates AI ↔ MCP tool-calling loop:
 
 - **`AIAgent` class** — Wraps OpenAI function-calling with MCP tool definitions
-- **`SYSTEM_PROMPT`** — 14-guideline prompt covering:
+- **`SYSTEM_PROMPT`** — 18-guideline prompt covering:
   - Step-by-step architecture builds
   - CAF naming conventions
   - WAF/CAF validation reminders
   - Save workflow with path confirmation
   - Reference architecture merging (`merge=True`)
-  - Architecture styles (6) and design patterns (36)
+  - Architecture styles (14) and design patterns (50)
   - Extended icons (Fabric, Entra)
   - Architecture Catalog (206 entries)
-  - Business requirements → architecture workflow (analyse → style → catalog → patterns → build → validate → explain)
+  - Business requirements → architecture workflow
+  - Post-import discovery questions (subscription/RG layout, VNet topology, data flow)
+  - Image attachment → boundary restructuring workflow
+  - **SKU & sizing recommendations** — calls `get_sku_recommendations`, `query_azure_pricing`, `compare_azure_skus` for live-data-backed guidance
+  - **Resource suggestions** — identifies missing WAF/monitoring/security resources
+  - **FinOps & compliance** — cost optimization, right-sizing, reserved instances, compliance alignment
 - **Provider support** — Automatic client creation for:
   - GitHub Copilot (GitHub Models at `models.inference.ai.azure.com`)
   - Azure OpenAI (with deployment + API version)
   - OpenAI (direct)
-- **Token management** — `_compact_tool_schemas()` strips verbose descriptions;
-  `_truncate_conversation()` keeps conversation within ~40K chars, preserving
-  atomic tool-call/response message groups
+- **Token management** — `_compact_tool_schemas()` strips verbose descriptions (preserves
+  array `items` for OpenAI schema compliance); `_truncate_conversation()` keeps
+  conversation within ~40K chars, preserving atomic tool-call/response message groups
 - **`chat()` method** — Multi-round tool-calling loop: sends user message → receives
   tool_calls → executes via MCP → feeds results back → repeats until final text reply
 
@@ -106,6 +111,11 @@ Client-side SVG/HTML renderer for real-time diagram preview:
 
 - **`render_diagram_svg(state, width, height, page_filter)`** — Converts diagram state dict to SVG markup, with optional page filtering
 - **`render_diagram_html(state, width, height)`** — Wraps SVG output in tabbed HTML when multiple pages exist; falls back to plain SVG for single-page diagrams
+
+### `components/` — Custom Streamlit Components
+
+- **`paste_image.py`** — Custom component enabling paste-from-clipboard image input
+- **`paste_image_frontend/`** — JavaScript/HTML frontend for the paste component
 - **Page tab support** — JavaScript-based tab switching for multi-page Visio imports, with per-page coordinate normalization
 - **Color palettes** matching Azure Architecture Center:
 

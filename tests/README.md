@@ -26,6 +26,15 @@ Focused tests for the `ai_landing_zone` reference architecture:
 - Checks security components: Key Vault, managed identity, private endpoints
 - Validates WAF and CAF scores are above threshold after template application
 
+### `test_sku_grounding.py`
+
+Tests the Azure SKU grounding module:
+
+- Verifies Azure Retail Prices API connectivity and response parsing
+- Tests SKU price comparison (sorted cheapest-first with monthly estimates)
+- Validates VM family recommendation logic (workload → family mapping)
+- Tests App Service / AKS / database reference data retrieval
+
 ---
 
 ## Running Tests

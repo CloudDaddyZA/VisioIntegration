@@ -9,7 +9,7 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 | Type | Count | Description |
 |------|------:|-------------|
-| **Tools** | 28 | Diagram CRUD, layout, validation, reference architectures, rendering, import |
+| **Tools** | 31 | Diagram CRUD, layout, validation, reference architectures, rendering, import, SKU pricing |
 | **Resources** | 8 | Diagram state, catalog browsing, shape listings |
 | **Prompts** | 7 | Architecture creation, validation, import, style guidance, business requirements, getting started |
 | **Azure Shapes** | 151 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
@@ -25,9 +25,9 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 ## Module Reference
 
-### `server.py` (~2,570 lines)
+### `server.py` (~2,960 lines)
 
-FastMCP server entry point. Registers all 28 tools, 8 resources, and 7 prompts.
+FastMCP server entry point. Registers all 31 tools, 8 resources, and 7 prompts.
 
 Key responsibilities:
 - Tool registration with parameter schemas and docstrings
@@ -37,6 +37,8 @@ Key responsibilities:
 - Architecture catalog search and browsing endpoints
 - Image import with OpenAI vision API integration
 - Business-to-architecture prompt with 7-step structured workflow
+- Pricing Calculator import via Playwright extraction
+- Live Azure SKU pricing queries (Retail Prices API integration)
 
 ### `models.py` (~109 lines)
 
@@ -74,7 +76,10 @@ Comprehensive Azure resource catalog:
 ### `layout_engine.py` (355 lines)
 
 Automatic diagram layout:
-- `LayoutEngine.layout()` — Main entry point, applies tiered or grid layout
+- `LayoutEngine.layout()` — Main entry point, applies tiered, grid, or grouped layout
+- **Tiered strategy** — arranges resources in horizontal tiers (ingress/compute/data/security)
+- **Grouped strategy** — positions boundaries in grid layout (max 3 columns), resources within
+- **Hybrid tiered-grouped** — auto-detects >50% grouped resources, positions groups by tier average
 - Boundary-aware positioning: groups resources within their parent boundaries
 - Connection-aware: positions connected resources near each other
 - Preserves reference architecture position hints when available
@@ -133,6 +138,27 @@ Azure Cloud Adoption Framework validation:
 - **Governance** — Azure Policy, tagging strategy
 - **Security Baseline** — Defender for Cloud, Sentinel
 - **Management** — Monitoring, Log Analytics
+
+### `azure_sku_grounding.py` (~340 lines)
+
+Live Azure SKU pricing and capability grounding:
+- **Azure Retail Prices API** — `query_retail_prices()` fetches live pricing (no auth required)
+- **SKU comparison** — `compare_sku_pricing()` side-by-side cost analysis sorted cheapest-first
+- **VM family reference** — Curated B/D/E/F/L/N/M-series guidance with use cases and cost tiers
+- **Database tier reference** — SQL (DTU/vCore), Cosmos DB (serverless/provisioned), PostgreSQL tiers
+- **App Service tier reference** — Free through Isolated v2 with limits and pricing
+- **AKS node pool guidance** — System pool, general, memory, GPU, and spot recommendations
+- **Grounding URL catalog** — 15 authoritative Microsoft documentation sources
+- **Service name mapping** — Maps resource_type keys to Retail Prices API `serviceName` values
+
+### `pricing_import.py` (~250 lines)
+
+Azure Pricing Calculator import:
+- **Playwright extraction** — Headless browser fetches pricing estimates from calculator URLs
+- **Service mapping** — Maps calculator service names to catalog resource types
+- **Auto-grouping** — Groups imported resources into logical boundaries
+- **Cost extraction** — Parses monthly/annual cost estimates from calculator data
+- **Connection inference** — Auto-generates connections between related services
 
 ### `reference_architectures.py` (~3,750 lines)
 

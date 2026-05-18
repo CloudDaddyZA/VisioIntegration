@@ -18,13 +18,29 @@ Combines AI-driven natural language understanding with Visio COM automation to g
   - `rag_genai_app` — RAG/GenAI app (ingest → embed → retrieve → generate)
   - `streaming_analytics` — Real-time streaming (hot/cold path, Event Hub → ASA/ADX)
 
-**Totals**: 14 architecture styles · 50 design patterns · 16 reference architectures · 151 resource types · 124 SVG icons
+**Azure SKU Grounding & Live Pricing** — Real-data-backed recommendations:
+
+- **3 new MCP tools**: `query_azure_pricing`, `compare_azure_skus`, `get_sku_recommendations`
+- **Azure Retail Prices API** integration — live pricing queries with no authentication required
+- **VM family guidance** — curated B/D/E/F/L/N/M-series recommendations by workload type
+- **Database tier guidance** — SQL DTU vs vCore, Cosmos DB serverless vs provisioned, PostgreSQL tiers
+- **App Service & AKS sizing** — tier selection with use cases and cost ranges
+- **FinOps & compliance** — cost optimization flags, reserved instance suggestions, compliance checks
+- **Pricing Calculator import** — Playwright-based extraction from Azure Pricing Calculator URLs
+
+**Layout Intelligence** — Improved boundary-aware positioning:
+
+- **Hybrid tiered-grouped layout** — auto-detects grouped resources and positions boundaries by tier
+- **Grouped layout wrapping** — boundaries wrap into grid (max 3 columns) instead of one long row
+- **Post-import discovery** — AI asks structured questions to inform boundary restructuring
+
+**Totals**: 14 architecture styles · 50 design patterns · 16 reference architectures · 151 resource types · 124 SVG icons · 31 MCP tools
 
 ---
 
 ## Features
 
-### MCP Server (28 tools · 8 resources · 7 prompts)
+### MCP Server (31 tools · 8 resources · 7 prompts)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -35,7 +51,8 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 | **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 50 cloud design patterns + 14 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
 | **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
-| **Import** | `import_vsdx`, `import_image` | Import existing `.vsdx` files (multi-page support) or convert screenshots/whiteboard photos/SVGs to diagrams |
+| **Import** | `import_vsdx`, `import_image`, `import_pricing_estimate` | Import existing `.vsdx` files, screenshots/photos, or Azure Pricing Calculator URLs |
+| **SKU & Pricing** | `query_azure_pricing`, `compare_azure_skus`, `get_sku_recommendations` | Live Azure Retail Prices API queries, SKU comparison, and tier guidance grounded in WAF/Advisor/FinOps |
 | **Reference** | `list_azure_shapes`, `get_diagram_state`, `get_diagram_standards` | Catalog browsing and diagram inspection |
 
 ### Interactive Streamlit App
@@ -77,7 +94,60 @@ Every diagram follows the exact visual conventions extracted from published Azur
 
 ## Architecture
 
-![Architecture Diagram](docs/architecture.png)
+```mermaid
+graph TD
+    subgraph UI["Streamlit App (UI)"]
+        AI["AI Agent<br/>(OpenAI / GitHub Copilot)"]
+        MCP_C["MCP Client<br/>(stdio)"]
+        Preview["Diagram Preview<br/>(SVG renderer)"]
+        Components["Components<br/>(paste-image)"]
+        AI --> MCP_C
+        MCP_C --> Preview
+    end
+
+    MCP_C -->|"stdio (JSON-RPC)"| Server
+
+    subgraph Server["MCP Server (FastMCP · 31 tools)"]
+        subgraph Core["Diagram Core"]
+            State["Diagram State"]
+            Layout["Layout Engine<br/>(tiered / grouped / hybrid)"]
+            Visio["Visio COM Engine"]
+            Drawio["Draw.io Engine"]
+        end
+
+        subgraph Knowledge["Architecture Knowledge"]
+            RefArch["Reference Architectures<br/>(×16 templates)"]
+            Catalog["Architecture Catalog<br/>(206 entries)"]
+            Styles["14 Styles · 50 Patterns"]
+        end
+
+        subgraph Validation["Validation"]
+            WAF["WAF Validator<br/>(5 pillars)"]
+            CAF["CAF Validator<br/>(7 principles)"]
+        end
+
+        subgraph Grounding["SKU & Pricing Grounding"]
+            SKU["SKU Grounding<br/>(VM/DB/AKS/AppSvc)"]
+            Pricing["Azure Retail Prices API<br/>(live, no auth)"]
+            PricingImport["Pricing Calculator Import<br/>(Playwright)"]
+        end
+
+        subgraph Assets["Azure Assets"]
+            ShapeCatalog["Azure Catalog<br/>(151 shapes · 124 SVG)"]
+            Icons["Azure Public Service Icons"]
+        end
+    end
+
+    Pricing -->|"https://prices.azure.com"| AzureAPI["Azure Retail<br/>Prices API"]
+
+    style UI fill:#E8F4FD,stroke:#0078D4
+    style Server fill:#E8F8E8,stroke:#107C10
+    style Core fill:#FFFFFF,stroke:#5B9BD5
+    style Knowledge fill:#FFFFFF,stroke:#5B9BD5
+    style Validation fill:#FFFFFF,stroke:#5B9BD5
+    style Grounding fill:#FFF8E1,stroke:#FFB900
+    style Assets fill:#FFFFFF,stroke:#5B9BD5
+```
 
 ---
 
@@ -327,7 +397,7 @@ VisioIntegration/
 ├── src/visio_mcp/                     # MCP Server package (~10,300 lines total)
 │   ├── __init__.py                    # Package marker with version
 │   ├── __main__.py                    # Entry point: python -m visio_mcp
-│   ├── server.py                      # FastMCP server — 28 tools, 8 resources, 7 prompts
+│   ├── server.py                      # FastMCP server — 31 tools, 8 resources, 7 prompts
 │   ├── models.py                      # Pydantic data models (DiagramState, resources, etc.)
 │   ├── diagram_state.py               # In-memory diagram state manager (DiagramManager)
 │   ├── azure_catalog.py               # 123 resource shapes, 97 SVG icons, 40+ aliases
@@ -337,6 +407,8 @@ VisioIntegration/
 │   ├── reference_architectures.py     # 16 templates + 206 catalog + 50 patterns + 14 styles
 │   ├── waf_validator.py               # WAF 6-pillar validation engine (smart multi-region detection)
 │   ├── caf_validator.py               # CAF 7-principle validation engine
+│   ├── azure_sku_grounding.py         # Live Azure Retail Prices API + SKU reference data
+│   ├── pricing_import.py              # Pricing Calculator import (Playwright extraction)
 │   └── stencils/                      # Azure icon SVGs (not in git — download separately)
 │
 ├── app/                               # Streamlit interactive UI (~1,870 lines total)
@@ -345,6 +417,7 @@ VisioIntegration/
 │   ├── ai_agent.py                    # AI agent — OpenAI function calling, 3 providers
 │   ├── mcp_client.py                  # Thread-safe MCP client — stdio, background loop
 │   ├── diagram_preview.py             # Browser-side SVG/HTML diagram renderer with page tabs
+│   ├── components/                    # Custom Streamlit components (paste-image)
 │   ├── desktop.py                     # PyWebView desktop wrapper
 │   ├── run.py                         # CLI launcher (visio-app entry point)
 │   └── .env.example                   # Environment variable template
@@ -363,7 +436,8 @@ VisioIntegration/
 │
 ├── tests/                             # Integration test suite
 │   ├── test_reference_arch.py         # Tests all 16 reference architecture templates
-│   └── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
+│   ├── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
+│   └── test_sku_grounding.py          # Azure SKU grounding + Retail Prices API tests
 │
 ├── scripts/                           # Build/maintenance scripts (git-ignored)
 ├── dist/                              # Desktop app build output (git-ignored)

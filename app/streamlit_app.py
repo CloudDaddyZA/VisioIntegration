@@ -11,6 +11,7 @@ Run:  streamlit run app/streamlit_app.py
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
 import sys
@@ -547,7 +548,7 @@ with st.sidebar:
     # ── Import section ────────────────────────────────────────────
     st.subheader("Import")
 
-    import_tab1, import_tab2 = st.tabs(["📄 Visio (.vsdx)", "🖼️ Image"])
+    import_tab1, import_tab2, import_tab3 = st.tabs(["📄 Visio (.vsdx)", "🖼️ Image", "💰 Pricing Calculator"])
 
     with import_tab1:
         uploaded_vsdx = st.file_uploader(
@@ -702,6 +703,63 @@ with st.sidebar:
                     st.rerun()
                 else:
                     st.error(result.get("message", "Image conversion failed"))
+
+    with import_tab3:
+        st.caption(
+            "Paste your [Azure Pricing Calculator](https://azure.microsoft.com/en-us/pricing/calculator/) "
+            "shared estimate link. The tool will fetch the page, extract your services, "
+            "and generate an architecture diagram."
+        )
+        pricing_url = st.text_input(
+            "Estimate URL",
+            placeholder="https://azure.com/e/d39891a84e674732b6794e47c6681ae7",
+            key="pricing_url",
+            help="Click 'Share' in the pricing calculator to get this link.",
+        )
+
+        if st.button("🏗️ Import & Generate Architecture", use_container_width=True, key="btn_import_pricing", disabled=not pricing_url.strip()):
+            if ensure_connection():
+                with st.spinner("Fetching estimate and generating architecture (this may take 15-30s)..."):
+                    result = st.session_state.mcp_client.call_tool(
+                        "import_pricing_estimate",
+                        {"estimate_url": pricing_url.strip()},
+                        timeout=120,
+                    )
+
+                if result.get("status") == "created":
+                    msg_parts = [
+                        f"**Imported pricing estimate** → **{result.get('diagram_name', 'Diagram')}**",
+                        f"- {result['diagram']['resources']} resources in {result['diagram']['boundaries']} groups",
+                        f"- {result['diagram']['connections']} auto-connections",
+                    ]
+                    cost_est = result.get("cost_estimate", {})
+                    if cost_est.get("monthly"):
+                        msg_parts.append(f"- Monthly: {cost_est['monthly']}")
+                    if cost_est.get("annual"):
+                        msg_parts.append(f"- Annual: {cost_est['annual']}")
+                    svc_list = result.get("services", [])
+                    if svc_list:
+                        msg_parts.append("\n**Services:**")
+                        for s in svc_list:
+                            msg_parts.append(f"  - {s['name']} ({s['type']})")
+                    warnings = result.get("warnings")
+                    if warnings:
+                        msg_parts.append(f"\n⚠️ {warnings}")
+                    msg_parts.append("\nYou can now refine the architecture, add resources, validate WAF/CAF, or save.")
+                    pricing_msg = "\n".join(msg_parts)
+                    st.session_state.messages.append({"role": "assistant", "content": pricing_msg})
+                    if "ai_agent" in st.session_state and hasattr(st.session_state.ai_agent, "inject_context"):
+                        st.session_state.ai_agent.inject_context(
+                            "Import services from Azure Pricing Calculator estimate and generate architecture diagram.",
+                            pricing_msg,
+                        )
+                    refresh_diagram_state()
+                    st.rerun()
+                else:
+                    st.error(result.get("message", "Pricing import failed"))
+                    hint = result.get("hint")
+                    if hint:
+                        st.info(hint)
 
     st.divider()
 
@@ -905,12 +963,77 @@ Use **💡 Business → Architecture** in the sidebar to describe a business nee
 GitHub Copilot auth is auto-detected from `gh auth login`.
 """)
 
-    # Chat input
-    if prompt := st.chat_input("Describe your Azure architecture..."):
+    # Screenshot/image paste uploader
+    with st.expander("📋 Paste or attach a screenshot", expanded=False):
+        pasted_files = st.file_uploader(
+            "Drop, browse, or paste (Ctrl+V) an image here",
+            type=["png", "jpg", "jpeg", "gif", "webp", "bmp"],
+            accept_multiple_files=True,
+            key="screenshot_paste",
+        )
+
+    # Chat input with file drag-and-drop support
+    if chat_value := st.chat_input(
+        "Describe your Azure architecture... (or drag files here)",
+        accept_file="multiple",
+        file_type=["png", "jpg", "jpeg", "gif", "webp", "pdf", "txt", "md", "json", "yaml", "yml", "csv"],
+    ):
+        # Handle both plain string and ChatInputValue with files
+        if isinstance(chat_value, str):
+            prompt = chat_value
+            files = []
+        else:
+            prompt = chat_value.text
+            files = chat_value.files
+
+        # Process attached files
+        attachments = []
+        for uf in files:
+            mime = uf.type or ""
+            if mime.startswith("image/"):
+                attachments.append({
+                    "type": "image",
+                    "data": base64.b64encode(uf.getvalue()).decode(),
+                    "media_type": mime,
+                    "name": uf.name,
+                })
+            else:
+                # Text-based document
+                try:
+                    text = uf.getvalue().decode("utf-8")
+                except UnicodeDecodeError:
+                    text = f"[Binary file: {uf.name}, {len(uf.getvalue())} bytes]"
+                attachments.append({
+                    "type": "document",
+                    "text": text,
+                    "name": uf.name,
+                })
+
+        # Include images from the screenshot paste uploader
+        if pasted_files:
+            for uf in pasted_files:
+                mime = uf.type or "image/png"
+                attachments.append({
+                    "type": "image",
+                    "data": base64.b64encode(uf.getvalue()).decode(),
+                    "media_type": mime,
+                    "name": uf.name,
+                })
+
         # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        display_parts = [prompt]
+        if attachments:
+            file_names = [a["name"] for a in attachments]
+            display_parts.append(f"\n📎 *Attached: {', '.join(file_names)}*")
+        display_text = "\n".join(display_parts)
+
+        st.session_state.messages.append({"role": "user", "content": display_text})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(display_text)
+            # Show image thumbnails in chat
+            for att in attachments:
+                if att["type"] == "image":
+                    st.image(base64.b64decode(att["data"]), caption=att["name"], width=300)
 
         # Ensure connected
         if not ensure_connection():
@@ -921,7 +1044,7 @@ GitHub Copilot auth is auto-detected from `gh auth login`.
             with st.spinner("Thinking..."):
                 try:
                     reply, tool_log = run_async(
-                        st.session_state.ai_agent.chat(prompt)
+                        st.session_state.ai_agent.chat(prompt, attachments=attachments or None)
                     )
                     st.session_state.tool_log.extend(tool_log)
 
