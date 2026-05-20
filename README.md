@@ -75,8 +75,14 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 ### VS Code Extension
 
+- **GitHub Copilot Chat Participant (`@azureVisio`)** — Full natural-language architecture workflow directly in Copilot Chat with an agentic tool-calling loop (same experience as the Streamlit app)
+  - `/draw` — Create diagrams from descriptions (e.g., `@azureVisio draw a 3-tier web app`)
+  - `/validate` — Run WAF and CAF validation on the current diagram
+  - `/sku` — Get SKU recommendations and live Azure pricing for resources
+  - `/save` — Save the diagram as Visio (.vsdx) or Draw.io (.drawio)
+  - `/reference` — Load a reference architecture template
 - **Tree views** — Connection status, resource list, validation findings in the sidebar
-- **13 Commands** — Create diagram, add resource, connect resources, validate, save, and more
+- **14 Commands** — Create diagram, add resources/connections/boundaries, auto-layout, validate WAF/CAF, load reference architectures, save, browse shape catalog, start/stop MCP server
 - **Auto-start MCP** — Spawns the Python MCP server on activation with auto-detected `.venv`
 - **Diagram preview** — Webview-based architecture diagram preview panel
 

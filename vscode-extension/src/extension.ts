@@ -4,6 +4,7 @@ import { DiagramPreviewPanel } from "./diagramPreview";
 import { ResourceTreeProvider } from "./views/resourceTree";
 import { ConnectionTreeProvider } from "./views/connectionTree";
 import { ValidationTreeProvider } from "./views/validationTree";
+import { registerChatParticipant } from "./chatParticipant";
 
 let mcpManager: McpServerManager;
 
@@ -331,6 +332,9 @@ export async function activate(context: vscode.ExtensionContext) {
       );
     }
   }
+
+  // ── Copilot Chat Participant ───────────────────────────────────
+  registerChatParticipant(context, mcpManager);
 
   outputChannel.appendLine("Azure Visio AI Assistant activated.");
 }

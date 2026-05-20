@@ -1,13 +1,19 @@
 # vscode-extension/ — VS Code Extension
 
 A VS Code extension that integrates the Azure Visio MCP server directly into the editor,
-providing commands, tree views, and a diagram preview panel.
+providing a **GitHub Copilot Chat participant**, commands, tree views, and a diagram preview panel.
 
 ---
 
 ## Features
 
-- **13 Commands** — Create diagrams, add resources/connections/boundaries, auto-layout, validate WAF/CAF, load reference architectures, save, browse shape catalog, start/stop MCP server
+- **GitHub Copilot Chat Participant (`@azureVisio`)** — Full natural-language architecture workflow directly in Copilot Chat with an agentic tool-calling loop (GPT-4o via VS Code Language Model API)
+  - `/draw` — Create diagrams from descriptions (e.g., `@azureVisio draw a 3-tier web app`)
+  - `/validate` — Run WAF and CAF validation on the current diagram
+  - `/sku` — Get SKU recommendations and live Azure pricing for resources
+  - `/save` — Save the diagram as Visio (.vsdx) or Draw.io (.drawio)
+  - `/reference` — Load a reference architecture template
+- **14 Commands** — Create diagrams, add resources/connections/boundaries, auto-layout, validate WAF/CAF, load reference architectures, save, browse shape catalog, start/stop MCP server
 - **3 Sidebar Tree Views** — Resources, Connections, and Validation findings in the Activity Bar
 - **Diagram Preview** — Webview panel showing the current architecture diagram
 - **Auto-start MCP Server** — Spawns the Python MCP server on activation, auto-detects `.venv` in the workspace or extension parent directory
@@ -43,9 +49,10 @@ vscode-extension/
 ├── tsconfig.json         # TypeScript config
 ├── esbuild.js            # Build script (esbuild bundler)
 ├── src/
-│   ├── extension.ts      # Entry point — command registration, tree view providers
-│   ├── mcpServer.ts      # MCP server lifecycle (spawn, connect, reconnect, Python detection)
-│   ├── diagramPreview.ts # Webview panel for diagram visualization
+│   ├── extension.ts        # Entry point — command registration, tree views, chat participant
+│   ├── chatParticipant.ts  # GitHub Copilot Chat participant (@azureVisio) with agentic loop
+│   ├── mcpServer.ts        # MCP server lifecycle (spawn, connect, reconnect, Python detection)
+│   ├── diagramPreview.ts   # Webview panel for diagram visualization
 │   └── views/
 │       ├── connectionTree.ts   # MCP connection status tree data provider
 │       ├── resourceTree.ts     # Diagram resource list tree data provider
@@ -67,10 +74,19 @@ vscode-extension/
 
 ### Extension Entry (`extension.ts`)
 
-- **13 commands** registered via `vscode.commands.registerCommand`
+- **14 commands** registered via `vscode.commands.registerCommand`
+- **Copilot Chat participant** registered via `vscode.chat.createChatParticipant`
 - **Tool name mapping**: Maps VS Code commands to correct MCP tool names (`create_diagram`, `list_azure_shapes`, `add_azure_resource`, `connect_resources`, `list_reference_archs`)
 - **Response field mapping**: Handles MCP response field names (`name` vs `display_name`, `from`/`to` vs `source_id`/`target_id`, etc.)
 - **Tree views**: `ResourceTreeProvider`, `ConnectionTreeProvider`, `ValidationTreeProvider` with refresh on diagram changes
+
+### Copilot Chat Participant (`chatParticipant.ts`)
+
+- **Agentic loop**: Up to 10 iterations of model → tool execution → result feedback using VS Code Language Model API
+- **Dynamic tool discovery**: Fetches all MCP tools at runtime and passes schemas to the model
+- **Conversation history**: Preserves context across chat turns
+- **Auto-fix properties**: Automatically converts `properties` from object to JSON string if needed
+- **Model selection**: Prefers GPT-4o family via `vscode.lm.selectChatModels`
 
 ---
 

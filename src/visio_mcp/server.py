@@ -165,7 +165,7 @@ def add_azure_resource(
     x: float = 4.0,
     y: float = 4.0,
     group_id: str | None = None,
-    properties: str | None = None,
+    properties: str | dict | None = None,
 ) -> dict[str, Any]:
     """Add an Azure resource shape to the current diagram.
 
@@ -199,7 +199,24 @@ def add_azure_resource(
 
     props = {}
     if properties:
-        props = json.loads(properties)
+        props = json.loads(properties) if isinstance(properties, str) else properties
+
+    # Auto-position within boundary if group_id is specified and using default coords
+    if group_id and group_id in _diagram.state.boundaries and x == 4.0 and y == 4.0:
+        boundary = _diagram.state.boundaries[group_id]
+        # Count existing resources in this boundary
+        siblings = [
+            r for r in _diagram.state.resources.values() if r.group_id == group_id
+        ]
+        padding = 0.5
+        header = 0.4
+        slot = len(siblings)
+        # Arrange in a grid within the boundary (max 3 columns)
+        cols = min(3, max(1, int(boundary.size.width / 2.0)))
+        col = slot % cols
+        row = slot // cols
+        x = boundary.position.x + padding + 1.0 + col * 2.0
+        y = boundary.position.y + padding + header + 1.0 + row * 1.5
 
     resource = _diagram.add_resource(
         resource_type=resource_type,
@@ -242,7 +259,7 @@ def add_boundary(
     width: float = 6.0,
     height: float = 4.0,
     parent_id: str | None = None,
-    properties: str | None = None,
+    properties: str | dict | None = None,
 ) -> dict[str, Any]:
     """Add a visual boundary/container to the diagram (resource group, VNet, subnet, etc.).
 
@@ -271,7 +288,24 @@ def add_boundary(
 
     props = {}
     if properties:
-        props = json.loads(properties)
+        props = json.loads(properties) if isinstance(properties, str) else properties
+
+    # Auto-position nested boundaries within parent if using defaults
+    if parent_id and parent_id in _diagram.state.boundaries and x == 1.0 and y == 1.0:
+        parent = _diagram.state.boundaries[parent_id]
+        # Count existing child boundaries
+        siblings = [
+            b for b in _diagram.state.boundaries.values() if b.parent_id == parent_id
+        ]
+        padding = 0.5
+        header = 0.5
+        slot = len(siblings)
+        # Stack children vertically within parent
+        child_height = min(height, (parent.size.height - header - padding * 2) / max(1, slot + 1))
+        x = parent.position.x + padding
+        y = parent.position.y + header + slot * (child_height + 0.3)
+        width = parent.size.width - padding * 2
+        height = child_height
 
     boundary = _diagram.add_boundary(
         boundary_type=boundary_type,
@@ -661,13 +695,22 @@ def save_diagram(
                 boundary_hints=boundary_hints,
             )
         else:
-            # Only auto-layout if resources haven't been positioned yet
-            has_positioned = any(
-                r.position.x > 0.1 or r.position.y > 0.1
+            # Auto-layout if resources are unpositioned or clustered at same spot
+            positions = [
+                (r.position.x, r.position.y)
                 for r in _diagram.state.resources.values()
+            ]
+            unique_positions = set(positions)
+            needs_layout = (
+                len(positions) == 0
+                or all(x <= 0.1 and y <= 0.1 for x, y in positions)
+                or (len(positions) > 1 and len(unique_positions) == 1)
             )
-            if not has_positioned:
+            if needs_layout:
                 _layout.auto_layout(_diagram.state, strategy=layout_strategy)
+            else:
+                # Even if positioned, still fit boundaries to enclose their resources
+                _layout._fit_boundaries(_diagram.state)
 
     if fmt == "drawio":
         engine = DrawioEngine()

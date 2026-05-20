@@ -17,8 +17,8 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 | **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
 | **Architecture Catalog** | 206 | Reference architectures from Azure Architecture Center |
 | **Design Patterns** | 40 | Cloud design patterns with diagram implications |
-| **Architecture Styles** | 6 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute |
-| **Reference Architectures** | 12 | Hand-tuned templates with position hints and workflow steps |
+| **Architecture Styles** | 14 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute, Dataflow, AI/ML Pipeline, RAG, Streaming, + more |
+| **Reference Architectures** | 16 | Hand-tuned templates with position hints and workflow steps |
 | **Output Formats** | 2 | Visio `.vsdx` (COM / python-vsdx) and draw.io `.drawio` (mxGraph XML) |
 
 ---

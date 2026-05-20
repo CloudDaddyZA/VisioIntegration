@@ -30,6 +30,37 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "azure-visio-assistant.azureVisio",
+        "fullName": "Azure Visio AI Assistant",
+        "name": "azureVisio",
+        "description": "Create, validate, and export Azure architecture diagrams using natural language. Supports WAF/CAF validation, SKU recommendations, and Visio/Draw.io export.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "draw",
+            "description": "Draw an Azure architecture diagram from a description"
+          },
+          {
+            "name": "validate",
+            "description": "Run WAF and CAF validation on the current diagram"
+          },
+          {
+            "name": "sku",
+            "description": "Get SKU recommendations and live pricing for resources"
+          },
+          {
+            "name": "save",
+            "description": "Save the current diagram as Visio (.vsdx) or Draw.io (.drawio)"
+          },
+          {
+            "name": "reference",
+            "description": "Load a reference architecture template"
+          }
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "azureVisio.newDiagram",
