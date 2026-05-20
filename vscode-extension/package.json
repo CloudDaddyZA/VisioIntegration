@@ -37,6 +37,7 @@
         "name": "azureVisio",
         "description": "Create, validate, and export Azure architecture diagrams using natural language. Supports WAF/CAF validation, SKU recommendations, and Visio/Draw.io export.",
         "isSticky": true,
+        "icon": "media/icon.png",
         "commands": [
           {
             "name": "draw",
