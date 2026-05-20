@@ -35,7 +35,12 @@ a = Analysis(
         (str(APP / "ai_agent.py"), "app"),
         (str(APP / "mcp_client.py"), "app"),
         (str(APP / "diagram_preview.py"), "app"),
+        (str(APP / "run.py"), "app"),
         (str(APP / "__init__.py"), "app"),
+        # App components (paste image, etc.)
+        (str(APP / "components"), "app/components"),
+        # App assets (logo, etc.)
+        (str(APP / "assets"), "app/assets"),
         # MCP server package
         (str(SRC / "visio_mcp"), "visio_mcp"),
         # Stencil SVG icons (if present)
@@ -61,6 +66,8 @@ a = Analysis(
         "visio_mcp.reference_architectures",
         "visio_mcp.visio_engine",
         "visio_mcp.waf_validator",
+        "visio_mcp.azure_sku_grounding",
+        "visio_mcp.pricing_import",
         # pywebview backend
         "webview",
         # pywin32 (Visio COM)
@@ -90,7 +97,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="AzureVisioAssistant",
-    icon=None,  # TODO: add an .ico file here
+    icon=None,  # Use .ico version of logo if available
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
