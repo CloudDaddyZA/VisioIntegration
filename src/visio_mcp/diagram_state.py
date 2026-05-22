@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 
 from .models import (
@@ -12,6 +13,14 @@ from .models import (
     Position,
     Size,
 )
+
+
+def _slugify(name: str) -> str:
+    """Convert a display name to a short, readable ID slug."""
+    # Lowercase, replace non-alphanumeric with hyphens, collapse multiples
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    # Truncate to reasonable length
+    return slug[:40]
 
 
 class DiagramManager:
@@ -45,7 +54,17 @@ class DiagramManager:
         properties: dict | None = None,
     ) -> DiagramResource:
         """Add an Azure resource to the diagram. Auto-generates ID if not provided."""
-        rid = resource_id or f"res-{uuid.uuid4().hex[:8]}"
+        if resource_id:
+            rid = resource_id
+        else:
+            # Generate a human-readable ID from the display name
+            slug = _slugify(display_name)
+            rid = slug
+            # Append numeric suffix if slug already exists
+            counter = 2
+            while rid in self._state.resources:
+                rid = f"{slug}-{counter}"
+                counter += 1
         resource = DiagramResource(
             id=rid,
             resource_type=resource_type,
@@ -98,7 +117,14 @@ class DiagramManager:
         if target_id not in self._state.resources:
             raise ValueError(f"Target resource '{target_id}' not found")
 
-        cid = connection_id or f"conn-{uuid.uuid4().hex[:8]}"
+        cid = connection_id or f"{source_id}--to--{target_id}"
+        # Ensure uniqueness if same pair connected multiple times
+        if cid in self._state.connections:
+            counter = 2
+            base = cid
+            while cid in self._state.connections:
+                cid = f"{base}-{counter}"
+                counter += 1
         conn = Connection(
             id=cid,
             source_id=source_id,
@@ -133,7 +159,15 @@ class DiagramManager:
         properties: dict | None = None,
     ) -> BoundaryGroup:
         """Add a boundary/container (VNet, subnet, resource group, etc.). Auto-generates ID if not provided."""
-        bid = boundary_id or f"bnd-{uuid.uuid4().hex[:8]}"
+        if boundary_id:
+            bid = boundary_id
+        else:
+            slug = _slugify(display_name)
+            bid = slug
+            counter = 2
+            while bid in self._state.boundaries:
+                bid = f"{slug}-{counter}"
+                counter += 1
         boundary = BoundaryGroup(
             id=bid,
             boundary_type=boundary_type,
