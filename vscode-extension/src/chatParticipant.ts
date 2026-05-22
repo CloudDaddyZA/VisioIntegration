@@ -51,6 +51,7 @@ Guidelines:
 15. When connecting resources, use the exact IDs from get_diagram_state (format: "resource_X" or similar). Do NOT fabricate IDs. IDs are auto-generated UUIDs — you CANNOT predict them.
 16. When implementing multiple improvements, you MUST follow this exact sequence: (a) add ALL new resources and boundaries first, (b) call get_diagram_state ONCE to retrieve the actual auto-generated IDs, (c) ONLY THEN make connect_resources and assign_resource_to_boundary calls using those real IDs. NEVER attempt connections or assignments before calling get_diagram_state to retrieve new IDs.
 17. Each add_azure_resource call returns the new resource's ID in its response. Track these IDs as you add resources — you can use them immediately for connections without needing get_diagram_state if you parse the response correctly.
+18. NEVER call save_diagram unless the user EXPLICITLY asks to save, export, or download the diagram. All operations (add resources, connect, validate, layout) work in-memory. When you finish building or modifying a diagram, summarize what was done and tell the user they can say "save" or "export" when ready. Do NOT auto-save.
 
 IMPORTANT: You must call the tools to perform actions. Do NOT just describe what you would do — actually call the tools.`;
 
