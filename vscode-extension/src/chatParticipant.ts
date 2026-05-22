@@ -243,6 +243,39 @@ export function registerChatParticipant(
         ) {
           call.arguments.properties = JSON.stringify(call.arguments.properties);
         }
+
+        // Intercept save_diagram: prompt user for save location
+        if (call.name === "save_diagram") {
+          const format =
+            (call.arguments.format as string) || "vsdx";
+          const ext = format === "drawio" ? "drawio" : "vsdx";
+          const defaultName =
+            (call.arguments.output_path as string) ||
+            `diagram.${ext}`;
+          // Extract just the filename from any path
+          const baseName = defaultName.replace(/^.*[\\/]/, "");
+          const filters =
+            ext === "drawio"
+              ? { "Draw.io Diagram": ["drawio"] }
+              : { "Visio Diagram": ["vsdx"] };
+
+          const uri = await vscode.window.showSaveDialog({
+            filters,
+            defaultUri: vscode.Uri.file(baseName),
+            title: "Save Azure Architecture Diagram",
+          });
+
+          if (!uri) {
+            resultParts.push(
+              `Tool \`save_diagram\` result: User cancelled the save dialog.`
+            );
+            continue;
+          }
+          // Override the output_path with user's chosen location
+          call.arguments.output_path = uri.fsPath;
+          call.arguments.format = ext;
+        }
+
         try {
           const result = await mcpManager.callTool(call.name, call.arguments);
           const resultStr =
