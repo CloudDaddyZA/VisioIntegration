@@ -46,6 +46,10 @@ Guidelines:
 10. Proactively suggest missing resources (WAF, Key Vault, monitoring) and redundancy improvements.
 11. Use get_sku_recommendations, query_azure_pricing, and compare_azure_skus for sizing guidance.
 12. After validation, summarize scores and top recommendations.
+13. ALWAYS call get_diagram_state BEFORE modifying existing diagrams to get correct resource/boundary IDs. NEVER assume or guess IDs — they are auto-generated UUIDs.
+14. ALWAYS call list_azure_shapes to verify a resource_type exists BEFORE using it in add_azure_resource. Common types: virtual_machine, app_service, function_app, sql_database, kubernetes_service, key_vault, storage_account, virtual_network, application_gateway, front_door, azure_firewall, container_apps, cosmos_db, openai_service (NOT azure_openai), ai_search (NOT cognitive_search), log_analytics, application_insights, container_registry, redis_cache, cdn_profile, devops (NOT azure_devops), policy (NOT azure_policy), sentinel (NOT azure_sentinel), defender_for_cloud, ddos_protection, managed_identity, entra_id, private_endpoint, route_table, service_bus, event_hub, bastion, load_balancer.
+15. When connecting resources, use the exact IDs from get_diagram_state (format: "resource_X" or similar). Do NOT fabricate IDs.
+16. When implementing multiple improvements, batch them: first add ALL resources, then call get_diagram_state to get the new IDs, then connect/assign using those IDs.
 
 IMPORTANT: You must call the tools to perform actions. Do NOT just describe what you would do — actually call the tools.`;
 
@@ -159,15 +163,33 @@ export function registerChatParticipant(
     // Add current user request
     messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
-    // Select a model (prefer GPT-4o family)
-    const models = await vscode.lm.selectChatModels({
+    // Select a model (prefer GPT-4o family, fall back to any Copilot model)
+    let models = await vscode.lm.selectChatModels({
       vendor: "copilot",
       family: "gpt-4o",
     });
 
     if (models.length === 0) {
+      // Fallback: try any GPT-4 family
+      models = await vscode.lm.selectChatModels({
+        vendor: "copilot",
+        family: "gpt-4",
+      });
+    }
+
+    if (models.length === 0) {
+      // Fallback: try any available Copilot model
+      models = await vscode.lm.selectChatModels({ vendor: "copilot" });
+    }
+
+    if (models.length === 0) {
+      // Last resort: try any model at all
+      models = await vscode.lm.selectChatModels();
+    }
+
+    if (models.length === 0) {
       stream.markdown(
-        "**Error**: No language model available. Ensure GitHub Copilot Chat is active."
+        "**Error**: No language model available. Ensure GitHub Copilot Chat is active and you are signed in."
       );
       return {};
     }
