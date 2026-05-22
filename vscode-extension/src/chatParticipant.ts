@@ -48,8 +48,9 @@ Guidelines:
 12. After validation, summarize scores and top recommendations.
 13. ALWAYS call get_diagram_state BEFORE modifying existing diagrams to get correct resource/boundary IDs. NEVER assume or guess IDs — they are auto-generated UUIDs.
 14. ALWAYS call list_azure_shapes to verify a resource_type exists BEFORE using it in add_azure_resource. Common types: virtual_machine, app_service, function_app, sql_database, kubernetes_service, key_vault, storage_account, virtual_network, application_gateway, front_door, azure_firewall, container_apps, cosmos_db, openai_service (NOT azure_openai), ai_search (NOT cognitive_search), log_analytics, application_insights, container_registry, redis_cache, cdn_profile, devops (NOT azure_devops), policy (NOT azure_policy), sentinel (NOT azure_sentinel), defender_for_cloud, ddos_protection, managed_identity, entra_id, private_endpoint, route_table, service_bus, event_hub, bastion, load_balancer.
-15. When connecting resources, use the exact IDs from get_diagram_state (format: "resource_X" or similar). Do NOT fabricate IDs.
-16. When implementing multiple improvements, batch them: first add ALL resources, then call get_diagram_state to get the new IDs, then connect/assign using those IDs.
+15. When connecting resources, use the exact IDs from get_diagram_state (format: "resource_X" or similar). Do NOT fabricate IDs. IDs are auto-generated UUIDs — you CANNOT predict them.
+16. When implementing multiple improvements, you MUST follow this exact sequence: (a) add ALL new resources and boundaries first, (b) call get_diagram_state ONCE to retrieve the actual auto-generated IDs, (c) ONLY THEN make connect_resources and assign_resource_to_boundary calls using those real IDs. NEVER attempt connections or assignments before calling get_diagram_state to retrieve new IDs.
+17. Each add_azure_resource call returns the new resource's ID in its response. Track these IDs as you add resources — you can use them immediately for connections without needing get_diagram_state if you parse the response correctly.
 
 IMPORTANT: You must call the tools to perform actions. Do NOT just describe what you would do — actually call the tools.`;
 
