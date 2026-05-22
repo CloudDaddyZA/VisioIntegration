@@ -186,7 +186,64 @@
           "description": "Automatically start the MCP server when the extension activates."
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "azureVisio.welcome",
+        "title": "Get Started with Azure Visio AI Assistant",
+        "description": "Create production-quality Azure architecture diagrams with natural language, validate against WAF & CAF, and export to Visio or Draw.io.",
+        "steps": [
+          {
+            "id": "azureVisio.welcome.chat",
+            "title": "Chat with @azureVisio",
+            "description": "Open Copilot Chat and type ``@azureVisio`` followed by a description of the architecture you want.\n\nFor example:\n- ``@azureVisio draw a 3-tier web app``\n- ``@azureVisio draw ai landing zone``\n- ``@azureVisio draw microservices with event-driven architecture``\n\n[Open Copilot Chat](command:workbench.action.chat.open)",
+            "media": {
+              "markdown": "media/walkthrough/chat.md"
+            }
+          },
+          {
+            "id": "azureVisio.welcome.reference",
+            "title": "Load a Reference Architecture",
+            "description": "Start from one of 16 proven Microsoft reference architecture templates.\n\n[Load Reference Architecture](command:azureVisio.loadReferenceArch)",
+            "media": {
+              "markdown": "media/walkthrough/reference.md"
+            }
+          },
+          {
+            "id": "azureVisio.welcome.validate",
+            "title": "Validate with WAF & CAF",
+            "description": "Score your diagram against the Well-Architected Framework (5 pillars) and Cloud Adoption Framework (naming, organization, governance).\n\n[Run WAF Validation](command:azureVisio.validateWAF)\n[Run CAF Validation](command:azureVisio.validateCAF)",
+            "media": {
+              "markdown": "media/walkthrough/validate.md"
+            }
+          },
+          {
+            "id": "azureVisio.welcome.improve",
+            "title": "Implement Improvements",
+            "description": "Ask ``@azureVisio implement all improvements`` to automatically fix WAF/CAF findings — add private endpoints, multi-region failover, route tables, DDoS protection, and more.\n\n[Open Copilot Chat](command:workbench.action.chat.open)",
+            "media": {
+              "markdown": "media/walkthrough/improve.md"
+            }
+          },
+          {
+            "id": "azureVisio.welcome.save",
+            "title": "Save Your Diagram",
+            "description": "When you're happy with the architecture, tell ``@azureVisio save`` or use the command palette. You'll be prompted to choose the save location and format (.vsdx or .drawio).\n\n[Save Diagram](command:azureVisio.saveDiagram)",
+            "media": {
+              "markdown": "media/walkthrough/save.md"
+            }
+          },
+          {
+            "id": "azureVisio.welcome.pricing",
+            "title": "Get SKU & Pricing Guidance",
+            "description": "Ask ``@azureVisio get sku recommendations for my diagram`` to get live Azure pricing and tier guidance for each resource.\n\n[Open Copilot Chat](command:workbench.action.chat.open)",
+            "media": {
+              "markdown": "media/walkthrough/pricing.md"
+            }
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
