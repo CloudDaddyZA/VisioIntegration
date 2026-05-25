@@ -5482,22 +5482,22 @@ AI_LANDING_ZONE = ReferenceArchitecture(
         # External
         "user1": (1.5, 8), "onprem1": (1.5, 14),
         # Hub
-        "fw-hub": (6, 14), "vpngw1": (6, 16),
+        "fw-hub": (5, 14), "vpngw1": (5, 16),
         # Platform management
         "log-plat": (20, 3), "policy1": (23, 3), "defender1": (20, 5), "sentinel1": (23, 5),
         # AI Spoke — Ingress
-        "agw1": (8, 8), "ddos1": (8, 5.5),
+        "agw1": (9.5, 10), "ddos1": (8.5, 8.5),
         # AI Spoke — Compute
-        "ca1": (12, 8), "app1": (12, 10.5),
+        "ca1": (12.5, 9), "app1": (12.5, 11),
         # Private endpoints
-        "pe-oai": (16, 7), "pe-search": (16, 9), "pe-cosmos": (16, 11), "pe-stor": (16, 13),
+        "pe-oai": (15.5, 9), "pe-search": (15.5, 10.5), "pe-cosmos": (15.5, 12), "pe-stor": (15.5, 13.5),
         # AI services
-        "oai1": (20, 8), "search1": (20, 10.5), "cog1": (23, 8), "mlw1": (23, 10.5), "cr1": (23, 13),
+        "oai1": (20, 8.5), "search1": (20, 10.5), "cog1": (23, 8.5), "mlw1": (23, 10.5), "cr1": (23, 13),
         # Data
-        "cosmos1": (20, 15), "stor1": (23, 15), "redis1": (20, 17),
+        "cosmos1": (20, 15.5), "stor1": (23, 15.5), "redis1": (20, 17.5),
         # Shared
-        "kv1": (8, 19), "mid1": (11, 19), "entra1": (14, 19),
-        "log1": (17, 19), "appi1": (20, 19), "mon1": (23, 19),
+        "kv1": (8, 19.5), "mid1": (11, 19.5), "entra1": (14, 19.5),
+        "log1": (17, 19.5), "appi1": (20, 19.5), "mon1": (23, 19.5),
     },
     boundary_hints={
         "mg-root": (1, 0.5, 26, 21),
@@ -5506,18 +5506,18 @@ AI_LANDING_ZONE = ReferenceArchitecture(
         "sub-management": (18, 1, 8, 6),
         "mg-landing": (6, 6, 20, 15),
         "mg-corp": (6.5, 6.5, 19, 14),
-        "sub-ai": (7, 7, 18, 13),
+        "sub-ai": (7, 7, 18, 13.5),
         "rg-network": (7.5, 7.5, 10, 8),
-        "rg-ai": (18, 7, 8, 8),
-        "rg-data": (18, 14, 8, 4.5),
-        "rg-shared": (7, 18, 18, 2.5),
-        "vnet-ai": (8, 7.5, 9, 7.5),
-        "snet-agw": (8.5, 8, 2.5, 4),
-        "snet-compute": (11, 7.5, 3, 4.5),
-        "snet-pe": (14.5, 6.5, 3, 8),
-        "snet-foundry": (14.5, 6.5, 3, 3),
-        "vnet-hub": (2, 12.5, 5.5, 5),
-        "snet-fw": (2.5, 13, 5, 2.5),
+        "rg-ai": (18, 7.5, 8, 7.5),
+        "rg-data": (18, 14.5, 8, 4.5),
+        "rg-shared": (7, 18.5, 18, 2.5),
+        "vnet-ai": (8, 8, 9, 7),
+        "snet-agw": (8.5, 8.5, 2.5, 3.5),
+        "snet-compute": (11.5, 8.5, 2.5, 3.5),
+        "snet-pe": (14.5, 8.5, 2.5, 6),
+        "snet-foundry": (11.5, 12.5, 2.5, 2.5),
+        "vnet-hub": (2.5, 12.5, 5, 5),
+        "snet-fw": (3, 13, 4.5, 2.5),
     },
 )
 

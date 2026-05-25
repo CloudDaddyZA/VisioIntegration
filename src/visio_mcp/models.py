@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 class AzureServiceCategory(str, Enum):
@@ -48,6 +47,13 @@ class CafPrinciple(str, Enum):
     MANAGEMENT = "Management and Monitoring"
 
 
+class Severity(str, Enum):
+    """Validation finding severity level."""
+    CRITICAL = "critical"
+    WARNING = "warning"
+    INFO = "info"
+
+
 class Position(BaseModel):
     x: float = Field(description="X coordinate in inches from left")
     y: float = Field(description="Y coordinate in inches from top")
@@ -66,7 +72,7 @@ class DiagramResource(BaseModel):
     position: Position = Field(default_factory=lambda: Position(x=4.0, y=4.0))
     size: Size = Field(default_factory=Size)
     properties: dict = Field(default_factory=dict, description="Additional properties (SKU, tier, region, etc.)")
-    group_id: Optional[str] = Field(default=None, description="ID of the boundary group this belongs to")
+    group_id: str | None = Field(default=None, description="ID of the boundary group this belongs to")
 
 
 class Connection(BaseModel):
@@ -86,7 +92,7 @@ class BoundaryGroup(BaseModel):
     display_name: str = Field(description="Display label")
     position: Position = Field(default_factory=lambda: Position(x=1.0, y=1.0))
     size: Size = Field(default_factory=lambda: Size(width=6.0, height=4.0))
-    parent_id: Optional[str] = Field(default=None, description="ID of parent boundary for nesting")
+    parent_id: str | None = Field(default=None, description="ID of parent boundary for nesting")
     properties: dict = Field(default_factory=dict)
 
 
@@ -100,21 +106,21 @@ class DiagramState(BaseModel):
     page_width: float = Field(default=22.0, description="Page width in inches")
     page_height: float = Field(default=17.0, description="Page height in inches")
     # Layout hints from reference architectures (preserved for re-layout)
-    _layout_hints: dict[str, tuple[float, float]] = {}
-    _boundary_hints: dict[str, tuple[float, float, float, float]] = {}
+    _layout_hints: dict[str, tuple[float, float]] = PrivateAttr(default_factory=dict)
+    _boundary_hints: dict[str, tuple[float, float, float, float]] = PrivateAttr(default_factory=dict)
 
     model_config = {"arbitrary_types_allowed": True}
 
 
 class ValidationFinding(BaseModel):
     """A single WAF or CAF validation finding."""
-    severity: str = Field(description="critical, warning, or info")
+    severity: Severity = Field(description="critical, warning, or info")
     pillar: str = Field(description="WAF pillar or CAF principle")
     message: str = Field(description="Description of the finding")
     recommendation: str = Field(description="Recommended action")
     affected_resources: list[str] = Field(default_factory=list)
-    page: Optional[int] = Field(default=None, description="Page number the finding relates to (for multi-page imports)")
-    page_name: Optional[str] = Field(default=None, description="Page name the finding relates to")
+    page: int | None = Field(default=None, description="Page number the finding relates to (for multi-page imports)")
+    page_name: str | None = Field(default=None, description="Page name the finding relates to")
 
 
 class ValidationReport(BaseModel):

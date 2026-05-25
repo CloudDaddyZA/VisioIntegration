@@ -1,4 +1,4 @@
-# tests/ — Test Suite
+# tests/ — Test Suite (38 tests)
 
 Integration and unit tests for the Visio Azure MCP server.
 
@@ -8,7 +8,7 @@ Integration and unit tests for the Visio Azure MCP server.
 
 ### `test_reference_arch.py`
 
-Tests the 12 built-in reference architecture templates:
+Tests the 16 built-in reference architecture templates:
 
 - Validates that `apply_reference_architecture` produces the expected resource count,
   boundary count, and connection count for each template
@@ -19,12 +19,50 @@ Tests the 12 built-in reference architecture templates:
 
 ### `test_ai_landing_zone.py`
 
-Focused tests for the `ai_landing_zone` reference architecture:
+End-to-end integration script for the `ai_landing_zone` reference architecture:
 
 - Verifies AI-specific resources: Azure OpenAI, AI Search, Cognitive Services
 - Validates hub-spoke network topology with correct boundary hierarchy
 - Checks security components: Key Vault, managed identity, private endpoints
 - Validates WAF and CAF scores are above threshold after template application
+
+### `test_layout_engine.py`
+
+Tests the layout engine strategies and positioning:
+
+- **Grid layout** — verifies resources get non-overlapping positions
+- **Tiered layout** — validates tier separation (ingress/compute/data/security)
+- **Hint-based layout** — checks that resource and boundary hints are applied exactly
+- **Unhinted resource placement** — ensures dynamically added resources get valid positions
+- **Boundary fitting** — validates boundaries correctly enclose their children
+
+### `test_drawio_engine.py`
+
+Tests the Draw.io XML rendering engine:
+
+- **XML structure** — validates root element, diagram, mxGraphModel hierarchy
+- **Resources rendered** — checks mxCell elements with proper styles for Azure icons
+- **Connections rendered** — validates edge cells with source/target references
+- **Boundaries rendered** — confirms container cells with correct parent nesting
+- **Empty diagram** — ensures graceful handling of empty state
+- **Labels** — verifies resource display names appear in output
+
+### `test_waf_validator.py`
+
+Tests the Well-Architected Framework validator:
+
+- **Reliability** — load balancer detection for multi-compute scenarios
+- **Security** — private endpoint requirements for databases
+- **Scoring** — validates score deductions for findings
+- **Finding model** — severity enum parsing and validation
+
+### `test_caf_validator.py`
+
+Tests the Cloud Adoption Framework validator:
+
+- **Naming prefixes** — validates CAF prefix detection (vm-, vnet-, rg-, kv-)
+- **Resource organization** — boundary grouping requirements
+- **Scoring** — validates well-named resources score higher
 
 ### `test_sku_grounding.py`
 

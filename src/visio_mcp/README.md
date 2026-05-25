@@ -9,15 +9,15 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 | Type | Count | Description |
 |------|------:|-------------|
-| **Tools** | 31 | Diagram CRUD, layout, validation, reference architectures, rendering, import, SKU pricing |
+| **Tools** | 32 | Diagram CRUD, layout, validation, reference architectures, rendering, import, SKU pricing |
 | **Resources** | 8 | Diagram state, catalog browsing, shape listings |
 | **Prompts** | 7 | Architecture creation, validation, import, style guidance, business requirements, getting started |
 | **Azure Shapes** | 151 | Full catalog in `AZURE_SHAPE_CATALOG` with stencil + SVG mappings |
-| **SVG Icons** | 97+ | Azure Public Service, Entra (7), and Fabric (28) icon sets |
-| **Resource Aliases** | 40+ | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
+| **SVG Icons** | 126 | Azure Public Service, Entra, and Fabric icon sets |
+| **Resource Aliases** | 275 | Common abbreviations (`aks` → `kubernetes_service`, `apim` → `api_management`) |
 | **Architecture Catalog** | 206 | Reference architectures from Azure Architecture Center |
-| **Design Patterns** | 40 | Cloud design patterns with diagram implications |
-| **Architecture Styles** | 14 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute, Dataflow, AI/ML Pipeline, RAG, Streaming, + more |
+| **Design Patterns** | 50 | Cloud design patterns with diagram implications |
+| **Architecture Styles** | 39 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute, Dataflow, AI/ML Pipeline, RAG, Streaming, + more |
 | **Reference Architectures** | 16 | Hand-tuned templates with position hints and workflow steps |
 | **Output Formats** | 2 | Visio `.vsdx` (COM / python-vsdx) and draw.io `.drawio` (mxGraph XML) |
 
@@ -25,20 +25,35 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 
 ## Module Reference
 
-### `server.py` (~2,960 lines)
+### `server.py` (slim entry point)
 
-FastMCP server entry point. Registers all 31 tools, 8 resources, and 7 prompts.
+FastMCP server entry point. Imports the shared MCP instance from `_state.py` and
+registers all tools by importing the `tools/` package. Re-exports tool functions
+for backward compatibility with existing tests and scripts.
 
-Key responsibilities:
-- Tool registration with parameter schemas and docstrings
-- Request routing to `DiagramManager`, `VisioEngine`, `DrawioEngine`, `WafValidator`, `CafValidator`
-- Alias resolution via `resolve_alias()` before resource type lookups
-- Category-aware shape metadata injection on add_resource
-- Architecture catalog search and browsing endpoints
-- Image import with OpenAI vision API integration
-- Business-to-architecture prompt with 7-step structured workflow
-- Pricing Calculator import via Playwright extraction
-- Live Azure SKU pricing queries (Retail Prices API integration)
+### `_state.py` (shared state)
+
+Shared singleton state used by all tool submodules:
+- FastMCP server instance (`mcp`)
+- `DiagramManager` singleton
+- `LayoutEngine`, `WafValidator`, `CafValidator` singletons
+- Avoids circular imports between tool modules
+
+### `tools/` (8 submodules)
+
+Modular tool registration — each submodule imports from `_state` and registers
+tools using the `@mcp.tool()` decorator:
+
+| Module | Tools | Purpose |
+|--------|------:|--------- |
+| `diagram_tools.py` | 10 | Create/add/remove resources, boundaries, connections; auto-layout; get state |
+| `validation_tools.py` | 4 | WAF/CAF validation, improvements, tips |
+| `save_tools.py` | 1 | Render to .vsdx or .drawio with auto-fallback |
+| `catalog_tools.py` | 5 | Shape catalog browsing + architecture style/pattern queries |
+| `reference_tools.py` | 3 | Reference architecture list/apply/details |
+| `import_tools.py` | 3 | Import from .vsdx, image, or pricing calculator |
+| `pricing_tools.py` | 3 | Azure SKU pricing queries + recommendations |
+| `prompts.py` | 7 prompts | Structured prompt templates for guided workflows |
 
 ### `models.py` (~109 lines)
 
@@ -73,27 +88,32 @@ Comprehensive Azure resource catalog:
 - **`resolve_svg_path()`** — Resolves resource type → SVG file path (checks filesystem existence)
 - **`get_icons_root()`** — Returns the path to the Azure Public Service Icons directory
 
-### `layout_engine.py` (355 lines)
+### `layout_engine.py` (~520 lines)
 
-Automatic diagram layout:
-- `LayoutEngine.layout()` — Main entry point, applies tiered, grid, or grouped layout
+Automatic diagram layout with containment validation:
+- `LayoutEngine.auto_layout()` — Main entry point, applies tiered, grid, grouped, or hint-based layout
 - **Tiered strategy** — arranges resources in horizontal tiers (ingress/compute/data/security)
 - **Grouped strategy** — positions boundaries in grid layout (max 3 columns), resources within
 - **Hybrid tiered-grouped** — auto-detects >50% grouped resources, positions groups by tier average
+- **Hint-based layout** — applies explicit position hints from reference architectures; places unhinted resources inside their assigned boundary
+- **Containment validation** (`_ensure_containment`) — 3-phase post-layout pass:
+  1. Clamps resource positions inside their boundary (never negative relative coords)
+  2. Expands boundaries to contain all children (bottom-up)
+  3. Expands parent boundaries to contain child boundaries
 - Boundary-aware positioning: groups resources within their parent boundaries
-- Connection-aware: positions connected resources near each other
-- Preserves reference architecture position hints when available
 - Page size auto-calculation with margins
 
-### `drawio_engine.py` (~275 lines)
+### `drawio_engine.py` (~320 lines)
 
 Draw.io (mxGraph XML) rendering engine — **no Visio or Windows required**:
 - **`DrawioEngine.render()`** — Converts `DiagramState` to a `.drawio` file
-- **`DRAWIO_AZURE_STYLES`** (97+ entries) — Maps resource type keys to draw.io style strings using the built-in `img/lib/azure2/` Azure icon library
+- **`DRAWIO_AZURE_STYLES`** (118 entries) — Maps resource type keys to draw.io style strings using the built-in `img/lib/azure2/` Azure icon library
 - Boundaries rendered as styled rounded rectangles with fill/stroke from `BOUNDARY_STYLES`
 - Connectors rendered as orthogonal edges with colors/patterns from `CONNECTOR_STYLES`
 - Labels positioned below icons, matching the Visio rendering layout
 - Nested boundary support via mxGraph's `parent` cell relationships
+- **Center-to-topleft conversion** — converts layout center positions to mxGeometry top-left
+- **Coordinate clamping** — ensures no negative parent-relative positions (safety net)
 - Output readable by draw.io Desktop, VS Code draw.io extension, and diagrams.net
 
 ### `visio_engine.py` (~715 lines)
@@ -163,11 +183,11 @@ Azure Pricing Calculator import:
 ### `reference_architectures.py` (~3,750 lines)
 
 Built-in reference architecture definitions:
-- 5 hand-crafted architecture templates with position hints and workflow steps
+- 16 hand-crafted architecture templates with position hints and workflow steps
 - Microsoft Architecture Center visual standards (`MICROSOFT_STANDARDS` dataclass)
 - `AZURE_DIAGRAM_COLORS` — Color palette constants per published Architecture Center SVGs
 - 206-entry architecture catalog from Azure Architecture Center browse page
-- 40 cloud design patterns and 6 architecture styles with metadata
+- 50 cloud design patterns and 39 architecture styles with metadata
 
 ---
 
@@ -175,7 +195,7 @@ Built-in reference architecture definitions:
 
 The `stencils/` directory contains Azure icon packs (~81 MB, excluded from git):
 
-- **Azure Public Service Icons** — `stencils/Azure_Public_Service_Icons/Icons/` (97+ SVGs across 28 categories)
+- **Azure Public Service Icons** — `stencils/Azure_Public_Service_Icons/Icons/` (126 SVGs across 28 categories)
 - **Entra Icons** — `stencils/Entra_Icons/` (7 SVGs)
 - **Fabric Icons** — `stencils/Fabric_Icons/` (28 SVGs)
 

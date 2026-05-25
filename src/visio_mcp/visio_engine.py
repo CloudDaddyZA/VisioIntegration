@@ -114,16 +114,6 @@ class VisioEngine:
         except Exception:
             pass
 
-        # Kill any orphaned Visio processes that may block COM
-        try:
-            import subprocess
-            subprocess.run(
-                ["taskkill", "/F", "/IM", "VISIO.EXE"],
-                capture_output=True, timeout=10,
-            )
-        except Exception:
-            pass
-
         try:
             self._app = win32com.client.Dispatch("Visio.Application")
             self._app.Visible = False

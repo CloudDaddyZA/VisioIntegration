@@ -2,7 +2,7 @@
   "name": "azure-visio-assistant",
   "displayName": "Azure Visio AI Assistant",
   "description": "AI-powered Azure architecture diagram creation with Visio and draw.io output, WAF/CAF validation, and 200+ reference architectures.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "CloudDaddyZA",
   "license": "MIT",
   "repository": {

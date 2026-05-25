@@ -32,23 +32,25 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 
 - **Hybrid tiered-grouped layout** — auto-detects grouped resources and positions boundaries by tier
 - **Grouped layout wrapping** — boundaries wrap into grid (max 3 columns) instead of one long row
+- **Containment validation** — post-layout pass ensures all resources are inside their boundaries; auto-expands boundaries when needed
+- **Hint-aware placement** — unhinted resources (added after reference architecture) are placed inside their assigned boundary rather than floating
 - **Post-import discovery** — AI asks structured questions to inform boundary restructuring
 
-**Totals**: 14 architecture styles · 50 design patterns · 16 reference architectures · 151 resource types · 124 SVG icons · 31 MCP tools
+**Totals**: 39 architecture styles · 50 design patterns · 16 reference architectures · 151 resource types · 126 SVG icons · 32 MCP tools
 
 ---
 
 ## Features
 
-### MCP Server (31 tools · 8 resources · 7 prompts)
+### MCP Server (32 tools · 8 resources · 7 prompts)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
 | **Diagram CRUD** | `create_diagram`, `add_azure_resource`, `add_boundary`, `connect_resources`, `assign_resource_to_boundary`, `remove_resource`, `remove_boundary` | Build diagrams programmatically with 151 Azure resource types |
-| **Layout** | `auto_layout` | Automatic tiered/grid/grouped layout following Architecture Center conventions |
+| **Layout** | `auto_layout` | Automatic tiered/grid/grouped layout with boundary-aware containment validation |
 | **Reference Architectures** | `apply_reference_architecture`, `list_reference_archs`, `get_reference_arch_details` | 16 built-in templates from Azure Architecture Center with hand-tuned position hints |
 | **Architecture Catalog** | `browse_architecture_catalog`, `search_arch_catalog`, `get_arch_catalog_entry` | Browse/search 206 real architectures from Azure Architecture Center |
-| **Design Knowledge** | `list_design_patterns`, `get_design_pattern`, `list_architecture_styles`, `get_architecture_style` | 50 cloud design patterns + 14 architecture styles with guidance |
+| **Design Knowledge** | `suggest_design_patterns`, `get_design_pattern_detail`, `suggest_architecture_style`, `get_architecture_style_detail` | 50 cloud design patterns + 39 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
 | **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
 | **Import** | `import_vsdx`, `import_image`, `import_pricing_estimate` | Import existing `.vsdx` files, screenshots/photos, or Azure Pricing Calculator URLs |
@@ -318,7 +320,7 @@ Across 17 categories: AI, Analytics, Compute, Containers, Databases, DevOps, Ide
 
 ---
 
-## Azure Resource Catalog (123 shapes · 97 SVG icons · 40+ aliases)
+## Azure Resource Catalog (151 shapes · 126 SVG icons · 275 aliases)
 
 AI agents and users can use common abbreviations — they resolve automatically:
 
@@ -400,18 +402,29 @@ VisioIntegration/
 ├── desktop.spec                       # PyInstaller build spec for desktop app
 ├── .gitignore                         # Excludes .venv, stencils, output, scripts
 │
-├── src/visio_mcp/                     # MCP Server package (~10,300 lines total)
+├── src/visio_mcp/                     # MCP Server package
 │   ├── __init__.py                    # Package marker with version
 │   ├── __main__.py                    # Entry point: python -m visio_mcp
-│   ├── server.py                      # FastMCP server — 31 tools, 8 resources, 7 prompts
+│   ├── _state.py                      # Shared MCP instance + singleton state
+│   ├── server.py                      # FastMCP server entry — imports tool modules
+│   ├── tools/                         # Modular tool registration (8 submodules)
+│   │   ├── __init__.py                # Imports all submodules to register tools
+│   │   ├── diagram_tools.py           # Diagram CRUD (create, add, remove, layout)
+│   │   ├── validation_tools.py        # WAF/CAF validation + architecture improvements
+│   │   ├── save_tools.py              # Render to .vsdx / .drawio with auto-fallback
+│   │   ├── catalog_tools.py           # Shape catalog + architecture design knowledge
+│   │   ├── reference_tools.py         # Reference architecture templates
+│   │   ├── import_tools.py            # Visio/image/pricing import
+│   │   ├── pricing_tools.py           # Azure SKU pricing + recommendations
+│   │   └── prompts.py                 # MCP prompts (7)
 │   ├── models.py                      # Pydantic data models (DiagramState, resources, etc.)
 │   ├── diagram_state.py               # In-memory diagram state manager (DiagramManager)
-│   ├── azure_catalog.py               # 123 resource shapes, 97 SVG icons, 40+ aliases
+│   ├── azure_catalog.py               # 151 resource shapes, 126 SVG icons, 275 aliases
 │   ├── visio_engine.py                # Visio COM rendering engine (SVG import, connectors)
-│   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, Azure icons)
-│   ├── layout_engine.py               # Auto-layout (tiered, grid, grouped strategies)
-│   ├── reference_architectures.py     # 16 templates + 206 catalog + 50 patterns + 14 styles
-│   ├── waf_validator.py               # WAF 6-pillar validation engine (smart multi-region detection)
+│   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, 118 Azure icon styles)
+│   ├── layout_engine.py               # Auto-layout with containment validation
+│   ├── reference_architectures.py     # 16 templates + 206 catalog + 50 patterns + 39 styles
+│   ├── waf_validator.py               # WAF 5-pillar validation engine (smart multi-region detection)
 │   ├── caf_validator.py               # CAF 7-principle validation engine
 │   ├── azure_sku_grounding.py         # Live Azure Retail Prices API + SKU reference data
 │   ├── pricing_import.py              # Pricing Calculator import (Playwright extraction)
@@ -440,10 +453,14 @@ VisioIntegration/
 │   ├── package.json                   # Extension manifest (commands, views, menus)
 │   └── esbuild.js                     # Build config
 │
-├── tests/                             # Integration test suite
+├── tests/                             # Test suite (38 tests)
 │   ├── test_reference_arch.py         # Tests all 16 reference architecture templates
-│   ├── test_ai_landing_zone.py        # End-to-end AI Landing Zone build test
-│   └── test_sku_grounding.py          # Azure SKU grounding + Retail Prices API tests
+│   ├── test_ai_landing_zone.py        # End-to-end AI Landing Zone build script
+│   ├── test_sku_grounding.py          # Azure SKU grounding + Retail Prices API tests
+│   ├── test_layout_engine.py          # Layout strategies + hint-based positioning
+│   ├── test_drawio_engine.py          # Draw.io XML structure + rendering
+│   ├── test_waf_validator.py          # WAF pillar scoring + findings
+│   └── test_caf_validator.py          # CAF naming convention checks
 │
 ├── scripts/                           # Build/maintenance scripts (git-ignored)
 ├── dist/                              # Desktop app build output (git-ignored)

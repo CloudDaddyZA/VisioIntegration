@@ -34,8 +34,8 @@ Desktop.ini
 # Output artifacts (generated diagrams, temp scripts)
 output/
 
-# Scripts (build/test helpers, not core)
-scripts/
+# Scripts (generated build/test helpers — tracked scripts go in tools/)
+scripts/generated/
 
 # Stencil icon packs (large binary assets — download separately)
 src/visio_mcp/stencils/

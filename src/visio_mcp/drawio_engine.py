@@ -321,6 +321,10 @@ class DrawioEngine:
         rel_x = boundary.position.x - off_x
         rel_y = boundary.position.y - off_y
 
+        # Clamp: never allow negative parent-relative positions
+        rel_x = max(0.0, rel_x)
+        rel_y = max(0.0, rel_y)
+
         cell = ET.SubElement(root, "mxCell", id=cell_id, value=boundary.display_name,
                              style=style, vertex="1", parent=parent)
         ET.SubElement(cell, "mxGeometry",
@@ -354,16 +358,31 @@ class DrawioEngine:
         style = DRAWIO_AZURE_STYLES.get(resource.resource_type, _FALLBACK_STYLE)
         is_icon = resource.resource_type in DRAWIO_AZURE_STYLES
 
-        icon_w = _in2px(0.6)
-        icon_h = _in2px(0.6)
+        icon_w_in = 0.6  # icon width in inches
+        icon_h_in = 0.6  # icon height in inches
+        icon_w = _in2px(icon_w_in)
+        icon_h = _in2px(icon_h_in)
+
+        # Convert center-based layout position to top-left for mxGeometry
+        if is_icon:
+            tl_x = rel_x - icon_w_in / 2
+            tl_y = rel_y - icon_h_in / 2
+        else:
+            tl_x = rel_x - resource.size.width / 2
+            tl_y = rel_y - resource.size.height / 2
+
+        # Clamp: never allow negative parent-relative positions
+        # (resource must stay inside its parent boundary)
+        tl_x = max(0.0, tl_x)
+        tl_y = max(0.0, tl_y)
 
         if is_icon:
             # Icon cell (no label — label is separate below)
             cell = ET.SubElement(root, "mxCell", id=cell_id, value="",
                                  style=style, vertex="1", parent=parent)
             ET.SubElement(cell, "mxGeometry",
-                          x=str(_in2px(rel_x)),
-                          y=str(_in2px(rel_y)),
+                          x=str(round(_in2px(tl_x), 1)),
+                          y=str(round(_in2px(tl_y), 1)),
                           width=str(icon_w), height=str(icon_h),
                           **{"as": "geometry"})
 
@@ -377,8 +396,8 @@ class DrawioEngine:
                                        value=resource.display_name,
                                        style=label_style, vertex="1", parent=parent)
             label_w = max(_in2px(1.2), len(resource.display_name) * 6.5)
-            label_x = _in2px(rel_x) + icon_w / 2 - label_w / 2
-            label_y = _in2px(rel_y) + icon_h + 4
+            label_x = _in2px(tl_x) + icon_w / 2 - label_w / 2
+            label_y = _in2px(tl_y) + icon_h + 4
             ET.SubElement(label_cell, "mxGeometry",
                           x=str(round(label_x, 1)),
                           y=str(round(label_y, 1)),
@@ -390,8 +409,8 @@ class DrawioEngine:
                                  value=resource.display_name,
                                  style=style, vertex="1", parent=parent)
             ET.SubElement(cell, "mxGeometry",
-                          x=str(_in2px(rel_x)),
-                          y=str(_in2px(rel_y)),
+                          x=str(round(_in2px(tl_x), 1)),
+                          y=str(round(_in2px(tl_y), 1)),
                           width=str(_in2px(resource.size.width)),
                           height=str(_in2px(resource.size.height)),
                           **{"as": "geometry"})
@@ -479,7 +498,6 @@ class DrawioEngine:
             f"strokeColor={color}",
             f"strokeWidth={weight}",
             "fontSize=10",
-            "exitX=0.5;exitY=1;exitDx=0;exitDy=0",
         ]
 
         # Arrow direction

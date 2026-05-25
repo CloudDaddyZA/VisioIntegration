@@ -89,28 +89,64 @@ class LayoutEngine:
                 state.resources[rid].position = Position(x=rx, y=ry)
                 placed.add(rid)
 
-        # Any resources without hints — auto-layout via tiered strategy
+        # Any resources without hints — place inside their boundary if assigned,
+        # otherwise auto-layout via tiered strategy below the existing content.
         unplaced = [rid for rid in state.resources if rid not in placed]
         if unplaced:
-            # Find a safe starting position (below/right of all placed resources)
-            max_y = 2.0
-            if placed:
-                max_y = max(
-                    state.resources[rid].position.y for rid in placed
-                ) + self.RESOURCE_V_GAP
+            # Separate: resources with group_id in a hinted boundary vs truly unattached
+            grouped_in_hinted: dict[str, list[str]] = defaultdict(list)
+            free_unplaced: list[str] = []
 
-            tiers: dict[int, list[str]] = defaultdict(list)
             for rid in unplaced:
-                tier = self._TIER_MAP.get(state.resources[rid].resource_type, 3)
-                tiers[tier].append(rid)
+                res = state.resources[rid]
+                if res.group_id and res.group_id in boundary_hints:
+                    grouped_in_hinted[res.group_id].append(rid)
+                else:
+                    free_unplaced.append(rid)
 
-            start_x = 2.0
-            for tier_idx in sorted(tiers.keys()):
-                rids = tiers[tier_idx]
-                x = start_x + tier_idx * self.TIER_GAP
-                for i, rid in enumerate(rids):
-                    y = max_y + i * self.RESOURCE_V_GAP
-                    state.resources[rid].position = Position(x=x, y=y)
+            # Place resources inside their hinted boundary (stacked in a grid)
+            for bid, rids in grouped_in_hinted.items():
+                bx, by, bw, bh = boundary_hints[bid]
+                # Find existing resources already inside this boundary
+                existing_in_boundary = [
+                    r for r in state.resources.values()
+                    if r.group_id == bid and r.id in placed
+                ]
+                # Start placing after existing resources
+                occupied_rows = len(existing_in_boundary)
+                inner_cols = max(1, min(3, int(bw / self.RESOURCE_H_GAP)))
+                for idx, rid in enumerate(rids):
+                    effective_idx = occupied_rows + idx
+                    icol = effective_idx % inner_cols
+                    irow = effective_idx // inner_cols
+                    state.resources[rid].position = Position(
+                        x=bx + self.BOUNDARY_PADDING + icol * self.RESOURCE_H_GAP,
+                        y=by + self.BOUNDARY_HEADER + self.BOUNDARY_PADDING + irow * self.RESOURCE_V_GAP,
+                    )
+
+            # Place remaining free resources below the diagram in tiers
+            if free_unplaced:
+                max_y = 2.0
+                if placed:
+                    max_y = max(
+                        state.resources[rid].position.y for rid in placed
+                    ) + self.RESOURCE_V_GAP
+                # Also account for boundary extents
+                for bid, (bx, by, bw, bh) in boundary_hints.items():
+                    max_y = max(max_y, by + bh + self.RESOURCE_V_GAP)
+
+                tiers: dict[int, list[str]] = defaultdict(list)
+                for rid in free_unplaced:
+                    tier = self._TIER_MAP.get(state.resources[rid].resource_type, 3)
+                    tiers[tier].append(rid)
+
+                start_x = 2.0
+                for tier_idx in sorted(tiers.keys()):
+                    rids = tiers[tier_idx]
+                    x = start_x + tier_idx * self.TIER_GAP
+                    for i, rid in enumerate(rids):
+                        y = max_y + i * self.RESOURCE_V_GAP
+                        state.resources[rid].position = Position(x=x, y=y)
 
         # Fit any boundaries without hints to enclose their children (bottom-up)
         unhinted = [bid for bid in state.boundaries if bid not in boundary_hints]
@@ -119,6 +155,133 @@ class LayoutEngine:
         for bid in order:
             if bid in unhinted:
                 self._fit_single_boundary(state, bid)
+
+        # Post-layout validation: ensure all resources are contained within
+        # their assigned boundary. Clamp resource positions that overflow.
+        self._ensure_containment(state, boundary_hints)
+
+    def _ensure_containment(
+        self,
+        state: DiagramState,
+        boundary_hints: dict[str, tuple[float, float, float, float]],
+    ) -> None:
+        """Ensure every resource is inside its assigned boundary.
+
+        For resources that fall outside their boundary (due to hint mismatches
+        or newly added resources), clamp positions inward. Then expand any
+        boundary that still doesn't contain its children (bottom-up).
+        """
+        HALF = 0.3  # half of icon size (0.6" icons)
+
+        # Phase 1: Clamp resources inside their assigned boundaries
+        for res in state.resources.values():
+            if not res.group_id or res.group_id not in state.boundaries:
+                continue
+            bnd = state.boundaries[res.group_id]
+            bx, by = bnd.position.x, bnd.position.y
+            bw, bh = bnd.size.width, bnd.size.height
+
+            # Minimum position: boundary top-left + header + padding + half-icon
+            min_x = bx + self.BOUNDARY_PADDING + HALF
+            min_y = by + self.BOUNDARY_HEADER + self.BOUNDARY_PADDING + HALF
+            # Maximum position: boundary bottom-right - padding - half-icon
+            max_x = bx + bw - self.BOUNDARY_PADDING - HALF
+            max_y = by + bh - self.BOUNDARY_PADDING - HALF
+
+            # Clamp
+            new_x = max(min_x, min(res.position.x, max_x))
+            new_y = max(min_y, min(res.position.y, max_y))
+            if new_x != res.position.x or new_y != res.position.y:
+                res.position = Position(x=new_x, y=new_y)
+
+        # Phase 2: Expand boundaries that still don't contain children (bottom-up)
+        order = self._boundary_nesting_order(state)
+        for bid in order:
+            bnd = state.boundaries.get(bid)
+            if not bnd:
+                continue
+
+            children_res = [r for r in state.resources.values() if r.group_id == bid]
+            child_bounds = [b for b in state.boundaries.values() if b.parent_id == bid]
+
+            if not children_res and not child_bounds:
+                continue
+
+            # Calculate required extents
+            extents: list[tuple[float, float, float, float]] = []
+            for r in children_res:
+                extents.append((
+                    r.position.x - HALF,
+                    r.position.x + HALF,
+                    r.position.y - HALF,
+                    r.position.y + HALF,
+                ))
+            for cb in child_bounds:
+                extents.append((
+                    cb.position.x,
+                    cb.position.x + cb.size.width,
+                    cb.position.y,
+                    cb.position.y + cb.size.height,
+                ))
+
+            req_left = min(e[0] for e in extents) - self.BOUNDARY_PADDING
+            req_right = max(e[1] for e in extents) + self.BOUNDARY_PADDING
+            req_top = min(e[2] for e in extents) - self.BOUNDARY_PADDING - self.BOUNDARY_HEADER
+            req_bottom = max(e[3] for e in extents) + self.BOUNDARY_PADDING
+
+            # Expand boundary if needed (never shrink hinted boundaries)
+            cur_left = bnd.position.x
+            cur_top = bnd.position.y
+            cur_right = cur_left + bnd.size.width
+            cur_bottom = cur_top + bnd.size.height
+
+            new_left = min(cur_left, req_left)
+            new_top = min(cur_top, req_top)
+            new_right = max(cur_right, req_right)
+            new_bottom = max(cur_bottom, req_bottom)
+
+            bnd.position = Position(x=new_left, y=new_top)
+            bnd.size = Size(width=new_right - new_left, height=new_bottom - new_top)
+
+        # Phase 3: Ensure child boundaries are inside their parents
+        for bid in reversed(order):
+            bnd = state.boundaries.get(bid)
+            if not bnd or not bnd.parent_id:
+                continue
+            parent = state.boundaries.get(bnd.parent_id)
+            if not parent:
+                continue
+
+            # Expand parent to contain this child boundary
+            child_right = bnd.position.x + bnd.size.width
+            child_bottom = bnd.position.y + bnd.size.height
+            par_right = parent.position.x + parent.size.width
+            par_bottom = parent.position.y + parent.size.height
+
+            expanded = False
+            new_px = parent.position.x
+            new_py = parent.position.y
+            new_pw = parent.size.width
+            new_ph = parent.size.height
+
+            if bnd.position.x < parent.position.x + self.BOUNDARY_PADDING:
+                new_px = bnd.position.x - self.BOUNDARY_PADDING
+                new_pw = par_right - new_px
+                expanded = True
+            if bnd.position.y < parent.position.y + self.BOUNDARY_HEADER + self.BOUNDARY_PADDING:
+                new_py = bnd.position.y - self.BOUNDARY_HEADER - self.BOUNDARY_PADDING
+                new_ph = par_bottom - new_py
+                expanded = True
+            if child_right > par_right - self.BOUNDARY_PADDING:
+                new_pw = child_right - new_px + self.BOUNDARY_PADDING
+                expanded = True
+            if child_bottom > par_bottom - self.BOUNDARY_PADDING:
+                new_ph = child_bottom - new_py + self.BOUNDARY_PADDING
+                expanded = True
+
+            if expanded:
+                parent.position = Position(x=new_px, y=new_py)
+                parent.size = Size(width=new_pw, height=new_ph)
 
     # ── Tiered layout ─────────────────────────────────────────────
 

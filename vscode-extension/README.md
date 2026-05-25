@@ -34,8 +34,8 @@ providing a **GitHub Copilot Chat participant**, commands, tree views, and a dia
 | `Azure Visio: Auto-Layout Diagram` | Apply automatic layout to the diagram |
 | `Azure Visio: Validate WAF Alignment` | Run Well-Architected Framework validation |
 | `Azure Visio: Validate CAF Naming` | Run Cloud Adoption Framework validation |
-| `Azure Visio: Load Reference Architecture` | Apply one of 12 reference architecture templates |
-| `Azure Visio: Browse Shape Catalog` | Browse the 123 Azure resource shape catalog |
+| `Azure Visio: Load Reference Architecture` | Apply one of 16 reference architecture templates |
+| `Azure Visio: Browse Shape Catalog` | Browse the 151 Azure resource shape catalog |
 | `Azure Visio: Start MCP Server` | Manually start the MCP server |
 | `Azure Visio: Stop MCP Server` | Stop the running MCP server |
 

@@ -32,7 +32,7 @@ and sidebar controls for the Visio Azure MCP server.
                                 │ stdin/stdout JSON-RPC
                     ┌───────────▼──────────┐
                     │ visio_mcp.server     │
-                    │ (MCP Server – 31     │
+                    │ (MCP Server – 32     │
                     │  tools, 8 resources, │
                     │  7 prompts)          │
                     └──────────────────────┘
