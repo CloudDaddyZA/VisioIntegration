@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from .models import AzureServiceCategory, AzureShapeInfo
@@ -2147,25 +2148,88 @@ def list_categories() -> list[str]:
 def resolve_svg_path(key: str, icons_root: str | Path | None = None) -> Path | None:
     """Resolve the full filesystem path to an SVG icon for a resource type.
 
+    Resolution is resilient to differences between Azure icon-pack releases.
+    Microsoft re-numbers the leading digits of icon filenames (e.g.
+    ``10021-icon-service-Virtual-Machine.svg``) and occasionally moves files
+    between category folders with every pack version. To survive a fresh
+    download that does not match the bundled filenames exactly, this falls
+    back to matching the descriptive suffix (the part after the numeric
+    prefix) anywhere under the icons root.
+
     Args:
         key: Resource type key (e.g., 'virtual_machine').
         icons_root: Root directory containing the icon category folders.
-                    Defaults to the bundled stencils directory.
+                    Defaults to the bundled stencils directory (auto-detected).
 
     Returns:
         Absolute path to the SVG file, or None if not found.
     """
-    root = Path(icons_root) if icons_root else _DEFAULT_ICONS_ROOT
-    relative = SVG_ICON_MAP.get(key)
+    root = Path(icons_root) if icons_root else get_icons_root()
+    relative = ALL_ICON_MAPS.get(key)
     if not relative:
         return None
-    full_path = root / relative
-    return full_path if full_path.exists() else None
+
+    # 1) Exact match (fast path — works when the bundled pack version matches).
+    full_path = (root / relative).resolve()
+    if full_path.exists():
+        return full_path
+
+    # 2) Prefix-agnostic fallback. Icon files are named
+    #    "<NNNNN>-icon-service-<Descriptive-Name>.svg". The numeric prefix is
+    #    unstable across pack versions, so match on the descriptive suffix.
+    #    Microsoft also toggles an optional "Azure-" token in the descriptive
+    #    name between releases (e.g. "IoT-Edge" vs "Azure-IoT-Edge"), so try
+    #    candidate suffixes with and without that token.
+    name = Path(relative).name
+    suffix = re.sub(r"^\d+-", "", name)  # strip leading "NNNNN-"
+    if suffix and suffix != name:
+        candidates = [suffix]
+        marker = "icon-service-"
+        if marker in suffix:
+            head, _, desc = suffix.partition(marker)
+            if desc.startswith("Azure-"):
+                candidates.append(f"{head}{marker}{desc[len('Azure-'):]}")
+            else:
+                candidates.append(f"{head}{marker}Azure-{desc}")
+        # Search the expected category folder first, then the whole tree.
+        search_roots = []
+        category_dir = full_path.parent
+        if category_dir.exists():
+            search_roots.append(category_dir)
+        if root.exists():
+            search_roots.append(root)
+        for search_root in search_roots:
+            for cand in candidates:
+                matches = sorted(search_root.glob(f"**/*{cand}"))
+                if matches:
+                    return matches[0].resolve()
+
+    return None
+
+
+# Default icons root candidates — supports common extraction layouts so a
+# fresh clone "just works" regardless of how the user unzipped the pack.
+def _detect_icons_root() -> Path:
+    """Locate the Azure Public Service Icons directory.
+
+    Tries the canonical bundled path first, then falls back to searching the
+    stencils directory for an ``Icons`` folder (handles packs extracted with a
+    different top-level folder name, e.g. ``Azure_Public_Service_Icons_V19``).
+    """
+    canonical = _STENCILS_ROOT / "Azure_Public_Service_Icons" / "Icons"
+    if canonical.exists():
+        return canonical
+    if _STENCILS_ROOT.exists():
+        # Find any directory named "Icons" that contains category subfolders.
+        for candidate in _STENCILS_ROOT.glob("**/Icons"):
+            if candidate.is_dir():
+                return candidate
+    return canonical
 
 
 def get_icons_root() -> Path:
-    """Return the default icons root directory."""
-    return _DEFAULT_ICONS_ROOT
+    """Return the default icons root directory (auto-detected)."""
+    return _detect_icons_root()
 
 
 # ── Auto-populate svg_icon field from SVG_ICON_MAP ────────────────
