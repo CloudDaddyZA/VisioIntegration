@@ -53,7 +53,7 @@
           },
           {
             "name": "save",
-            "description": "Save the current diagram as Visio (.vsdx) or Draw.io (.drawio)"
+            "description": "Save the current diagram as Visio (.vsdx), Draw.io (.drawio), or Mermaid (.mmd)"
           },
           {
             "name": "reference",
@@ -175,7 +175,8 @@
           "type": "string",
           "enum": [
             "vsdx",
-            "drawio"
+            "drawio",
+            "mermaid"
           ],
           "default": "drawio",
           "description": "Default diagram output format."
@@ -228,7 +229,7 @@
           {
             "id": "azureVisio.welcome.save",
             "title": "Save Your Diagram",
-            "description": "When you're happy with the architecture, tell ``@azureVisio save`` or use the command palette. You'll be prompted to choose the save location and format (.vsdx or .drawio).\n\n[Save Diagram](command:azureVisio.saveDiagram)",
+            "description": "When you're happy with the architecture, tell ``@azureVisio save`` or use the command palette. You'll be prompted to choose the save location and format (.vsdx, .drawio, or .mmd).\n\n[Save Diagram](command:azureVisio.saveDiagram)",
             "media": {
               "markdown": "media/walkthrough/save.md"
             }

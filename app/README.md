@@ -59,7 +59,7 @@ Main application entry point. Manages:
   - Architecture Catalog expander (206 entries, filterable by category/type/search)
   - Import tabs: Visio `.vsdx` upload (multi-page with page selector), Image upload (PNG/JPG/SVG → AI conversion)
   - Diagram info metrics (resources, connections, boundaries)
-  - Output format selector: Visio (`.vsdx`) or draw.io (`.drawio`)
+  - Output format selector: Visio (`.vsdx`), draw.io (`.drawio`), or Mermaid (`.mmd`)
   - Save with file browser dialog (PowerShell WinForms)
 - **Main area**: Two-column layout — chat history + tool-call log | HTML/SVG diagram preview with page tabs
 

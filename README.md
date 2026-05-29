@@ -2,7 +2,7 @@
 
 An MCP (Model Context Protocol) server and interactive Streamlit app that creates **production-quality Microsoft Visio architecture diagrams** aligned with [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/) standards.
 
-Combines AI-driven natural language understanding with Visio COM automation to go from *"build me a 3-tier web app"* to a fully rendered `.vsdx` or `.drawio` file — with official Azure SVG icons, Microsoft-standard boundary styling, numbered workflow steps, and WAF/CAF validation.
+Combines AI-driven natural language understanding with Visio COM automation to go from *"build me a 3-tier web app"* to a fully rendered `.vsdx`, `.drawio`, or `.mmd` (Mermaid) file — with official Azure SVG icons, Microsoft-standard boundary styling, numbered workflow steps, and WAF/CAF validation.
 
 ---
 
@@ -52,7 +52,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 | **Architecture Catalog** | `browse_architecture_catalog`, `search_arch_catalog`, `get_arch_catalog_entry` | Browse/search 206 real architectures from Azure Architecture Center |
 | **Design Knowledge** | `suggest_design_patterns`, `get_design_pattern_detail`, `suggest_architecture_style`, `get_architecture_style_detail` | 50 cloud design patterns + 39 architecture styles with guidance |
 | **Validation** | `validate_waf`, `validate_caf`, `suggest_architecture_improvements`, `get_waf_tips` | Well-Architected Framework (5 pillars) and Cloud Adoption Framework (7 principles) |
-| **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM) or `.drawio` (mxGraph XML with built-in Azure icons) |
+| **Rendering** | `save_diagram` | Renders to `.vsdx` (Visio COM), `.drawio` (mxGraph XML with built-in Azure icons), or `.mmd` (dependency-free Mermaid flowchart text) |
 | **Import** | `import_vsdx`, `import_image`, `import_pricing_estimate` | Import existing `.vsdx` files, screenshots/photos, or Azure Pricing Calculator URLs |
 | **SKU & Pricing** | `query_azure_pricing`, `compare_azure_skus`, `get_sku_recommendations` | Live Azure Retail Prices API queries, SKU comparison, and tier guidance grounded in WAF/Advisor/FinOps |
 | **Reference** | `list_azure_shapes`, `get_diagram_state`, `get_diagram_standards` | Catalog browsing and diagram inspection |
@@ -66,7 +66,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
 - **Reference Architecture Templates** — One-click apply for 5 Azure Architecture Center patterns
 - **Architecture Catalog Browser** — Sidebar browser with category/type filters for 206 Azure architectures
 - **Import & Assess** — Upload existing `.vsdx` (multi-page) for WAF/CAF assessment, or upload an image for AI-powered conversion
-- **Save to Visio or draw.io** — Export as `.vsdx` or `.drawio` with format selector and browse dialog
+- **Save to Visio, draw.io, or Mermaid** — Export as `.vsdx`, `.drawio`, or `.mmd` with format selector and browse dialog
 - **First-run Onboarding** — Expandable getting-started guide with example prompts and tool overview
 
 ### Desktop App (PyInstaller)
@@ -81,7 +81,7 @@ Combines AI-driven natural language understanding with Visio COM automation to g
   - `/draw` — Create diagrams from descriptions (e.g., `@azureVisio draw a 3-tier web app`)
   - `/validate` — Run WAF and CAF validation on the current diagram
   - `/sku` — Get SKU recommendations and live Azure pricing for resources
-  - `/save` — Save the diagram as Visio (.vsdx) or Draw.io (.drawio)
+  - `/save` — Save the diagram as Visio (.vsdx), Draw.io (.drawio), or Mermaid (.mmd)
   - `/reference` — Load a reference architecture template
 - **Tree views** — Connection status, resource list, validation findings in the sidebar
 - **14 Commands** — Create diagram, add resources/connections/boundaries, auto-layout, validate WAF/CAF, load reference architectures, save, browse shape catalog, start/stop MCP server
@@ -411,7 +411,7 @@ VisioIntegration/
 │   │   ├── __init__.py                # Imports all submodules to register tools
 │   │   ├── diagram_tools.py           # Diagram CRUD (create, add, remove, layout)
 │   │   ├── validation_tools.py        # WAF/CAF validation + architecture improvements
-│   │   ├── save_tools.py              # Render to .vsdx / .drawio with auto-fallback
+│   │   ├── save_tools.py              # Render to .vsdx / .drawio / .mmd with auto-fallback
 │   │   ├── catalog_tools.py           # Shape catalog + architecture design knowledge
 │   │   ├── reference_tools.py         # Reference architecture templates
 │   │   ├── import_tools.py            # Visio/image/pricing import
@@ -422,6 +422,7 @@ VisioIntegration/
 │   ├── azure_catalog.py               # 151 resource shapes, 126 SVG icons, 275 aliases
 │   ├── visio_engine.py                # Visio COM rendering engine (SVG import, connectors)
 │   ├── drawio_engine.py               # Draw.io rendering engine (mxGraph XML, 118 Azure icon styles)
+│   ├── mermaid_engine.py              # Mermaid rendering engine (.mmd flowchart text, nested subgraphs)
 │   ├── layout_engine.py               # Auto-layout with containment validation
 │   ├── reference_architectures.py     # 16 templates + 206 catalog + 50 patterns + 39 styles
 │   ├── waf_validator.py               # WAF 5-pillar validation engine (smart multi-region detection)
@@ -453,12 +454,13 @@ VisioIntegration/
 │   ├── package.json                   # Extension manifest (commands, views, menus)
 │   └── esbuild.js                     # Build config
 │
-├── tests/                             # Test suite (38 tests)
+├── tests/                             # Test suite (47 tests)
 │   ├── test_reference_arch.py         # Tests all 16 reference architecture templates
 │   ├── test_ai_landing_zone.py        # End-to-end AI Landing Zone build script
 │   ├── test_sku_grounding.py          # Azure SKU grounding + Retail Prices API tests
 │   ├── test_layout_engine.py          # Layout strategies + hint-based positioning
 │   ├── test_drawio_engine.py          # Draw.io XML structure + rendering
+│   ├── test_mermaid_engine.py         # Mermaid flowchart text structure + rendering
 │   ├── test_waf_validator.py          # WAF pillar scoring + findings
 │   └── test_caf_validator.py          # CAF naming convention checks
 │

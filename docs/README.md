@@ -19,6 +19,7 @@ graph TD
         le["layout_engine.py<br/><i>Auto-layout + containment</i>"]
         ve["visio_engine.py<br/><i>Visio COM rendering</i>"]
         de["drawio_engine.py<br/><i>Draw.io XML rendering</i>"]
+        me["mermaid_engine.py<br/><i>Mermaid flowchart text</i>"]
         waf["waf_validator.py<br/><i>WAF 5-pillar scoring</i>"]
         caf["caf_validator.py<br/><i>CAF naming validation</i>"]
         sku["azure_sku_grounding.py<br/><i>Live pricing API</i>"]
@@ -50,6 +51,7 @@ graph TD
         st2 --> state
         st2 --> ve
         st2 --> de
+        st2 --> me
         ct --> state
         ct --> ac
         ct --> ra
@@ -70,6 +72,8 @@ graph TD
         ve --> ra
         de --> models
         de --> ac
+        me --> models
+        me --> ac
         waf --> models
         waf --> ac
         caf --> models
@@ -133,7 +137,7 @@ graph TD
 | `tools/__init__.py` | Imports all submodules to register tools with the shared MCP instance | `tools/*` |
 | `tools/diagram_tools.py` | Diagram CRUD: create, add resource/boundary/connection, remove, layout, state | `_state`, `azure_catalog`, `reference_architectures` |
 | `tools/validation_tools.py` | WAF/CAF validation, architecture improvements, WAF tips | `_state` |
-| `tools/save_tools.py` | Render to .vsdx or .drawio with auto-fallback | `_state`, `visio_engine`, `drawio_engine` |
+| `tools/save_tools.py` | Render to .vsdx, .drawio, or .mmd with auto-fallback | `_state`, `visio_engine`, `drawio_engine`, `mermaid_engine` |
 | `tools/catalog_tools.py` | Shape catalog browsing + architecture style/pattern knowledge | `_state`, `azure_catalog`, `reference_architectures` |
 | `tools/reference_tools.py` | Reference architecture list/apply/details | `_state`, `reference_architectures` |
 | `tools/import_tools.py` | Visio/image/pricing calculator import | `_state`, `visio_engine`, `pricing_import` |
@@ -146,6 +150,7 @@ graph TD
 | `layout_engine.py` | Auto-layout engine with containment validation (tiered/grid/grouped/hint-based) | `models` |
 | `visio_engine.py` | Visio COM automation — renders diagrams to `.vsdx` files with official SVG icons | `models`, `azure_catalog`, `reference_architectures` |
 | `drawio_engine.py` | Draw.io mxGraph XML renderer — 118 Azure icon styles, coordinate clamping | `models`, `azure_catalog` |
+| `mermaid_engine.py` | Mermaid flowchart text renderer — dependency-free `.mmd` output with nested subgraphs for boundaries | `models`, `azure_catalog` |
 | `waf_validator.py` | Well-Architected Framework validator — scores diagrams against 5 pillars | `models`, `azure_catalog` |
 | `caf_validator.py` | Cloud Adoption Framework validator — checks naming conventions (7 principles) | `models` |
 | `azure_sku_grounding.py` | Live Azure Retail Prices API queries, VM family recommendations, tier guidance | None |
@@ -183,9 +188,9 @@ graph TD
 
 | File | Role | Dependents |
 |------|------|-----------|
-| `models.py` | Data contracts (Pydantic) | 7 modules (diagram_state, azure_catalog, layout_engine, visio_engine, drawio_engine, waf_validator, caf_validator) |
+| `models.py` | Data contracts (Pydantic) | 8 modules (diagram_state, azure_catalog, layout_engine, visio_engine, drawio_engine, mermaid_engine, waf_validator, caf_validator) |
 | `_state.py` | Shared MCP instance + singletons | All 8 tool submodules import from here |
-| `azure_catalog.py` | Shape registry + SVG paths | 4 modules (diagram_tools, visio_engine, drawio_engine, waf_validator) |
+| `azure_catalog.py` | Shape registry + SVG paths | 5 modules (diagram_tools, visio_engine, drawio_engine, mermaid_engine, waf_validator) |
 | `server.py` | Entry point + re-exports | Imports `_state` + `tools/*`; called by all clients |
 | `mcpServer.ts` | Process + RPC manager | 5 TypeScript modules depend on it |
 
@@ -231,6 +236,7 @@ graph TD
 │  10. RENDER                                                          │
 │     • visio_engine.py → .vsdx (COM automation + official SVG icons) │
 │     • drawio_engine.py → .drawio (mxGraph XML with embedded icons)  │
+│     • mermaid_engine.py → .mmd (Mermaid flowchart text)             │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 

@@ -136,7 +136,7 @@ standards — official icons, reference architectures, WAF & CAF validation.
 **3. Or start from a template** — use **Reference Architectures** in the sidebar:
 - Baseline Foundry Chat · Azure Landing Zone · Baseline Web App · AI Landing Zone · Microservices on AKS
 
-**4. Save your diagram** — pick **.vsdx** (Visio) or **.drawio** format at the bottom of the sidebar.
+**4. Save your diagram** — pick **.vsdx** (Visio), **.drawio**, or **.mmd** (Mermaid) format at the bottom of the sidebar.
 
 ---
 
@@ -794,19 +794,26 @@ with st.sidebar:
         st.session_state.save_format = "Visio (.vsdx)"
 
     # Format selector
+    _format_options = ["Visio (.vsdx)", "draw.io (.drawio)", "Mermaid (.mmd)"]
     save_format = st.radio(
         "Output format",
-        ["Visio (.vsdx)", "draw.io (.drawio)"],
-        index=0 if st.session_state.save_format == "Visio (.vsdx)" else 1,
+        _format_options,
+        index=_format_options.index(st.session_state.save_format)
+        if st.session_state.save_format in _format_options else 0,
         horizontal=True,
         key="save_format_radio",
     )
     st.session_state.save_format = save_format
 
     # Update default extension when format changes
-    _fmt_ext = ".vsdx" if "vsdx" in save_format else ".drawio"
+    if "vsdx" in save_format:
+        _fmt_ext = ".vsdx"
+    elif "drawio" in save_format:
+        _fmt_ext = ".drawio"
+    else:
+        _fmt_ext = ".mmd"
     _current_path = Path(st.session_state.save_path)
-    if _current_path.suffix.lower() not in (".vsdx", ".drawio"):
+    if _current_path.suffix.lower() not in (".vsdx", ".drawio", ".mmd"):
         st.session_state.save_path = str(_current_path.with_suffix(_fmt_ext))
     elif _current_path.suffix.lower() != _fmt_ext:
         st.session_state.save_path = str(_current_path.with_suffix(_fmt_ext))
@@ -831,6 +838,8 @@ with st.sidebar:
             'Visio files (*.vsdx)|*.vsdx|All files (*.*)|*.*'
             if "vsdx" in save_format
             else 'draw.io files (*.drawio)|*.drawio|All files (*.*)|*.*'
+            if "drawio" in save_format
+            else 'Mermaid files (*.mmd)|*.mmd|All files (*.*)|*.*'
         )
         # WinForms dialog via PowerShell with -STA to avoid threading issues
         _ps_script = (
@@ -857,10 +866,20 @@ with st.sidebar:
         except Exception as e:
             st.warning(f"Browse dialog failed: {e}")
 
-    _save_label = "💾 Save as .vsdx" if "vsdx" in save_format else "💾 Save as .drawio"
+    if "vsdx" in save_format:
+        _save_label = "💾 Save as .vsdx"
+    elif "drawio" in save_format:
+        _save_label = "💾 Save as .drawio"
+    else:
+        _save_label = "💾 Save as .mmd"
     if st.button(_save_label, use_container_width=True):
         if ensure_connection():
-            _fmt_key = "vsdx" if "vsdx" in save_format else "drawio"
+            if "vsdx" in save_format:
+                _fmt_key = "vsdx"
+            elif "drawio" in save_format:
+                _fmt_key = "drawio"
+            else:
+                _fmt_key = "mermaid"
             # Ensure output directory exists
             save_path = st.session_state.save_path
             save_dir = Path(save_path).parent
@@ -869,6 +888,8 @@ with st.sidebar:
                 "Saving diagram (Visio rendering may take a moment)..."
                 if _fmt_key == "vsdx"
                 else "Saving diagram as draw.io..."
+                if _fmt_key == "drawio"
+                else "Saving diagram as Mermaid..."
             )
             with st.spinner(_spinner_msg):
                 try:

@@ -10,6 +10,7 @@ from typing import Any
 
 from visio_mcp._state import mcp, _diagram, _layout, _waf, _caf
 from visio_mcp.drawio_engine import DrawioEngine
+from visio_mcp.mermaid_engine import MermaidEngine
 from visio_mcp.visio_engine import VisioEngine
 
 logger = logging.getLogger(__name__)
@@ -27,17 +28,19 @@ def save_diagram(
     auto_layout_before_save: bool = True,
     layout_strategy: str = "tiered",
 ) -> dict[str, Any]:
-    """Save the current diagram as a Visio .vsdx or draw.io (.drawio) file.
+    """Save the current diagram as a Visio .vsdx, draw.io (.drawio), or Mermaid (.mmd) file.
 
     If Microsoft Visio is installed, uses COM automation for full-fidelity output
     with official Azure SVG icons imported directly. Otherwise, uses python-vsdx
     for basic .vsdx creation. Alternatively, choose 'drawio' format for a
-    portable XML file that opens in draw.io desktop, VS Code, or diagrams.net.
+    portable XML file that opens in draw.io desktop, VS Code, or diagrams.net,
+    or 'mermaid' for a text-based flowchart that embeds in Markdown/READMEs and
+    renders on GitHub, GitLab, and mermaid.live.
 
     Args:
         output_path: File path for the output file
                      (e.g., 'C:/diagrams/my-architecture.vsdx').
-        format: Output format — 'vsdx' (default) or 'drawio'.
+        format: Output format — 'vsdx' (default), 'drawio', or 'mermaid'.
         stencil_dir: Optional directory containing Azure Visio stencil files (.vssx).
                      These take priority over SVG icons if both are available.
                      Only used for 'vsdx' format.
@@ -45,6 +48,7 @@ def save_diagram(
                     (the 'Icons' folder with category subfolders like compute/, networking/).
                     Defaults to the bundled stencils directory. Only used for 'vsdx' format.
         auto_layout_before_save: Whether to auto-layout before saving (default: True).
+                                 Ignored for 'mermaid' (layout is automatic).
         layout_strategy: Layout strategy if auto-layout is enabled
                          ('tiered', 'grid', 'grouped').
 
@@ -52,8 +56,13 @@ def save_diagram(
         Save status, output path, and rendering method used.
     """
     fmt = format.lower().strip()
-    if fmt not in ("vsdx", "drawio"):
-        return {"status": "error", "message": f"Unsupported format '{format}'. Use 'vsdx' or 'drawio'."}
+    if fmt in ("mmd", "mermaid"):
+        fmt = "mermaid"
+    if fmt not in ("vsdx", "drawio", "mermaid"):
+        return {"status": "error", "message": f"Unsupported format '{format}'. Use 'vsdx', 'drawio', or 'mermaid'."}
+
+    # File extension per format ('mermaid' writes .mmd).
+    ext = "mmd" if fmt == "mermaid" else fmt
 
     # Resolve relative paths to a well-known output directory
     _output_dir = Path(__file__).resolve().parent.parent.parent.parent / "output"
@@ -61,9 +70,9 @@ def save_diagram(
     if not out.is_absolute():
         out = _output_dir / out.name  # always land in output/
     if not out.suffix:
-        out = out.with_suffix(f".{fmt}")
+        out = out.with_suffix(f".{ext}")
     # Force correct extension for the chosen format
-    expected_ext = f".{fmt}"
+    expected_ext = f".{ext}"
     if out.suffix.lower() != expected_ext:
         out = out.with_suffix(expected_ext)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -101,6 +110,9 @@ def save_diagram(
     if fmt == "drawio":
         engine = DrawioEngine()
         rendering_method = "draw.io (mxGraph XML)"
+    elif fmt == "mermaid":
+        engine = MermaidEngine()
+        rendering_method = "Mermaid (flowchart text)"
     else:
         engine = VisioEngine(stencil_dir=stencil_dir, icons_root=icons_root)
         from visio_mcp.visio_engine import VISIO_AVAILABLE

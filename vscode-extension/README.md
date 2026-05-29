@@ -11,7 +11,7 @@ providing a **GitHub Copilot Chat participant**, commands, tree views, and a dia
   - `/draw` — Create diagrams from descriptions (e.g., `@azureVisio draw a 3-tier web app`)
   - `/validate` — Run WAF and CAF validation on the current diagram
   - `/sku` — Get SKU recommendations and live Azure pricing for resources
-  - `/save` — Save the diagram as Visio (.vsdx) or Draw.io (.drawio)
+  - `/save` — Save the diagram as Visio (.vsdx), Draw.io (.drawio), or Mermaid (.mmd)
   - `/reference` — Load a reference architecture template
 - **14 Commands** — Create diagrams, add resources/connections/boundaries, auto-layout, validate WAF/CAF, load reference architectures, save, browse shape catalog, start/stop MCP server
 - **3 Sidebar Tree Views** — Resources, Connections, and Validation findings in the Activity Bar
@@ -27,7 +27,7 @@ providing a **GitHub Copilot Chat participant**, commands, tree views, and a dia
 |---------|-------------|
 | `Azure Visio: New Diagram` | Create a new blank diagram |
 | `Azure Visio: Open Diagram Preview` | Open the diagram preview webview panel |
-| `Azure Visio: Save Diagram` | Save the current diagram to `.vsdx` or `.drawio` |
+| `Azure Visio: Save Diagram` | Save the current diagram to `.vsdx`, `.drawio`, or `.mmd` |
 | `Azure Visio: Add Resource` | Add an Azure resource to the diagram |
 | `Azure Visio: Add Connection` | Connect two resources |
 | `Azure Visio: Add Boundary Group` | Add a boundary (VNet, subnet, resource group, etc.) |

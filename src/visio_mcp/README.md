@@ -19,7 +19,7 @@ capabilities as tools, resources, and prompts for AI agents and direct tool call
 | **Design Patterns** | 50 | Cloud design patterns with diagram implications |
 | **Architecture Styles** | 39 | N-Tier, Web-Queue-Worker, Microservices, Event-Driven, Big Data, Big Compute, Dataflow, AI/ML Pipeline, RAG, Streaming, + more |
 | **Reference Architectures** | 16 | Hand-tuned templates with position hints and workflow steps |
-| **Output Formats** | 2 | Visio `.vsdx` (COM / python-vsdx) and draw.io `.drawio` (mxGraph XML) |
+| **Output Formats** | 3 | Visio `.vsdx` (COM / python-vsdx), draw.io `.drawio` (mxGraph XML), and Mermaid `.mmd` (flowchart text) |
 
 ---
 
@@ -48,7 +48,7 @@ tools using the `@mcp.tool()` decorator:
 |--------|------:|--------- |
 | `diagram_tools.py` | 10 | Create/add/remove resources, boundaries, connections; auto-layout; get state |
 | `validation_tools.py` | 4 | WAF/CAF validation, improvements, tips |
-| `save_tools.py` | 1 | Render to .vsdx or .drawio with auto-fallback |
+| `save_tools.py` | 1 | Render to .vsdx, .drawio, or .mmd with auto-fallback |
 | `catalog_tools.py` | 5 | Shape catalog browsing + architecture style/pattern queries |
 | `reference_tools.py` | 3 | Reference architecture list/apply/details |
 | `import_tools.py` | 3 | Import from .vsdx, image, or pricing calculator |
@@ -115,6 +115,17 @@ Draw.io (mxGraph XML) rendering engine — **no Visio or Windows required**:
 - **Center-to-topleft conversion** — converts layout center positions to mxGeometry top-left
 - **Coordinate clamping** — ensures no negative parent-relative positions (safety net)
 - Output readable by draw.io Desktop, VS Code draw.io extension, and diagrams.net
+
+### `mermaid_engine.py` (~200 lines)
+
+Mermaid flowchart text rendering engine — **dependency-free, no Visio or icons required**:
+- **`MermaidEngine.render()`** — Converts `DiagramState` to a `.mmd` file
+- **`MermaidEngine.render_text()`** — Returns the Mermaid flowchart as a string
+- Boundaries rendered as nested `subgraph` blocks (recursive, respecting parent relationships)
+- Resources rendered as nodes labelled `name<br/><i>type</i>`
+- Connections rendered as edges; solid → `-->`, dashed/dotted → `-.->`, with optional labels
+- `classDef` styling derived from `BOUNDARY_STYLES` and resource categories
+- Output viewable in GitHub markdown, Mermaid Live Editor, VS Code Mermaid extensions, and diagrams.net
 
 ### `visio_engine.py` (~715 lines)
 

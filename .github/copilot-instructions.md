@@ -12,7 +12,7 @@ This is an **MCP (Model Context Protocol) server** for creating production-quali
 - **MCP Server**: `src/visio_mcp/server.py` — central tool hub
 - **Data Models**: `src/visio_mcp/models.py` — Pydantic models (DiagramState, DiagramResource, Connection, BoundaryGroup)
 - **State Manager**: `src/visio_mcp/diagram_state.py` — DiagramManager class
-- **Renderers**: `visio_engine.py` (.vsdx via COM) and `drawio_engine.py` (.drawio XML)
+- **Renderers**: `visio_engine.py` (.vsdx via COM), `drawio_engine.py` (.drawio XML), and `mermaid_engine.py` (.mmd flowchart text)
 - **Validators**: `waf_validator.py` (5 WAF pillars) and `caf_validator.py` (7 CAF principles)
 - **Layout**: `layout_engine.py` — tiered/grid/grouped auto-layout
 - **Catalog**: `azure_catalog.py` — 151 Azure resource shapes with SVG icon paths
@@ -43,6 +43,7 @@ The `properties` parameter in `add_azure_resource` and `add_boundary` accepts `s
 ### Output Formats
 - `.vsdx` — requires Microsoft Visio installed (COM automation) or falls back to `python-vsdx`
 - `.drawio` — always available, generates mxGraph XML with embedded Azure SVG icons
+- `.mmd` — always available, generates dependency-free Mermaid flowchart text (nested subgraphs for boundaries)
 
 ## Build & Run
 
@@ -103,7 +104,7 @@ python -m pytest tests/ -v
 - `get_sku_recommendations` — Workload-based tier guidance
 
 ### Rendering
-- `save_diagram` — Render to .vsdx or .drawio
+- `save_diagram` — Render to .vsdx, .drawio, or .mmd (Mermaid)
 - `list_azure_shapes` — Browse shape catalog with filters
 
 ### Import

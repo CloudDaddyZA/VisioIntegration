@@ -67,13 +67,16 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("azureVisio.saveDiagram", async () => {
       const config = vscode.workspace.getConfiguration("azureVisio");
       const format = config.get<string>("defaultFormat", "drawio");
+      const ext = format === "mermaid" ? "mmd" : format;
 
       const uri = await vscode.window.showSaveDialog({
         filters:
           format === "drawio"
             ? { "Draw.io Diagram": ["drawio"] }
-            : { "Visio Diagram": ["vsdx"] },
-        defaultUri: vscode.Uri.file(`diagram.${format}`),
+            : format === "mermaid"
+              ? { "Mermaid Diagram": ["mmd"] }
+              : { "Visio Diagram": ["vsdx"] },
+        defaultUri: vscode.Uri.file(`diagram.${ext}`),
       });
       if (!uri) {
         return;

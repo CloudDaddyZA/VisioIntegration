@@ -1,4 +1,4 @@
-# tests/ — Test Suite (38 tests)
+# tests/ — Test Suite (47 tests)
 
 Integration and unit tests for the Visio Azure MCP server.
 
@@ -46,6 +46,19 @@ Tests the Draw.io XML rendering engine:
 - **Boundaries rendered** — confirms container cells with correct parent nesting
 - **Empty diagram** — ensures graceful handling of empty state
 - **Labels** — verifies resource display names appear in output
+
+### `test_mermaid_engine.py`
+
+Tests the Mermaid flowchart text rendering engine:
+
+- **Flowchart header** — validates `flowchart TB` declaration and title frontmatter
+- **Subgraphs** — confirms boundaries render as nested `subgraph` blocks
+- **Resource nodes** — checks node labels with name and humanized type
+- **Edges** — validates connections render with labels; dashed/dotted → `-.->`
+- **classDefs** — verifies style class definitions are emitted
+- **Empty diagram** — ensures graceful handling of empty state
+- **File write** — confirms `.mmd` file is written to disk
+- **Ungrouped resources** — renders resources without a boundary at top level
 
 ### `test_waf_validator.py`
 

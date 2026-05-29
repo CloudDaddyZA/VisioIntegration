@@ -25,7 +25,7 @@ You can:
 - Auto-layout diagrams (tiered, grouped, hybrid strategies)
 - Validate against WAF (Well-Architected Framework) and CAF (Cloud Adoption Framework)
 - Recommend SKUs with live Azure pricing data
-- Save diagrams as .vsdx (Visio) or .drawio files
+- Save diagrams as .vsdx (Visio), .drawio, or .mmd (Mermaid) files
 
 CRITICAL PARAMETER RULES:
 - The "properties" parameter is OPTIONAL. Only pass it if you need metadata. When you DO pass it, it must be a JSON STRING like: "properties": "{\\"sku\\": \\"Standard_D4s_v5\\"}" — NOT an object.
@@ -249,7 +249,12 @@ export function registerChatParticipant(
         if (call.name === "save_diagram") {
           const format =
             (call.arguments.format as string) || "vsdx";
-          const ext = format === "drawio" ? "drawio" : "vsdx";
+          const ext =
+            format === "drawio"
+              ? "drawio"
+              : format === "mermaid" || format === "mmd"
+                ? "mmd"
+                : "vsdx";
           const defaultName =
             (call.arguments.output_path as string) ||
             `diagram.${ext}`;
@@ -258,7 +263,9 @@ export function registerChatParticipant(
           const filters =
             ext === "drawio"
               ? { "Draw.io Diagram": ["drawio"] }
-              : { "Visio Diagram": ["vsdx"] };
+              : ext === "mmd"
+                ? { "Mermaid Diagram": ["mmd"] }
+                : { "Visio Diagram": ["vsdx"] };
 
           const uri = await vscode.window.showSaveDialog({
             filters,
@@ -274,7 +281,7 @@ export function registerChatParticipant(
           }
           // Override the output_path with user's chosen location
           call.arguments.output_path = uri.fsPath;
-          call.arguments.format = ext;
+          call.arguments.format = ext === "mmd" ? "mermaid" : ext;
         }
 
         try {

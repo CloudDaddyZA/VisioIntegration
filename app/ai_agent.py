@@ -24,7 +24,7 @@ You have access to tools that:
 - Apply reference architectures from Microsoft Architecture Center
 - Auto-layout diagrams
 - Validate against WAF (Well-Architected Framework) and CAF (Cloud Adoption Framework)
-- Save diagrams as .vsdx files
+- Save diagrams as .vsdx (Visio), .drawio (draw.io), or .mmd (Mermaid) files
 - Import existing .vsdx files (parses shapes, runs WAF/CAF assessment, lets you build on top)
 - Import images (screenshots, whiteboard photos, block diagrams) and convert them to proper Azure diagrams with correct icons
 - Suggest architecture styles and get detailed guidance on Azure Architecture Center patterns
