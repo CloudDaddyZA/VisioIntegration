@@ -1,17 +1,3 @@
-<div align="center">
-
-### ▶ Interactive Walkthrough
-
-[![Watch the Azure Visio AI walkthrough](docs/architecture.png)](docs/video/walkthrough.html)
-
-**[▶ Open the self-playing walkthrough](docs/video/walkthrough.html)** &nbsp;·&nbsp; [Recording script](docs/video/walkthrough-script.md) &nbsp;·&nbsp; [How to record an MP4](docs/video/README.md)
-
-_Clone the repo and open [`docs/video/walkthrough.html`](docs/video/walkthrough.html) in any browser — it auto-plays (← → to navigate, **F** for fullscreen)._
-
-</div>
-
----
-
 # Visio Azure MCP — AI-Powered Azure Architecture Diagrams
 
 An MCP (Model Context Protocol) server and interactive Streamlit app that creates **production-quality Microsoft Visio architecture diagrams** aligned with [Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/) standards.
