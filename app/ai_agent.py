@@ -13,6 +13,45 @@ from .mcp_client import VisioMCPClient
 
 logger = logging.getLogger(__name__)
 
+
+def _prompt_save_location(fmt: str, default_path: str) -> str | None:
+    """Open a native Save As dialog and return the chosen path (or None if cancelled).
+
+    Used to prompt the user for a location whenever the agent saves a diagram.
+    """
+    import subprocess
+
+    fmt = (fmt or "").lower()
+    if "drawio" in fmt:
+        filter_str = "draw.io files (*.drawio)|*.drawio|All files (*.*)|*.*"
+    elif "mmd" in fmt or "mermaid" in fmt:
+        filter_str = "Mermaid files (*.mmd)|*.mmd|All files (*.*)|*.*"
+    else:
+        filter_str = "Visio files (*.vsdx)|*.vsdx|All files (*.*)|*.*"
+
+    init_dir = os.path.dirname(default_path) or os.getcwd()
+    init_file = os.path.basename(default_path) or "diagram"
+    ps_script = (
+        "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; "
+        "$f = New-Object System.Windows.Forms.SaveFileDialog; "
+        "$f.Title = 'Save Diagram'; "
+        f"$f.Filter = '{filter_str}'; "
+        f"$f.InitialDirectory = '{init_dir}'; "
+        f"$f.FileName = '{init_file}'; "
+        "$f.OverwritePrompt = $true; "
+        "if ($f.ShowDialog() -eq 'OK') { Write-Output $f.FileName }"
+    )
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-STA", "-Command", ps_script],
+            capture_output=True, text=True, timeout=120,
+        )
+        return result.stdout.strip() or None
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Save dialog failed: %s", e)
+        return None
+
+
 SYSTEM_PROMPT = """\
 You are an Azure architecture diagram assistant. You help users create, modify, \
 and validate Microsoft Visio architecture diagrams using the Visio MCP server tools.
@@ -38,12 +77,13 @@ add boundaries → add resources → connect them → auto-layout → validate.
 5. Explain what you're doing at each step.
 6. When multiple resources need to be added, add them one by one.
 7. After adding resources and connections, apply auto_layout for clean arrangement.
-8. SAVING DIAGRAMS: When the user asks to save, ALWAYS confirm the save path \
-before calling save_diagram. Suggest a descriptive filename based on the diagram \
-title (e.g., 'ai-landing-zone-prod.vsdx'). Tell the user the full resolved path \
-where the file will be saved. Use just the filename — the server resolves it to \
-the output/ directory automatically. After saving, VERIFY the tool result status \
-and report success or failure clearly — including the actual output_path returned.
+8. SAVING DIAGRAMS: When the user asks to save, suggest a descriptive filename \
+based on the diagram title (e.g., 'ai-landing-zone-prod.vsdx') and call \
+save_diagram with that filename as output_path. The app will pop a native "Save As" \
+dialog so the user can pick the exact location — you do NOT need to ask for the path \
+in chat. After saving, VERIFY the tool result status and report success or failure \
+clearly — including the actual output_path returned. If the result status is \
+"cancelled", tell the user the save was cancelled.
 9. MERGING ARCHITECTURES: When the diagram already contains resources and the user \
 asks to add, combine, or extend with another reference architecture, ALWAYS call \
 apply_reference_architecture with merge=True. This adds the new architecture's \
@@ -481,7 +521,31 @@ class AIAgent:
                 except json.JSONDecodeError:
                     fn_args = {}
 
+                # When the agent saves a diagram, prompt the user for the
+                # destination via a native Save As dialog (same UX as the
+                # manual Save button).
+                if fn_name == "save_diagram":
+                    fmt = str(fn_args.get("format", "vsdx"))
+                    ext = (
+                        "drawio" if "drawio" in fmt.lower()
+                        else "mmd" if ("mmd" in fmt.lower() or "mermaid" in fmt.lower())
+                        else "vsdx"
+                    )
+                    default_path = fn_args.get("output_path") or f"diagram.{ext}"
+                    chosen = _prompt_save_location(fmt, str(default_path))
+                    if not chosen:
+                        result = {"status": "cancelled", "message": "User cancelled the save dialog."}
+                        tool_log.append({"tool": fn_name, "args": fn_args, "result": result})
+                        self._conversation.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(result)[:_MAX_TOOL_RESULT_CHARS],
+                        })
+                        continue
+                    fn_args["output_path"] = chosen
+
                 logger.info("Calling tool: %s(%s)", fn_name, fn_args)
+
 
                 try:
                     result = self._mcp.call_tool(fn_name, fn_args)

@@ -67,9 +67,67 @@ st.markdown("""
         text-align: center;
         padding: 10px;
     }
-    .sidebar-section {
-        padding: 6px 0;
-        border-bottom: 1px solid #eee;
+
+    /* ── Sleeker sidebar ───────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    section[data-testid="stSidebar"] > div {
+        padding-top: 0.75rem;
+    }
+    /* Brand header */
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 2px 0 2px 2px;
+    }
+    .sidebar-brand h1 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+    .sidebar-tagline {
+        font-size: 0.78rem;
+        opacity: 0.6;
+        margin: -2px 0 10px 2px;
+    }
+    /* Compact section labels */
+    .sidebar-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.55;
+        margin: 14px 2px 6px 2px;
+    }
+    /* Tighten control spacing */
+    section[data-testid="stSidebar"] .stButton > button {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    section[data-testid="stSidebar"] [data-testid="stExpander"] {
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.015);
+        margin-bottom: 6px;
+    }
+    section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+    section[data-testid="stSidebar"] hr {
+        margin: 12px 0;
+        opacity: 0.12;
+    }
+    /* Slim metrics in the diagram summary */
+    section[data-testid="stSidebar"] [data-testid="stMetricValue"] {
+        font-size: 1.35rem;
+    }
+    section[data-testid="stSidebar"] [data-testid="stMetricLabel"] {
+        font-size: 0.72rem;
+        opacity: 0.7;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -239,29 +297,29 @@ ensure_connection()
 
 with st.sidebar:
     if _LOGO_PATH.exists():
-        st.image(str(_LOGO_PATH), width=180)
-    st.title("Azure Visio AI")
-    st.caption("Interactive architecture diagram assistant")
+        st.image(str(_LOGO_PATH), width=160)
+    st.markdown('<div class="sidebar-brand"><h1>Azure Visio AI</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-tagline">Interactive architecture diagram assistant</div>', unsafe_allow_html=True)
 
-    with st.expander("❓ How to Use", expanded=not st.session_state.onboarding_dismissed):
+    # Connection status (compact)
+    if st.session_state.connected:
+        tools = st.session_state.mcp_client.tools if st.session_state.mcp_client else []
+        st.success(f"Connected · {len(tools)} tools", icon="✅")
+    else:
+        st.warning("Not connected", icon="⚠️")
+        if st.button("🔌 Connect to MCP Server", use_container_width=True):
+            ensure_connection()
+            st.rerun()
+
+    # ── Setup ─────────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-label">Setup</div>', unsafe_allow_html=True)
+
+    with st.expander("❓ How to Use", expanded=False):
         st.markdown(_ONBOARDING_CONTENT)
         if not st.session_state.onboarding_dismissed:
             if st.button("Got it!", type="primary", use_container_width=True, key="btn_dismiss_onboarding"):
                 st.session_state.onboarding_dismissed = True
                 st.rerun()
-
-    # Connection status
-    if st.session_state.connected:
-        st.success("Connected to MCP Server", icon="✅")
-        tools = st.session_state.mcp_client.tools if st.session_state.mcp_client else []
-        st.caption(f"{len(tools)} tools available")
-    else:
-        if st.button("🔌 Connect to MCP Server", use_container_width=True):
-            ensure_connection()
-            st.rerun()
-        st.warning("Not connected", icon="⚠️")
-
-    st.divider()
 
     # API key config
     _has_key = bool(os.environ.get("GITHUB_TOKEN") or os.environ.get("OPENAI_API_KEY") or os.environ.get("AZURE_OPENAI_ENDPOINT"))
@@ -357,11 +415,8 @@ with st.sidebar:
             if deployment:
                 os.environ["AZURE_OPENAI_DEPLOYMENT"] = deployment
 
-    st.divider()
-
-    # Business Requirements → Architecture
-    st.subheader("💡 Business → Architecture")
-    st.caption("Describe a business need and the AI will design the architecture.")
+    # ── Business Requirements → Architecture ──────────────────────
+    st.markdown('<div class="sidebar-label">💡 Business → Architecture</div>', unsafe_allow_html=True)
 
     if "biz_req_text" not in st.session_state:
         st.session_state.biz_req_text = ""
@@ -369,13 +424,14 @@ with st.sidebar:
     biz_req = st.text_area(
         "Business requirement",
         value=st.session_state.biz_req_text,
-        height=120,
+        height=110,
         placeholder="e.g. We need an e-commerce platform for 10K concurrent users with payment processing, inventory management, and a mobile API.",
         key="biz_req_input",
+        label_visibility="collapsed",
     )
     st.session_state.biz_req_text = biz_req
 
-    if st.button("🚀 Generate Architecture", use_container_width=True, disabled=not biz_req.strip()):
+    if st.button("🚀 Generate Architecture", use_container_width=True, type="primary", disabled=not biz_req.strip()):
         if ensure_connection():
             # Build the chat prompt using the business_to_architecture template guidance
             user_prompt = (
@@ -391,10 +447,8 @@ with st.sidebar:
             st.session_state.biz_req_text = ""  # Clear after submission
             st.rerun()
 
-    st.divider()
-
-    # Quick actions
-    st.subheader("Quick Actions")
+    # ── Quick actions ─────────────────────────────────────────────
+    st.markdown('<div class="sidebar-label">Quick Actions</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
     with col1:
@@ -428,8 +482,8 @@ with st.sidebar:
                 })
                 st.rerun()
 
-    # Reference architectures
-    st.subheader("Reference Architectures")
+    # ── Reference architectures ───────────────────────────────────
+    st.markdown('<div class="sidebar-label">Reference Architectures</div>', unsafe_allow_html=True)
     arch_options = {
         "Baseline Foundry Chat": "baseline_foundry_chat",
         "Azure Landing Zone": "azure_landing_zone",
@@ -479,8 +533,6 @@ with st.sidebar:
                 )
             refresh_diagram_state()
             st.rerun()
-
-    st.divider()
 
     # ── Architecture Catalog (206 entries) ────────────────────────
     with st.expander("📚 Architecture Catalog (206)", expanded=False):
@@ -543,10 +595,8 @@ with st.sidebar:
             if len(entries) > 25:
                 st.info(f"Showing first 25 of {len(entries)} results. Refine your search or filters.")
 
-    st.divider()
-
     # ── Import section ────────────────────────────────────────────
-    st.subheader("Import")
+    st.markdown('<div class="sidebar-label">Import</div>', unsafe_allow_html=True)
 
     import_tab1, import_tab2, import_tab3 = st.tabs(["📄 Visio (.vsdx)", "🖼️ Image", "💰 Pricing Calculator"])
 
@@ -766,7 +816,7 @@ with st.sidebar:
     # Diagram info
     if st.session_state.diagram_state:
         ds = st.session_state.diagram_state
-        st.subheader("Current Diagram")
+        st.markdown('<div class="sidebar-label">Current Diagram</div>', unsafe_allow_html=True)
         st.caption(ds.get("name", "Untitled"))
 
         resources = ds.get("resources", {})
@@ -786,7 +836,7 @@ with st.sidebar:
                     st.text(f"• {rname} ({rtype})")
 
     # Save button
-    st.divider()
+    st.markdown('<div class="sidebar-label">Save Diagram</div>', unsafe_allow_html=True)
     _default_save = str(_ROOT / "output" / "diagram.vsdx")
     if "save_path" not in st.session_state:
         st.session_state.save_path = _default_save
@@ -802,6 +852,7 @@ with st.sidebar:
         if st.session_state.save_format in _format_options else 0,
         horizontal=True,
         key="save_format_radio",
+        label_visibility="collapsed",
     )
     st.session_state.save_format = save_format
 
@@ -818,27 +869,16 @@ with st.sidebar:
     elif _current_path.suffix.lower() != _fmt_ext:
         st.session_state.save_path = str(_current_path.with_suffix(_fmt_ext))
 
-    save_col1, save_col2 = st.columns([4, 1])
-    with save_col1:
-        save_path = st.text_input("Save path", value=st.session_state.save_path, key="save_path_input")
-        st.session_state.save_path = save_path
-    with save_col2:
-        st.markdown("<div style='margin-top:1.65rem'></div>", unsafe_allow_html=True)
-        if st.button("📂", key="browse_btn", help="Browse for save location"):
-            st.session_state["_browse_pending"] = True
-            st.rerun()
-
-    # Handle browse dialog in a separate step to avoid blocking page load
-    if st.session_state.get("_browse_pending"):
-        st.session_state["_browse_pending"] = False
+    # Helper: open a native Save As dialog and return the chosen path (or None)
+    def _native_save_dialog(fmt: str, default_path: str):
         import subprocess as _sp
-        _init_dir = str(Path(st.session_state.save_path).parent)
-        _init_file = Path(st.session_state.save_path).name
+        _init_dir = str(Path(default_path).parent)
+        _init_file = Path(default_path).name
         _filter_str = (
             'Visio files (*.vsdx)|*.vsdx|All files (*.*)|*.*'
-            if "vsdx" in save_format
+            if "vsdx" in fmt
             else 'draw.io files (*.drawio)|*.drawio|All files (*.*)|*.*'
-            if "drawio" in save_format
+            if "drawio" in fmt
             else 'Mermaid files (*.mmd)|*.mmd|All files (*.*)|*.*'
         )
         # WinForms dialog via PowerShell with -STA to avoid threading issues
@@ -857,14 +897,24 @@ with st.sidebar:
                 ["powershell", "-NoProfile", "-STA", "-Command", _ps_script],
                 capture_output=True, text=True, timeout=120,
             )
-            _chosen = _result.stdout.strip()
+            return _result.stdout.strip() or None
+        except Exception as e:
+            st.warning(f"Save dialog failed: {e}")
+            return None
+
+    save_col1, save_col2 = st.columns([4, 1])
+    with save_col1:
+        save_path = st.text_input("Save path", value=st.session_state.save_path, key="save_path_input")
+        st.session_state.save_path = save_path
+    with save_col2:
+        st.markdown("<div style='margin-top:1.65rem'></div>", unsafe_allow_html=True)
+        if st.button("📂", key="browse_btn", help="Browse for save location"):
+            _chosen = _native_save_dialog(save_format, st.session_state.save_path)
             if _chosen:
                 st.session_state.save_path = _chosen
                 st.rerun()
             else:
                 st.info("Browse cancelled.")
-        except Exception as e:
-            st.warning(f"Browse dialog failed: {e}")
 
     if "vsdx" in save_format:
         _save_label = "💾 Save as .vsdx"
@@ -880,38 +930,43 @@ with st.sidebar:
                 _fmt_key = "drawio"
             else:
                 _fmt_key = "mermaid"
-            # Ensure output directory exists
-            save_path = st.session_state.save_path
-            save_dir = Path(save_path).parent
-            save_dir.mkdir(parents=True, exist_ok=True)
-            _spinner_msg = (
-                "Saving diagram (Visio rendering may take a moment)..."
-                if _fmt_key == "vsdx"
-                else "Saving diagram as draw.io..."
-                if _fmt_key == "drawio"
-                else "Saving diagram as Mermaid..."
-            )
-            with st.spinner(_spinner_msg):
-                try:
-                    result = st.session_state.mcp_client.call_tool(
-                        "save_diagram", {"output_path": save_path, "format": _fmt_key}, timeout=300
-                    )
-                except TimeoutError:
-                    st.error("Save timed out — try again.")
-                    result = None
-                except Exception as e:
-                    st.error(f"Save failed: {e}")
-                    result = None
-            if result and result.get("status") == "saved":
-                saved_to = result.get('output_path', save_path)
-                st.success(f"Saved to {saved_to}")
-                if os.path.isfile(saved_to):
-                    file_size = os.path.getsize(saved_to)
-                    st.caption(f"File size: {file_size / 1024:.1f} KB")
-                else:
-                    st.warning("File not found at reported path.")
-            elif result:
-                st.error(result.get("message", "Save failed"))
+            # Prompt the user for the save location
+            save_path = _native_save_dialog(save_format, st.session_state.save_path)
+            if not save_path:
+                st.info("Save cancelled.")
+            else:
+                st.session_state.save_path = save_path
+                # Ensure output directory exists
+                save_dir = Path(save_path).parent
+                save_dir.mkdir(parents=True, exist_ok=True)
+                _spinner_msg = (
+                    "Saving diagram (Visio rendering may take a moment)..."
+                    if _fmt_key == "vsdx"
+                    else "Saving diagram as draw.io..."
+                    if _fmt_key == "drawio"
+                    else "Saving diagram as Mermaid..."
+                )
+                with st.spinner(_spinner_msg):
+                    try:
+                        result = st.session_state.mcp_client.call_tool(
+                            "save_diagram", {"output_path": save_path, "format": _fmt_key}, timeout=300
+                        )
+                    except TimeoutError:
+                        st.error("Save timed out — try again.")
+                        result = None
+                    except Exception as e:
+                        st.error(f"Save failed: {e}")
+                        result = None
+                if result and result.get("status") == "saved":
+                    saved_to = result.get('output_path', save_path)
+                    st.success(f"Saved to {saved_to}")
+                    if os.path.isfile(saved_to):
+                        file_size = os.path.getsize(saved_to)
+                        st.caption(f"File size: {file_size / 1024:.1f} KB")
+                    else:
+                        st.warning("File not found at reported path.")
+                elif result:
+                    st.error(result.get("message", "Save failed"))
 
     # Reset
     if st.button("🗑️ Reset Conversation", use_container_width=True):
@@ -984,20 +1039,11 @@ Use **💡 Business → Architecture** in the sidebar to describe a business nee
 GitHub Copilot auth is auto-detected from `gh auth login`.
 """)
 
-    # Screenshot/image paste uploader
-    with st.expander("📋 Paste or attach a screenshot", expanded=False):
-        pasted_files = st.file_uploader(
-            "Drop, browse, or paste (Ctrl+V) an image here",
-            type=["png", "jpg", "jpeg", "gif", "webp", "bmp"],
-            accept_multiple_files=True,
-            key="screenshot_paste",
-        )
-
-    # Chat input with file drag-and-drop support
+    # Chat input with file drag-and-drop support (click + or drag files in)
     if chat_value := st.chat_input(
         "Describe your Azure architecture... (or drag files here)",
         accept_file="multiple",
-        file_type=["png", "jpg", "jpeg", "gif", "webp", "pdf", "txt", "md", "json", "yaml", "yml", "csv"],
+        file_type=["png", "jpg", "jpeg", "gif", "webp", "bmp", "pdf", "txt", "md", "json", "yaml", "yml", "csv"],
     ):
         # Handle both plain string and ChatInputValue with files
         if isinstance(chat_value, str):
@@ -1027,17 +1073,6 @@ GitHub Copilot auth is auto-detected from `gh auth login`.
                 attachments.append({
                     "type": "document",
                     "text": text,
-                    "name": uf.name,
-                })
-
-        # Include images from the screenshot paste uploader
-        if pasted_files:
-            for uf in pasted_files:
-                mime = uf.type or "image/png"
-                attachments.append({
-                    "type": "image",
-                    "data": base64.b64encode(uf.getvalue()).decode(),
-                    "media_type": mime,
                     "name": uf.name,
                 })
 
