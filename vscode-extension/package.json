@@ -30,6 +30,11 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatSkills": [
+      {
+        "path": "./skills/azure-diagram-authoring/SKILL.md"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "azure-visio-assistant.azureVisio",

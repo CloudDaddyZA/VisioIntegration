@@ -19,16 +19,69 @@ APP = ROOT / "app"
 STENCILS = SRC / "visio_mcp" / "stencils"
 
 # ── Collect Streamlit's runtime data ──────────────────────────────
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_submodules,
+    copy_metadata,
+)
 
 streamlit_datas = collect_data_files("streamlit")
 streamlit_hiddens = collect_submodules("streamlit")
+
+# Streamlit (and several deps) read their version via importlib.metadata at
+# import time. Frozen apps must ship the .dist-info metadata or the import
+# fails with StopIteration. Copy metadata for the packages that do this.
+metadata_packages = [
+    "streamlit",
+    "altair",
+    "pandas",
+    "numpy",
+    "pyarrow",
+    "pydeck",
+    "tornado",
+    "rich",
+    "click",
+    "gitpython",
+    "pillow",
+    "protobuf",
+    "packaging",
+    "pythonnet",
+    "clr_loader",
+]
+metadata_datas = []
+for _pkg in metadata_packages:
+    try:
+        metadata_datas += copy_metadata(_pkg)
+    except Exception:
+        pass  # package not installed / no metadata — skip
+
+# ── pythonnet / clr (pywebview Windows backend) ─────────────────────
+# pywebview's WinForms/EdgeChromium backend imports ``clr`` (provided by
+# pythonnet). PyInstaller can't follow the native runtime, so collect its
+# modules, data files, and bundled .NET DLLs explicitly.
+pythonnet_datas = []
+pythonnet_binaries = []
+pythonnet_hiddens = []
+for _pkg in ("pythonnet", "clr_loader"):
+    try:
+        pythonnet_datas += collect_data_files(_pkg, include_py_files=True)
+        pythonnet_hiddens += collect_submodules(_pkg)
+    except Exception:
+        pass
+try:
+    from PyInstaller.utils.hooks import collect_dynamic_libs
+    pythonnet_binaries += collect_dynamic_libs("pythonnet")
+    pythonnet_binaries += collect_dynamic_libs("clr_loader")
+except Exception:
+    pass
 
 # ── Analysis ──────────────────────────────────────────────────────
 a = Analysis(
     [str(APP / "desktop.py")],
     pathex=[str(SRC), str(ROOT)],
-    binaries=[],
+    binaries=[
+        *pythonnet_binaries,
+    ],
     datas=[
         # App source files (Streamlit needs to read them at runtime)
         (str(APP / "streamlit_app.py"), "app"),
@@ -47,6 +100,10 @@ a = Analysis(
         *( [(str(STENCILS), "visio_mcp/stencils")] if STENCILS.exists() else [] ),
         # Streamlit runtime files
         *streamlit_datas,
+        # Package metadata (importlib.metadata version lookups)
+        *metadata_datas,
+        # pythonnet / clr runtime (pywebview Windows backend)
+        *pythonnet_datas,
     ],
     hiddenimports=[
         # App modules
@@ -70,6 +127,11 @@ a = Analysis(
         "visio_mcp.pricing_import",
         # pywebview backend
         "webview",
+        # pythonnet / clr (pywebview Windows GUI backend)
+        "clr",
+        "clr_loader",
+        "pythonnet",
+        *pythonnet_hiddens,
         # pywin32 (Visio COM)
         "win32com",
         "win32com.client",

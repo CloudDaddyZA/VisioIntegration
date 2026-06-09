@@ -115,18 +115,19 @@ graph TD
 
     MCP_C -->|"stdio (JSON-RPC)"| Server
 
-    subgraph Server["MCP Server (FastMCP · 31 tools)"]
+    subgraph Server["MCP Server (FastMCP · 32 tools)"]
         subgraph Core["Diagram Core"]
             State["Diagram State"]
-            Layout["Layout Engine<br/>(tiered / grouped / hybrid)"]
+            Layout["Layout Engine<br/>(tiered / grid / grouped)"]
             Visio["Visio COM Engine"]
             Drawio["Draw.io Engine"]
+            Mermaid["Mermaid Engine"]
         end
 
         subgraph Knowledge["Architecture Knowledge"]
             RefArch["Reference Architectures<br/>(×16 templates)"]
             Catalog["Architecture Catalog<br/>(206 entries)"]
-            Styles["14 Styles · 50 Patterns"]
+            Styles["39 Styles · 50 Patterns"]
         end
 
         subgraph Validation["Validation"]

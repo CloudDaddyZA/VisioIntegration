@@ -106,17 +106,27 @@ class VisioMCPClient:
 
     async def _session_lifecycle(self) -> None:
         """Run the MCP session for the lifetime of the background loop."""
-        python_exe = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
-
         # Build env: inherit current environment, overlay PYTHONPATH
         import os as _os
         env = dict(_os.environ)
-        env["PYTHONPATH"] = str(_SRC_DIR)
+
+        if getattr(sys, "frozen", False):
+            # Packaged app: re-launch this same exe in MCP-server mode (the
+            # frozen bootloader can't run "python -m visio_mcp.server").
+            command = sys.executable
+            args: list[str] = []
+            env["VISIO_MCP_SERVER_CHILD"] = "1"
+            cwd = str(Path(sys.executable).resolve().parent)
+        else:
+            command = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
+            args = ["-m", "visio_mcp.server"]
+            env["PYTHONPATH"] = str(_SRC_DIR)
+            cwd = str(_WORKSPACE)
 
         server_params = StdioServerParameters(
-            command=python_exe,
-            args=["-m", "visio_mcp.server"],
-            cwd=str(_WORKSPACE),
+            command=command,
+            args=args,
+            cwd=cwd,
             env=env,
         )
 
