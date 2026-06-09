@@ -9,6 +9,9 @@ description = "MCP server for drawing Azure architecture diagrams in Visio with 
 requires-python = ">=3.11"
 dependencies = [
     "mcp[cli]>=1.0.0,<2",
+    # Security floor for transitive dep of mcp: PyJWT < 2.13.0 has 4 advisories
+    # (GHSA-jq35-7prp-9v3f, GHSA-993g-76c3-p5m4, GHSA-w7vc-732c-9m39, GHSA-xgmm-8j9v-c9wx).
+    "pyjwt>=2.13.0,<3",
     "pydantic>=2.0.0,<3",
     "pywin32>=306,<400",
     "playwright>=1.40.0,<2",
