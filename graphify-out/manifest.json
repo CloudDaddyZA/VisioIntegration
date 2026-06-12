@@ -1,0 +1,462 @@
+{
+  "app/__init__.py": {
+    "mtime": 1775547627.7569752,
+    "ast_hash": "11517289475d94369db53c37a4f148f0",
+    "semantic_hash": ""
+  },
+  "app/ai_agent.py": {
+    "mtime": 1780057685.5620227,
+    "ast_hash": "ad3d3b570892b5a04469dfbd7371adfd",
+    "semantic_hash": ""
+  },
+  "app/components/__init__.py": {
+    "mtime": 1778137088.111495,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "app/components/paste_image.py": {
+    "mtime": 1778137286.2458065,
+    "ast_hash": "14fb74b23bcd0f23ac2a53cd95b0aabf",
+    "semantic_hash": ""
+  },
+  "app/desktop.py": {
+    "mtime": 1780990576.391821,
+    "ast_hash": "9f234934d73c190625b396df89e6cc71",
+    "semantic_hash": ""
+  },
+  "app/diagram_preview.py": {
+    "mtime": 1777984260.8274648,
+    "ast_hash": "daf0fa33ae7f1abd712c9e3a7ce99d03",
+    "semantic_hash": ""
+  },
+  "app/mcp_client.py": {
+    "mtime": 1780991059.6379292,
+    "ast_hash": "50892508d44e6e92dbeb26a1a577a7e7",
+    "semantic_hash": ""
+  },
+  "app/run.py": {
+    "mtime": 1775547627.7639766,
+    "ast_hash": "1e198a7694270248ba8c108ff174fbae",
+    "semantic_hash": ""
+  },
+  "app/streamlit_app.py": {
+    "mtime": 1780058634.9070134,
+    "ast_hash": "c932e969299a753f675d18964e2eeb90",
+    "semantic_hash": ""
+  },
+  "scripts/analyze_toc.py": {
+    "mtime": 1775720531.0250347,
+    "ast_hash": "673c456c4c9737c8867445608def7658",
+    "semantic_hash": ""
+  },
+  "scripts/build_catalog.py": {
+    "mtime": 1775721700.5107672,
+    "ast_hash": "d028e8ecc56da088cfe4d46d4736eefe",
+    "semantic_hash": ""
+  },
+  "scripts/build_desktop.py": {
+    "mtime": 1776082931.339442,
+    "ast_hash": "a21baf96bc693173ea04cb8824624c52",
+    "semantic_hash": ""
+  },
+  "scripts/create_overview_pptx.py": {
+    "mtime": 1776695422.823885,
+    "ast_hash": "4d1371de7404037a4969e3fbb9916f65",
+    "semantic_hash": ""
+  },
+  "scripts/extract_architectures.py": {
+    "mtime": 1775720445.291847,
+    "ast_hash": "496d15f5c069e098e13e63c8929a7328",
+    "semantic_hash": ""
+  },
+  "scripts/find_arch_files.py": {
+    "mtime": 1775720655.5928988,
+    "ast_hash": "96ef17bd1884673a1d5992b745b99c2f",
+    "semantic_hash": ""
+  },
+  "scripts/gen_architecture_diagram.py": {
+    "mtime": 1777884390.8587005,
+    "ast_hash": "41e3b3ac53c9fa66e3ae025f03290a6f",
+    "semantic_hash": ""
+  },
+  "scripts/generate_catalog_code.py": {
+    "mtime": 1775721257.8156545,
+    "ast_hash": "29b4c4b7f370f2610a88ae326b081206",
+    "semantic_hash": ""
+  },
+  "scripts/test_aliases.py": {
+    "mtime": 1775725923.4058938,
+    "ast_hash": "77a6c9738eb9319128563cfe615ee2c9",
+    "semantic_hash": ""
+  },
+  "scripts/test_catalog.py": {
+    "mtime": 1775722176.98237,
+    "ast_hash": "b27e5d4f51e5ca24a6daf4c3827d4c2c",
+    "semantic_hash": ""
+  },
+  "scripts/test_new_shapes.py": {
+    "mtime": 1775725923.3883471,
+    "ast_hash": "a53ac66ef7129792bc60885c509fe576",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/__init__.py": {
+    "mtime": 1775131893.3957624,
+    "ast_hash": "8c77c4f6cc2737139788a771bf6756ad",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/__main__.py": {
+    "mtime": 1775131893.3957624,
+    "ast_hash": "42299a6ccb07d65938a26c98cfa4d5b5",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/_state.py": {
+    "mtime": 1779693966.8892002,
+    "ast_hash": "648d6dd5ed83d9c3f8a6b81a07c3f641",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/azure_catalog.py": {
+    "mtime": 1780039916.3778524,
+    "ast_hash": "05935eee9bfcea04565c949dee11f136",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/azure_sku_grounding.py": {
+    "mtime": 1778740269.3879087,
+    "ast_hash": "191bb478aa5e2f5f79ab2c206e42ecea",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/caf_validator.py": {
+    "mtime": 1776941835.800351,
+    "ast_hash": "31d1887ef9080e79afba3504fd22c9d7",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/diagram_state.py": {
+    "mtime": 1779435936.6567628,
+    "ast_hash": "2f19b21d180e422c6d63265db95d2e3e",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/drawio_engine.py": {
+    "mtime": 1779715630.0872812,
+    "ast_hash": "d7bbdbdd69e31d1cf89bc503dd7d4d03",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/layout_engine.py": {
+    "mtime": 1779715630.083279,
+    "ast_hash": "4a2b0089f49472368c85fe8d7a1d2c2b",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/mermaid_engine.py": {
+    "mtime": 1780045970.5091043,
+    "ast_hash": "f58911901844720c2368682602ebfff9",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/models.py": {
+    "mtime": 1779693966.8742087,
+    "ast_hash": "cd1ac6a0db23092ed1af042a7674e947",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/pricing_import.py": {
+    "mtime": 1778052846.5006802,
+    "ast_hash": "3308c0525eaa4c68f96e58e93fcd4e8a",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/reference_architectures.py": {
+    "mtime": 1779715630.0742784,
+    "ast_hash": "b9df507e0801ae504e22caf29843732c",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/server.py": {
+    "mtime": 1779694773.5057595,
+    "ast_hash": "2996fe310464399f9b6a30429f39469d",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/__init__.py": {
+    "mtime": 1779694386.1027372,
+    "ast_hash": "397ad893b0c9805af669b621115c00e8",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/catalog_tools.py": {
+    "mtime": 1779694386.087717,
+    "ast_hash": "08575d58ddab6731f3801b9935bb2413",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/diagram_tools.py": {
+    "mtime": 1779694773.5057595,
+    "ast_hash": "a611fceea6b6d50fc2f8cfe1d1170adc",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/import_tools.py": {
+    "mtime": 1779694386.0937362,
+    "ast_hash": "6d244b0ab1c152145e2dd6502e3771f3",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/pricing_tools.py": {
+    "mtime": 1779694386.0997415,
+    "ast_hash": "52103cba98919ff449591906f23bfd96",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/prompts.py": {
+    "mtime": 1779694386.0977366,
+    "ast_hash": "4ee9d89638a386d978027c67c6019d99",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/reference_tools.py": {
+    "mtime": 1779694773.5333097,
+    "ast_hash": "ecf6e43c2f69782ffc70577fa5157237",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/save_tools.py": {
+    "mtime": 1780045970.5561063,
+    "ast_hash": "1fd27a3729d4085a10f566e99b023203",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/tools/validation_tools.py": {
+    "mtime": 1779694386.0837166,
+    "ast_hash": "42db0d887040f2d098cb01189c0af35f",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/visio_engine.py": {
+    "mtime": 1779696952.071569,
+    "ast_hash": "b494f841e4b0d3aa5983a88b990f6525",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/waf_validator.py": {
+    "mtime": 1776941835.7998488,
+    "ast_hash": "0c88a5213f20d43c4a10ae28a0cc0b28",
+    "semantic_hash": ""
+  },
+  "test_cost_debug.py": {
+    "mtime": 1778052846.4876876,
+    "ast_hash": "1cc70304ea95a033729661c7cee808dc",
+    "semantic_hash": ""
+  },
+  "tests/test_ai_landing_zone.py": {
+    "mtime": 1775138836.9673514,
+    "ast_hash": "13ad62c194723ccfe905c06f7765d7d2",
+    "semantic_hash": ""
+  },
+  "tests/test_caf_validator.py": {
+    "mtime": 1779693966.8802023,
+    "ast_hash": "aaca7abc7a7100257a6530a08e4fc932",
+    "semantic_hash": ""
+  },
+  "tests/test_drawio_engine.py": {
+    "mtime": 1779693966.8852034,
+    "ast_hash": "df6843a5c0768e4cf175743390397d78",
+    "semantic_hash": ""
+  },
+  "tests/test_layout_engine.py": {
+    "mtime": 1779693966.8832006,
+    "ast_hash": "25141d4c43b8fb9347deb3c41f42d728",
+    "semantic_hash": ""
+  },
+  "tests/test_mermaid_engine.py": {
+    "mtime": 1780045970.5091043,
+    "ast_hash": "53d143ac03ed680d4f1247be8ffaaeb3",
+    "semantic_hash": ""
+  },
+  "tests/test_reference_arch.py": {
+    "mtime": 1775139752.975712,
+    "ast_hash": "d363cd33ffe7bdd593e0d0547eff5a77",
+    "semantic_hash": ""
+  },
+  "tests/test_sku_grounding.py": {
+    "mtime": 1778740269.3879087,
+    "ast_hash": "b5464ff42df8bbd385426810494bc798",
+    "semantic_hash": ""
+  },
+  "tests/test_waf_validator.py": {
+    "mtime": 1779693966.8782008,
+    "ast_hash": "1198c4d9d4abbe4d122ea58f6d994fee",
+    "semantic_hash": ""
+  },
+  "vscode-extension/package.json": {
+    "mtime": 1780987667.1346717,
+    "ast_hash": "6ba83a32925abd756ab19a35e9a09219",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/chatParticipant.ts": {
+    "mtime": 1780046459.1832263,
+    "ast_hash": "dded828dfd89f64a508362583fe8b390",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/diagramPreview.ts": {
+    "mtime": 1776149883.085528,
+    "ast_hash": "29e2f6c591924e68c005c2cded87497b",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/extension.ts": {
+    "mtime": 1780046459.1832263,
+    "ast_hash": "656dff7a1962ba7dc51d2b454a9ac1f4",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/mcpServer.ts": {
+    "mtime": 1776151935.814209,
+    "ast_hash": "8550572f3a23237a46e06526c8dfe1e3",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/views/connectionTree.ts": {
+    "mtime": 1776154042.720163,
+    "ast_hash": "c255371460313e8309e2f3f0cc52d055",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/views/resourceTree.ts": {
+    "mtime": 1776154042.720163,
+    "ast_hash": "a7cd4550446b9dbac89aa84b21d80d14",
+    "semantic_hash": ""
+  },
+  "vscode-extension/src/views/validationTree.ts": {
+    "mtime": 1776149931.2883968,
+    "ast_hash": "e3258cb40bac46ee5050c6130a0ab762",
+    "semantic_hash": ""
+  },
+  "vscode-extension/tsconfig.json": {
+    "mtime": 1776149774.1095731,
+    "ast_hash": "3225a3606a5ebf00d5a9cfed39b95fe9",
+    "semantic_hash": ""
+  },
+  ".github/copilot-instructions.md": {
+    "mtime": 1781245807.0168474,
+    "ast_hash": "2eafdffabcff8d144a0be2f6bfea6a9c",
+    "semantic_hash": ""
+  },
+  ".github/prompts/apply-reference-architecture.prompt.md": {
+    "mtime": 1780987667.1346717,
+    "ast_hash": "52e6fb0a2f3ce391de5b2ddc4d08d8a7",
+    "semantic_hash": ""
+  },
+  ".github/prompts/generate-azure-diagram.prompt.md": {
+    "mtime": 1780987667.1346717,
+    "ast_hash": "823a62c495f745f961fa7a913f3a9854",
+    "semantic_hash": ""
+  },
+  ".github/prompts/save-azure-diagram.prompt.md": {
+    "mtime": 1780987667.135675,
+    "ast_hash": "b23856958ab0e23e4a8df99bde23aa59",
+    "semantic_hash": ""
+  },
+  ".github/prompts/validate-and-improve.prompt.md": {
+    "mtime": 1780987667.1346717,
+    "ast_hash": "debc44c1416bc0e34f66313e0d21b5d5",
+    "semantic_hash": ""
+  },
+  ".github/skills/azure-diagram-authoring/SKILL.md": {
+    "mtime": 1780987667.1366765,
+    "ast_hash": "343285bfd7231fc9188c1823062dba41",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1780988059.7438214,
+    "ast_hash": "428db09d61d5dddb04849b5a073deecb",
+    "semantic_hash": ""
+  },
+  "SKILL.md": {
+    "mtime": 1779432196.9247289,
+    "ast_hash": "3b4c6926be04c262a990e5cc6cacbca8",
+    "semantic_hash": ""
+  },
+  "app/README.md": {
+    "mtime": 1780046459.1832263,
+    "ast_hash": "db9e0751511f7a91d897cbf857d25c56",
+    "semantic_hash": ""
+  },
+  "app/components/paste_image_frontend/index.html": {
+    "mtime": 1778137286.344616,
+    "ast_hash": "1ef4808fba1894d66d74a8d0e0cf22f6",
+    "semantic_hash": ""
+  },
+  "docs/README.md": {
+    "mtime": 1780046459.1892269,
+    "ast_hash": "d1a23f1afdba324a71887110e0a3382f",
+    "semantic_hash": ""
+  },
+  "docs/video/walkthrough.html": {
+    "mtime": 1780059138.1423364,
+    "ast_hash": "4bab1ae466c67e4ef9803b91698ff855",
+    "semantic_hash": ""
+  },
+  "src/visio_mcp/README.md": {
+    "mtime": 1780046459.1822214,
+    "ast_hash": "0625fabdff3c7c0d66c7e3e77f867adb",
+    "semantic_hash": ""
+  },
+  "tests/README.md": {
+    "mtime": 1780046459.1832263,
+    "ast_hash": "92e131abc3fa99d16d5ccb59b58ea866",
+    "semantic_hash": ""
+  },
+  "vscode-extension/LICENSE.md": {
+    "mtime": 1779438161.5649085,
+    "ast_hash": "42e6f37f6fed6b02795680b615b5650d",
+    "semantic_hash": ""
+  },
+  "vscode-extension/README.md": {
+    "mtime": 1780046459.1842265,
+    "ast_hash": "725cb37741df6a5fdfe610d1d5b0bf8d",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/chat.md": {
+    "mtime": 1779437338.5951304,
+    "ast_hash": "71107eee81ec9c882eb6c9568ca62b8e",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/improve.md": {
+    "mtime": 1779437338.5951304,
+    "ast_hash": "9524fb1644b6aa46b76d1ec9550955c3",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/pricing.md": {
+    "mtime": 1779437338.6031253,
+    "ast_hash": "d85430b9e29dc04ef97a368a215b32af",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/reference.md": {
+    "mtime": 1779437338.5951304,
+    "ast_hash": "474f2d96859c0feb4108cc6384aa5548",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/save.md": {
+    "mtime": 1779437338.6031253,
+    "ast_hash": "f4594fded805e5d20bdd9e2de196b836",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/walkthrough/validate.md": {
+    "mtime": 1779437338.5951304,
+    "ast_hash": "314d09756bd9bf4b23a2dfb7a49097ae",
+    "semantic_hash": ""
+  },
+  "vscode-extension/skills/azure-diagram-authoring/SKILL.md": {
+    "mtime": 1780987667.1366765,
+    "ast_hash": "239d72252f8a6fee05b36fcb06fe31fb",
+    "semantic_hash": ""
+  },
+  "app/assets/logo.png": {
+    "mtime": 1777020541.2336717,
+    "ast_hash": "75f5e70b9708213263ff925b29f8c9dd",
+    "semantic_hash": ""
+  },
+  "docs/architecture.png": {
+    "mtime": 1777884272.071231,
+    "ast_hash": "43fe9fe73f5d34ffcf5d4c0dd6230b03",
+    "semantic_hash": ""
+  },
+  "logo.png": {
+    "mtime": 1776849076.0928195,
+    "ast_hash": "01cf147f30c47fc093fd3b8ef60759f6",
+    "semantic_hash": ""
+  },
+  "small-logo.png": {
+    "mtime": 1776931356.5272052,
+    "ast_hash": "7ac75188715226c6c6e531cfc2f52e05",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/icon.png": {
+    "mtime": 1781016959.7247844,
+    "ast_hash": "ca33ead07da9c1d37619881c2b61d602",
+    "semantic_hash": ""
+  },
+  "vscode-extension/media/sidebar-icon.svg": {
+    "mtime": 1781016818.388042,
+    "ast_hash": "d550f8ed77a01baaddc7fb19e81ac462",
+    "semantic_hash": ""
+  }
+}
